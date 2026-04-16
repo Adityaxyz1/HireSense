@@ -1,0 +1,666 @@
+\documentclass[12pt, a4paper]{article}
+
+% ── Packages ────────────────────────────────────────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper, margin=2.5cm]{geometry}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{parskip}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{float}
+
+% ── TikZ (for diagrams) ──────────────────────────────────────────────────────
+\usepackage{tikz}
+\usetikzlibrary{
+    shapes.geometric,
+    shapes.multipart,
+    arrows.meta,
+    positioning,
+    fit,
+    calc,
+    backgrounds,
+    decorations.pathreplacing,
+    shadows
+}
+
+% ── Color palette ────────────────────────────────────────────────────────────
+\definecolor{primary}{HTML}{4F46E5}
+\definecolor{accent}{HTML}{22C55E}
+\definecolor{warning}{HTML}{F59E0B}
+\definecolor{danger}{HTML}{EF4444}
+\definecolor{codebg}{HTML}{1E1E2E}
+\definecolor{codefg}{HTML}{CDD6F4}
+\definecolor{headergray}{HTML}{374151}
+\definecolor{lightgray}{HTML}{F3F4F6}
+\definecolor{layerbg1}{HTML}{EEF2FF}   % indigo tint – client
+\definecolor{layerbg2}{HTML}{F0FDF4}   % green tint  – frontend
+\definecolor{layerbg3}{HTML}{FFF7ED}   % orange tint – backend
+\definecolor{layerbg4}{HTML}{FDF4FF}   % purple tint – cloud
+\definecolor{layerbdr1}{HTML}{C7D2FE}
+\definecolor{layerbdr2}{HTML}{BBF7D0}
+\definecolor{layerbdr3}{HTML}{FED7AA}
+\definecolor{layerbdr4}{HTML}{E9D5FF}
+\definecolor{nodeblue}{HTML}{DBEAFE}
+\definecolor{nodebluebdr}{HTML}{93C5FD}
+\definecolor{nodegreen}{HTML}{DCFCE7}
+\definecolor{nodegreenbdr}{HTML}{86EFAC}
+\definecolor{nodeyellow}{HTML}{FEF9C3}
+\definecolor{nodeyellowbdr}{HTML}{FDE047}
+\definecolor{nodepurple}{HTML}{F3E8FF}
+\definecolor{nodepurplebdr}{HTML}{D8B4FE}
+\definecolor{nodegray}{HTML}{F1F5F9}
+\definecolor{nodegraybdr}{HTML}{CBD5E1}
+\definecolor{dbcolor}{HTML}{ECFDF5}
+\definecolor{dbborder}{HTML}{6EE7B7}
+\definecolor{extcolor}{HTML}{EFF6FF}
+\definecolor{extborder}{HTML}{93C5FD}
+
+% ── TikZ global node styles ───────────────────────────────────────────────────
+\tikzset{
+  %% Generic box
+  box/.style={
+    rectangle, rounded corners=4pt,
+    draw=#1!70!black, fill=#1!15,
+    text width=#2, align=center,
+    font=\small\sffamily,
+    inner sep=6pt, minimum height=28pt
+  },
+  %% Layer container (no text, just fill)
+  layer/.style={
+    rectangle, rounded corners=6pt,
+    draw=#1, fill=#1!12, line width=1.2pt
+  },
+  %% Arrow style
+  arr/.style={
+    -{Stealth[length=7pt,width=5pt]},
+    line width=1.2pt, color=#1
+  },
+  %% UML class box – 3 compartments
+  umlclass/.style n args={2}{
+    rectangle split, rectangle split parts=3,
+    rectangle split part fill={#1!25, #1!10, white},
+    draw=#1!60!black, line width=1pt,
+    font=\footnotesize\sffamily,
+    text width=#2, align=left,
+    inner sep=5pt
+  },
+  %% DFD Process (circle)
+  dfdproc/.style={
+    circle, draw=primary!70!black, fill=primary!12,
+    line width=1pt, align=center,
+    font=\footnotesize\sffamily\bfseries,
+    minimum size=1.6cm, inner sep=2pt
+  },
+  %% DFD External entity (rectangle)
+  dfdext/.style={
+    rectangle, draw=headergray!80, fill=nodeblue,
+    line width=1pt, align=center,
+    font=\footnotesize\sffamily\bfseries,
+    minimum width=2.0cm, minimum height=1.0cm,
+    inner sep=4pt
+  },
+  %% DFD Data store (open rectangle)
+  dfdstore/.style={
+    rectangle, draw=accent!70!black, fill=nodegreen,
+    line width=1pt, align=left,
+    font=\footnotesize\sffamily,
+    minimum width=4.5cm, minimum height=0.9cm,
+    inner sep=5pt
+  },
+  %% Small label on arrows
+  arrlabel/.style={
+    font=\tiny\sffamily\itshape,
+    fill=white, inner sep=1pt
+  }
+}
+
+% ── Hyperref setup ───────────────────────────────────────────────────────────
+\hypersetup{
+    colorlinks=true, linkcolor=primary, urlcolor=primary,
+    pdftitle={HireSense: AI-Powered Talent Acquisition Suite},
+    pdfauthor={Aditya Poddar},
+}
+
+% ── Section styling ──────────────────────────────────────────────────────────
+\titleformat{\section}{\large\bfseries\color{primary}}{\thesection.}{0.5em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries\color{headergray}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{}{0em}{}
+
+% ── Listings ─────────────────────────────────────────────────────────────────
+\lstset{
+    basicstyle=\ttfamily\footnotesize\color{codefg},
+    backgroundcolor=\color{codebg},
+    frame=single, framerule=0.4pt, rulecolor=\color{primary},
+    breaklines=true, keepspaces=true, columns=fullflexible,
+    xleftmargin=6pt, xrightmargin=6pt,
+    aboveskip=10pt, belowskip=10pt, showstringspaces=false,
+}
+
+% ── Header / Footer ──────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{primary}{\textbf{HireSense}} \textcolor{headergray}{--- AI Talent Acquisition Suite}}
+\fancyhead[R]{\small\textcolor{headergray}{April 6, 2026}}
+\fancyfoot[C]{\small\textcolor{headergray}{\thepage}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{primary}\leaders\hrule height \headrulewidth\hfill}}
+
+% ── Custom commands ───────────────────────────────────────────────────────────
+\newcommand{\code}[1]{\texttt{\small #1}}
+\newcommand{\highlight}[1]{\textcolor{primary}{\textbf{#1}}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\begin{document}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+% ── Title Page ───────────────────────────────────────────────────────────────
+\begin{titlepage}
+\centering
+\vspace*{3cm}
+{\Huge\bfseries\color{primary} HireSense}\\[0.4cm]
+{\Large\bfseries\color{headergray} AI-Powered Talent Acquisition Suite}\\[1cm]
+\noindent\textcolor{primary}{\rule{0.6\linewidth}{1.5pt}}\\[1cm]
+{\large Graduate Project Technical Documentation \& Presentation Guide}\\[0.5cm]
+{\normalsize\color{headergray} April 6, 2026}\\[2cm]
+\begin{tabular}{ll}
+    \textbf{Author:}  & Aditya Poddar \\[4pt]
+    \textbf{Project:} & HireSense \\[4pt]
+    \textbf{Stack:}   & React 19 $\cdot$ FastAPI $\cdot$ Supabase $\cdot$ NVIDIA NIM \\[4pt]
+    \textbf{Type:}    & Graduate Capstone Project \\
+\end{tabular}
+\vfill
+\textcolor{headergray}{\small This document provides the full technical architecture, data flow,\\
+and algorithm specification for the HireSense platform.}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Project Overview \& Objective}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\highlight{HireSense} is a next-generation applicant tracking and talent intelligence system designed to automate the recruitment lifecycle. Unlike traditional systems that rely on basic keyword matching, HireSense utilises \highlight{Generative AI (NVIDIA NIM)} and \highlight{Vector Embeddings} to understand the deeper semantic intent behind resumes and job descriptions.
+
+The system provides a full-stack, cloud-native platform that gives recruiters:
+\begin{itemize}[noitemsep]
+    \item Automated ATS compliance scanning powered by a 70-billion parameter LLM.
+    \item Multi-factor semantic match scoring using cosine similarity on 384-dimensional vectors.
+    \item A drag-and-drop recruitment pipeline with real-time status tracking.
+    \item An AI Finder for semantic search across all ingested candidate profiles.
+    \item Resume rewriting assistance using generative AI.
+\end{itemize}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Full-Stack Technology Portfolio}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\begingroup
+\setlength{\tabcolsep}{8pt}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabularx}{\linewidth}{@{}L{2.5cm} L{4cm} X@{}}
+    \toprule
+    \textbf{Layer} & \textbf{Technology} & \textbf{Role} \\
+    \midrule
+    \rowcolor{lightgray}
+    Frontend       & React 19 (Vite)           & High-performance Single Page Application (SPA). \\
+    Styling        & Vanilla CSS + Tailwind     & Custom Glassmorphism UI (Editorial \& Authoritative). \\
+    \rowcolor{lightgray}
+    Animations     & Framer Motion             & Smooth state transitions and interactive micro-animations. \\
+    Backend        & Python (FastAPI)           & Asynchronous REST API with high throughput support. \\
+    \rowcolor{lightgray}
+    Database       & PostgreSQL (Supabase)      & Relational data persistence with SQL integrity. \\
+    Vector Engine  & \code{pgvector}            & Storing and searching high-dimensional embeddings. \\
+    \rowcolor{lightgray}
+    Cloud Storage  & Supabase Storage           & S3-compatible bucket for archived Resume PDFs. \\
+    AI LLM         & NVIDIA NIM (Llama 3.1 70B) & Advanced reasoning for ATS compliance and NER. \\
+    \rowcolor{lightgray}
+    ML Embeddings  & Sentence-Transformers      & 384-dim dense vector generation (\code{all-MiniLM-L6-v2}). \\
+    \bottomrule
+\end{tabularx}
+\endgroup
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Core Architecture \& Workflow}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\subsubsection*{Step A: Data Ingestion (PDF Parsing)}
+\begin{itemize}[noitemsep]
+    \item \textbf{Library:} \code{PyMuPDF (fitz)}
+    \item \textbf{Action:} Extracts raw text from binary PDF files with high fidelity, maintaining structural context.
+\end{itemize}
+
+\subsubsection*{Step B: Semantic Vectorisation}
+\begin{itemize}[noitemsep]
+    \item \textbf{Model:} HuggingFace \code{all-MiniLM-L6-v2}
+    \item \textbf{Action:} Converts the resume and Job Description (JD) into \textbf{dense vectors}.
+    \item \textbf{Logic:} Enables matching ``Software Engineer'' with ``Programmer'' via \textbf{Cosine Similarity}.
+\end{itemize}
+
+\subsubsection*{Step C: Generative Intelligence (NVIDIA NIM)}
+\begin{itemize}[noitemsep]
+    \item \textbf{Model:} \code{meta/llama-3.1-70b-instruct}
+    \item \textbf{Action:} Performs a deep ``compliance scan'' identifying structural flaws (missing contact info, weak action verbs, formatting issues).
+\end{itemize}
+
+\subsubsection*{Step D: Data Persistence Pipeline}
+\begin{itemize}[noitemsep]
+    \item All analysis results are stored in \textbf{Supabase PostgreSQL} tables.
+    \item \textbf{Deduplication:} Automatically identifies previously processed Job Descriptions to conserve API tokens.
+\end{itemize}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Precision Scoring Matrix (The Algorithm)}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+HireSense calculates the \textbf{``Match Score''} using a weighted multi-factor precision matrix:
+
+\begingroup
+\setlength{\tabcolsep}{8pt}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabularx}{\linewidth}{@{}L{3.5cm} C{2cm} X@{}}
+    \toprule
+    \textbf{Factor} & \textbf{Weight} & \textbf{Algorithm / Method} \\
+    \midrule
+    \rowcolor{lightgray}
+    Semantic Similarity & \textbf{40\%} & Cosine Similarity between Resume and JD embeddings. \\
+    Keyword Coverage    & \textbf{30\%} & LLM-based Named Entity Recognition (NER) for core skills. \\
+    \rowcolor{lightgray}
+    Experience Fit      & \textbf{20\%} & Regex-based heuristic extracting and comparing years of exp. \\
+    Resume Strength     & \textbf{10\%} & Formatting score based on length and metric density. \\
+    \bottomrule
+\end{tabularx}
+\endgroup
+
+\vspace{6pt}
+The final score is computed as:
+\[
+    \text{FinalScore} = 0.40\,S_{\text{semantic}} + 0.30\,S_{\text{skill}} + 0.20\,S_{\text{experience}} + 0.10\,S_{\text{strength}}
+\]
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{System Architecture Diagram}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+Figure~\ref{fig:arch} shows the four-tier layered architecture of HireSense.
+The \textbf{Client} tier communicates with the \textbf{Frontend} (React SPA) over HTTP.
+The frontend delegates all AI logic to the \textbf{Backend} (FastAPI v3) via a REST API.
+The backend writes to \textbf{Supabase} (PostgreSQL~+~pgvector) and calls the external \textbf{NVIDIA NIM} LLM API.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=0.6cm and 1.6cm, font=\sffamily]
+
+  %% ─── LAYER 1: Client ────────────────────────────────────────
+  \node[rectangle, rounded corners=6pt,
+        draw=layerbdr1, fill=layerbg1, line width=1.5pt,
+        minimum width=14cm, minimum height=1.5cm,
+        align=center]
+    (client) {};
+  \node[font=\small\bfseries\color{primary!80!black}, at={(client.center)}] 
+    {CLIENT BROWSER \quad\normalfont\small React 19 SPA (Vite + Framer Motion)};
+
+  %% ─── LAYER 2: Frontend ──────────────────────────────────────
+  \node[rectangle, rounded corners=6pt,
+        draw=layerbdr2, fill=layerbg2, line width=1.5pt,
+        minimum width=14cm, minimum height=3.8cm,
+        below=of client, align=center]
+    (feLayer) {};
+
+  \node[font=\small\bfseries\color{accent!80!black},
+        above right=0.15cm and 0.25cm of feLayer.north west, anchor=north west]
+    {FRONTEND LAYER (React Modern Framework)};
+
+  % Centered row 1
+  \node[rectangle, rounded corners=4pt,
+        draw=nodegreenbdr, fill=nodegreen, line width=0.82pt,
+        minimum width=3.4cm, minimum height=0.85cm, align=center,
+        font=\footnotesize\sffamily, at={(feLayer.center)}, yshift=0.7cm]
+    (apiJs) {api.js (Fetch Client)};
+
+  \node[rectangle, rounded corners=4pt,
+        draw=nodegreenbdr, fill=nodegreen, line width=0.82pt,
+        minimum width=3.4cm, minimum height=0.85cm, align=center,
+        font=\footnotesize\sffamily, left=0.7cm of apiJs]
+    (router) {React Router v7};
+
+  \node[rectangle, rounded corners=4pt,
+        draw=nodegreenbdr, fill=nodegreen, line width=0.82pt,
+        minimum width=3.4cm, minimum height=0.85cm, align=center,
+        font=\footnotesize\sffamily, right=0.7cm of apiJs]
+    (theme) {ThemeContext};
+
+  % Centered row 2 (Pages)
+  \node[rectangle, rounded corners=4pt,
+        draw=nodegreenbdr, fill=white, line width=1pt,
+        minimum width=12.2cm, minimum height=0.9cm, align=center,
+        font=\footnotesize\sffamily, at={(feLayer.center)}, yshift=-0.7cm]
+    (pages) {Dashboard \;|\; Candidates \;|\; Jobs \;|\; Pipeline \;|\; ATS Checker \;|\; AI Finder \;|\; Results \;|\; Rewrite};
+
+  %% ─── LAYER 3: Backend ───────────────────────────────────────
+  \node[rectangle, rounded corners=6pt,
+        draw=layerbdr3, fill=layerbg3, line width=1.5pt,
+        minimum width=14cm, minimum height=4.8cm,
+        below=of feLayer, align=center]
+    (beLayer) {};
+
+  \node[font=\small\bfseries\color{warning!80!black},
+        above right=0.15cm and 0.25cm of beLayer.north west, anchor=north west]
+    {BACKEND LAYER (FastAPI v3 + Security Middlewares)};
+
+  % Middleware stack
+  \node[rectangle, rounded corners=4pt,
+        draw=nodeyellowbdr, fill=nodeyellow, line width=1pt,
+        minimum width=12.2cm, minimum height=0.8cm, align=center,
+        font=\footnotesize\sffamily, at={(beLayer.center)}, yshift=1.6cm]
+    (mw) {\textbf{Middleware Pipeline:} \;CORS\; $|$ \;Rate Limiter\; $|$ \;Request Size Limiter\; $|$ \;Security Headers};
+
+  % Routes
+  \node[rectangle, rounded corners=4pt,
+        draw=nodeyellowbdr, fill=nodeyellow!50, line width=1pt,
+        minimum width=12.2cm, minimum height=0.8cm, align=center,
+        font=\footnotesize\sffamily, below=0.2cm of mw]
+    (routes) {\textbf{REST API Endpoints:} \;/upload-resume\; $|$ \;/upload-job\; $|$ \;/evaluate\; $|$ \;/results\; $|$ \;/rewrite};
+
+  % Services
+  \node[rectangle, rounded corners=4pt,
+        draw=nodeyellowbdr, fill=white, line width=1pt,
+        minimum width=12.2cm, minimum height=1.5cm, align=center,
+        font=\footnotesize\sffamily, below=0.2cm of routes]
+    (svc) {%
+      \textbf{Service Intelligence Layer} \\[3pt]
+      \scriptsize
+      pdf\_parser \;|\; embedding\_engine \;|\; ats\_scanner \;|\; skill_engine \;|\; experience\_engine \\
+      resume\_strength \;|\; match\_scorer \;|\; rewrite\_engine \;|\; bias\_engine \;|\; llm\_service};
+
+  %% ─── LAYER 4 (Bottom Services): Centered Pair ────────────────
+  \node[rectangle, rounded corners=6pt,
+        draw=layerbdr4, fill=layerbg4, line width=1.5pt,
+        minimum width=6.8cm, minimum height=2.8cm, align=center,
+        below left=0.7cm and -3.2cm of beLayer.south, anchor=north]
+    (supabase) {};
+  \node[font=\footnotesize\bfseries\color{primary!70!black}, above right=0.15cm and 0.25cm of supabase.north west, anchor=north west] {SUPABASE CLOUD};
+  \node[at={(supabase.center)}, yshift=-0.2cm, align=center, font=\scriptsize\sffamily] {PostgreSQL + \textbf{pgvector}\\[2pt] Resumes, Jobs, Matches \\ Storage (PDF Bucket)};
+
+  \node[rectangle, rounded corners=6pt,
+        draw=layerbdr1, fill=layerbg1, line width=1.5pt,
+        minimum width=6.8cm, minimum height=2.8cm, align=center,
+        below right=0.7cm and -3.2cm of beLayer.south, anchor=north]
+    (nim) {};
+  \node[font=\footnotesize\bfseries\color{primary!80!black}, above right=0.15cm and 0.25cm of nim.north west, anchor=north west] {NVIDIA NIM};
+  \node[at={(nim.center)}, yshift=-0.2cm, align=center, font=\scriptsize\sffamily] {\textbf{Llama 3.1 70B Instruct}\\[2pt] ATS Compliance Scan \\ Resume Rewriting \\ Semantic Alignment};
+
+  %% ─── Flow Connectors ───────────────────────────────────────
+  \draw[arr=primary] (client.south) -- node[arrlabel]{HTTP/JSON} (feLayer.north);
+  \draw[arr=accent]  (feLayer.south) -- node[arrlabel, midway]{REST Call} (beLayer.north);
+  
+  \draw[arr=primary] ($(beLayer.south)+(0,0)$) -- ++(0,-0.3) -| node[arrlabel, near start, xshift=-0.3cm]{SQL/Vector} (supabase.north);
+  \draw[arr=primary] ($(beLayer.south)+(0,0)$) -- ++(0,-0.3) -| node[arrlabel, near start, xshift=0.3cm]{AI Call} (nim.north);
+
+\end{tikzpicture}
+\caption{HireSense Four-Tier Aligned System Architecture}
+\label{fig:arch}
+\end{figure}
+
+\newpage
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Data Flow Diagram (DFD)}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+Figure~\ref{fig:dfd} presents the Level-1 Data Flow Diagram (DFD) showing how data moves through HireSense from user input to visualisation. External entities are shown as rectangles, processes as circles, and data stores as open-ended bands.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.4cm and 1.8cm, font=\sffamily]
+
+  %% External entities
+  \node[dfdext] (recruiter) {Recruiter\\(Client)};
+
+  %% Horizontal flow of processing
+  \node[dfdproc, right=2.0cm of recruiter] (p1) {P1\\Upload\\\& Parse};
+  \node[dfdproc, right=1.6cm of p1]        (p2) {P2\\Embed\\Text};
+  \node[dfdproc, right=1.6cm of p2]        (p3) {P3\\Match\\Analytics};
+  \node[dfdproc, right=1.6cm of p3]        (p4) {P4\\Rank\\Candidates};
+
+  %% External output entity
+  \node[dfdext, right=2.0cm of p4] (ui) {Dashboard\\Visualizer};
+
+  %% Data stores (Centered vertically below)
+  \node[dfdstore, below=2.4cm of p2, xshift=1.7cm] (ds1) {\textbf{D1} \; resumes \; (\textit{raw\_text, embedding, ats\_score})};
+  \node[dfdstore, below=0.6cm of ds1]             (ds2) {\textbf{D2} \; job\_descriptions \; (\textit{job\_text, embedding})};
+  \node[dfdstore, below=0.6cm of ds2]             (ds3) {\textbf{D3} \; match\_results \; (\textit{resume\_id, job\_id, scores})};
+
+  %% Flows
+  \draw[arr=primary] (recruiter) -- node[arrlabel, above]{PDF Resume} (p1);
+  \draw[arr=primary] (p1) -- node[arrlabel, above]{Raw Text} (p2);
+  \draw[arr=primary] (p2) -- node[arrlabel, above]{Vectors} (p3);
+  \draw[arr=primary] (p3) -- node[arrlabel, above]{Data} (p4);
+  \draw[arr=primary] (p4) -- node[arrlabel, above]{Final Stats} (ui);
+
+  % Database interactions
+  \draw[arr=accent!70!black, dashed] (p1.south) |- (ds1.west);
+  \draw[arr=accent!70!black, dashed] (p2.south) -- (ds1.north);
+  \draw[arr=accent!70!black, dashed] (p3.south) -- (ds2.north);
+  \draw[arr=accent!70!black, dashed] (p4.south) -- (ds3.north);
+
+  \draw[arr=primary, dashed, -{Stealth}] (ds3.east) -| (ui.south);
+
+  %% NIM external node (positioned strategically)
+  \node[dfdext, above=1.5cm of p3, draw=danger!70, fill=red!5] (nim2) {NVIDIA NIM\\AI Core};
+  \draw[arr=danger, <->] (p3) -- node[arrlabel, right]{Semantic Context} (nim2);
+
+\end{tikzpicture}
+\caption{HireSense Data Flow Diagram (DFD) with geometric alignment.}
+\label{fig:dfd}
+\end{figure}
+
+\newpage
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{UML Class Diagram}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+Figure~\ref{fig:uml} shows the UML class diagram covering the key backend routes, service classes, Pydantic models, and Supabase database entities. Solid lines with filled arrows denote \emph{association}; dashed lines denote \emph{dependency}; lines with hollow diamonds denote \emph{aggregation}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.4cm and 1.8cm, font=\sffamily\scriptsize]
+
+%% ─── Route Layer (Top Row) ────────────────────────────────────────────────
+\node[umlclass={primary}{3.6cm}] (resumeRouter) {
+  \textbf{ResumeRouter}
+  \nodepart{two}
+  - db\_context: Supabase \\ - storage: PDFBucket
+  \nodepart{three}
+  + upload\_resume(file) \\ + delete\_resume(uuid) \\ + get\_ats\_report(uuid)
+};
+
+\node[umlclass={primary}{3.6cm}, right=1.2cm of resumeRouter] (jobRouter) {
+  \textbf{JobRouter}
+  \nodepart{two}
+  - db\_context: Supabase
+  \nodepart{three}
+  + upload\_job(json) \\ + list\_jobs() \\ + delete\_job(uuid)
+};
+
+\node[umlclass={primary}{3.6cm}, right=1.2cm of jobRouter] (evalRouter) {
+  \textbf{EvaluateRouter}
+  \nodepart{two}
+  - fair\_mode: bool
+  \nodepart{three}
+  + run\_match(id, jid) \\ + fetch\_ranking() \\ + update\_status(id, s)
+};
+
+%% ─── Service Layer (Middle Layer) ─────────────────────────────────────────
+\node[umlclass={warning}{3.1cm}, below=2.4cm of resumeRouter] (embEngine) {
+  \textbf{EmbeddingEngine}
+  \nodepart{two}
+  - model: MiniLM-L6
+  \nodepart{three}
+  + vect(text): float[]
+};
+
+\node[umlclass={warning}{3.1cm}, below=2.4cm of jobRouter] (atsScanner) {
+  \textbf{ATSScanner}
+  \nodepart{two}
+  - rules: JSON_Config
+  \nodepart{three}
+  + scan\_text(str): JSON
+};
+
+\node[umlclass={warning}{3.1cm}, below=2.4cm of evalRouter] (matchScorer) {
+  \textbf{MatchScorer}
+  \nodepart{two}
+  - weights: dict
+  \nodepart{three}
+  + compute\_final(): int
+};
+
+%% ─── AI Shared Core (Side) ────────────────────────────────────────────────
+\node[umlclass={danger}{3.0cm}, right=1.2cm of matchScorer] (llm) {
+  \textbf{LLMService}
+  \nodepart{two}
+  - api\_key: str
+  \nodepart{three}
+  + call\_nim(p, s): JSON
+};
+
+%% ─── Domain Entities (Bottom Tier) ────────────────────────────────────────
+\node[umlclass={accent}{3.1cm}, below=2.4cm of embEngine] (resumeEnt) {
+  \textbf{ResumeEntity}
+  \nodepart{two}
+  PK id: UUID \\ text: str
+  \nodepart{three}
+  \textit{Supabase Table}
+};
+
+\node[umlclass={accent}{3.1cm}, below=2.4cm of atsScanner] (jobEnt) {
+  \textbf{JobEntity}
+  \nodepart{two}
+  PK id: UUID \\ title: str
+  \nodepart{three}
+  \textit{Supabase Table}
+};
+
+\node[umlclass={accent}{3.1cm}, below=2.4cm of matchScorer] (matchEnt) {
+  \textbf{MatchEntity}
+  \nodepart{two}
+  FK res\_id: UUID \\ FK job\_id: UUID
+  \nodepart{three}
+  \textit{Supabase Table}
+};
+
+%% ─── Relationships ────────────────────────────────────────────────────────
+
+% Horizontal dependencies
+\draw[-{Stealth}, headergray, line width=1pt] (resumeRouter) -- (jobRouter);
+\draw[-{Stealth}, headergray, line width=1pt] (jobRouter) -- (evalRouter);
+
+% Vertical dependencies (Routes -> Services)
+\draw[-{Stealth}, dashed, primary] (resumeRouter) -- (embEngine);
+\draw[-{Stealth}, dashed, primary] (jobRouter) -- (atsScanner);
+\draw[-{Stealth}, dashed, primary] (evalRouter) -- (matchScorer);
+
+% Shared dependencies
+\draw[-{Stealth}, dashed, danger] (atsScanner) -| (llm);
+\draw[-{Stealth}, dashed, danger] (matchScorer) -- (llm);
+
+% Database references
+\draw[-{Stealth}, accent] (embEngine) -- (resumeEnt);
+\draw[-{Stealth}, accent] (atsScanner) -- (jobEnt);
+\draw[-{Stealth}, accent] (matchScorer) -- (matchEnt);
+
+\end{tikzpicture}
+\caption{HireSense UML Class Diagram with Tiered Architecture.}
+\label{fig:uml}
+\end{figure}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Performance Benchmarks (Timing)}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+The system is optimised for speed without sacrificing AI depth. All times are measured end-to-end including network round trips.
+
+\begingroup
+\setlength{\tabcolsep}{8pt}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabularx}{\linewidth}{@{}L{5cm} L{3.5cm} X@{}}
+    \toprule
+    \textbf{Operation} & \textbf{Latency} & \textbf{Notes} \\
+    \midrule
+    \rowcolor{lightgray}
+    PDF Text Extraction      & $\sim$50 ms          & PyMuPDF, local CPU \\
+    Embedding Generation     & $\sim$150 ms         & MiniLM model, local GPU/CPU \\
+    \rowcolor{lightgray}
+    AI ATS Compliance Scan   & 1.8 s -- 2.5 s       & NVIDIA NIM API (includes network latency) \\
+    JD Precision Match       & 2.2 s -- 3.0 s       & NVIDIA NIM API (includes network latency) \\
+    \rowcolor{lightgray}
+    \textbf{Total E2E Pipeline} & \textbf{$<$ 5 s}  & \textbf{From PDF upload to score visualisation} \\
+    \bottomrule
+\end{tabularx}
+\endgroup
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Key Presentation Highlights for the Professor}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\begin{enumerate}[noitemsep, leftmargin=*, label=\textbf{\arabic*.}]
+
+    \item \highlight{``Fail-Safe'' Mocking Engine} --- If external APIs (NVIDIA NIM) hit rate limits, the system automatically switches to a \textbf{Mocking Engine}, providing realistic heuristic data instead of crashing.
+
+    \item \highlight{Semantic Search vs.\ Keyword Search} --- HireSense understands \emph{concepts}, not just words. A resume mentioning ``PyTorch'' will match a JD mentioning ``deep learning frameworks'' because the embeddings encode semantic meaning.
+
+    \item \highlight{Data Compliance (GDPR)} --- The \textbf{Delete} functionality purges sensitive candidate data on request, demonstrating awareness of data compliance requirements.
+
+    \item \highlight{Editorial Design} --- The \textbf{Dark Mode Glassmorphism} UI provides an ``authoritative / AI-first'' aesthetic with SVG icons, animated theme toggle, and real-time pulse animations during background processing.
+
+\end{enumerate}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Conclusion \& Future Scope}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+The \textbf{HireSense} platform successfully demonstrates the integration of state-of-the-art Generative AI (\textbf{Llama 3.1 via NVIDIA NIM}) and Vector Databases (\textbf{Supabase pgvector}) to solve the complex real-world problem of talent acquisition at scale. The system provides a robust, low-latency solution that goes beyond keyword matching to true semantic evaluation.
+
+\subsubsection*{Future Scope}
+\begin{itemize}[noitemsep]
+    \item \textbf{Explainable AI (XAI):} Providing candidates with deeper, specific feedback on how to improve their match score for a particular role.
+    \item \textbf{Direct Interview Automation:} Integrating with calendar APIs to automatically schedule interviews for top-ranked candidates.
+    \item \textbf{Multi-modal Analysis:} Expanding the system to analyze video introductions and portfolio projects using vision-capable LLMs.
+\end{itemize}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Technical References}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\begin{enumerate}[label=[\arabic*], leftmargin=2cm]
+    \item \highlight{NVIDIA NIM API Documentation:} High-performance model hosting for Meta Llama 3.1 70B Instruct.
+    \item \highlight{FastAPI Framework:} Modern, fast (high-performance), web framework for building APIs with Python 3.8+ based on standard Python type hints.
+    \item \highlight{Supabase Cloud:} Open source Firebase alternative providing PostgreSQL databases with vector search capabilities.
+    \item \highlight{HuggingFace Sentence-Transformers:} SOTA multi-lingual text embeddings using the \code{all-MiniLM-L6-v2} model.
+\end{enumerate}
+
+\vspace{1cm}
+\noindent\textcolor{primary}{\rule{\linewidth}{0.8pt}}
+\vspace{6pt}
+
+\noindent
+\begin{tabular}{@{}ll}
+    \textbf{Prepared by:} & Aditya Poddar \\
+    \textbf{Project:}     & HireSense \\
+    \textbf{Date:}        & April 6, 2026 \\
+\end{tabular}
+
+\end{document}

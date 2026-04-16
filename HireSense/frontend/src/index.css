@@ -1,0 +1,133 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ── Datatype variable font ── */
+@font-face {
+  font-family: 'Datatype';
+  src: url('https://franktisellano.github.io/datatype/Datatype.woff2') format('woff2');
+  font-weight: 100 900;
+  font-stretch: 50% 150%;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── DARK THEME (default) ── */
+[data-theme="dark"] {
+  --bg:       #0c0c0e;
+  --bg2:      #111114;
+  --bg3:      #18181c;
+  --surface:  #0a0a0d;
+  --border:   #22222a;
+  --border2:  #38383f;
+  --text:     #f0f0f4;
+  --text2:    #a0a0b0;
+  --text3:    #48485a;
+  --logo-bg:  #f0f0f4;
+  --logo-fg:  #0a0a0d;
+  --nav-on:   #f0f0f4;
+  --nav-on-fg:#0a0a0d;
+  --btn:      #f0f0f4;
+  --btn-fg:   #0a0a0d;
+  --accent:   #f0f0f4;
+  --card:     #111114;
+  --input:    #111114;
+  --tag:      #18181c;
+  --track:    #22222a;
+}
+
+/* ── LIGHT THEME ── */
+[data-theme="light"] {
+  --bg:       #f5f4f1;
+  --bg2:      #ffffff;
+  --bg3:      #eceae4;
+  --surface:  #ffffff;
+  --border:   #e0ddd6;
+  --border2:  #b8b5ae;
+  --text:     #1a1a1e;
+  --text2:    #5c5c6e;
+  --text3:    #b0b0c0;
+  --logo-bg:  #1a1a1e;
+  --logo-fg:  #f5f4f1;
+  --nav-on:   #1a1a1e;
+  --nav-on-fg:#f5f4f1;
+  --btn:      #1a1a1e;
+  --btn-fg:   #f5f4f1;
+  --accent:   #1a1a1e;
+  --card:     #ffffff;
+  --input:    #ffffff;
+  --tag:      #eceae4;
+  --track:    #e0ddd6;
+}
+
+/* ── RESET & BASE ── */
+:root {
+  --font: 'Datatype', 'Inter', 'DM Sans', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; font-size: 14px; }
+
+body {
+  background: var(--bg);
+  color: var(--text2);
+  font-family: var(--font);
+  font-weight: 400;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background .2s, color .2s;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ── KEYFRAMES ── */
+@keyframes up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── UTILITY CLASSES ── */
+.up { animation: up .38s cubic-bezier(.22,1,.36,1) both; }
+
+.nb {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font);
+}
+
+.rh { transition: background .12s; }
+.rh:hover { background: var(--bg3) !important; }
+
+/* ── TOGGLE ── */
+.toggle-track {
+  width: 42px; height: 23px; border-radius: 12px;
+  background: var(--border2); border: 1.5px solid var(--border2);
+  position: relative; flex-shrink: 0;
+  transition: background .2s, border-color .2s;
+  cursor: pointer;
+}
+[data-theme="light"] .toggle-track {
+  background: var(--text); border-color: var(--text);
+}
+.toggle-thumb {
+  width: 17px; height: 17px; border-radius: 50%;
+  background: var(--surface); position: absolute; top: 2px; left: 2px;
+  transition: transform .22s cubic-bezier(.22,1,.36,1);
+  box-shadow: 0 1px 4px rgba(0,0,0,.25);
+}
+[data-theme="light"] .toggle-thumb {
+  transform: translateX(19px);
+}

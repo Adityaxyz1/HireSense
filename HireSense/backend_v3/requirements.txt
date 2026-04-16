@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+PyMuPDF
+sentence-transformers
+pydantic
+python-dotenv
+numpy
+scikit-learn
+python-multipart
+openai
+supabase
+spacy
+requests

@@ -1,0 +1,15 @@
+{
+  "source_directories": [
+    "backend_v3"
+  ],
+  "exclude": [
+    "frontend/.*",
+    "backend_v3/venv/.*"
+  ],
+  "search_path": [
+    "backend_v3/venv/Lib/site-packages"
+  ],
+  "plugins": [
+    "pydantic"
+  ]
+}

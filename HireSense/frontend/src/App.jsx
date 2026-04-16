@@ -1,0 +1,46 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Layout from './components/ui/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
+import Dashboard from './pages/Dashboard';
+import Candidates from './pages/Candidates';
+import Pipeline from './pages/Pipeline';
+import Analyze from './pages/Analyze';
+import AtsCheck from './pages/AtsCheck';
+import Jobs from './pages/Jobs';
+import Finder from './pages/Finder';
+import Results from './pages/Results';
+import Recruiter from './pages/Recruiter';
+import Login from './pages/Login';
+import Profile from './pages/Profile';
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        {/* Public route */}
+        <Route path="/login" element={<Login />} />
+
+        {/* Protected routes */}
+        <Route path="/" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<Dashboard />} />
+          <Route path="candidates" element={<Candidates />} />
+          <Route path="pipeline" element={<Pipeline />} />
+          <Route path="analyze" element={<Analyze />} />
+          <Route path="ats-check" element={<AtsCheck />} />
+          <Route path="jobs" element={<Jobs />} />
+          <Route path="finder" element={<Finder />} />
+          <Route path="results" element={<Results />} />
+          <Route path="recruiter" element={<Recruiter />} />
+          <Route path="profile" element={<Profile />} />
+        </Route>
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;
