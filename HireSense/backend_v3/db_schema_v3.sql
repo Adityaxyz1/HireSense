@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS public.resumes (
   embedding VECTOR(384),
   ats_score FLOAT DEFAULT 0,
   ats_breakdown JSONB,
+  magical_data JSONB,
   status TEXT DEFAULT 'processing',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -23,6 +24,7 @@ ALTER TABLE public.resumes ADD COLUMN IF NOT EXISTS raw_text TEXT DEFAULT '';
 ALTER TABLE public.resumes ADD COLUMN IF NOT EXISTS file_url TEXT;
 ALTER TABLE public.resumes ADD COLUMN IF NOT EXISTS ats_score FLOAT DEFAULT 0;
 ALTER TABLE public.resumes ADD COLUMN IF NOT EXISTS ats_breakdown JSONB;
+ALTER TABLE public.resumes ADD COLUMN IF NOT EXISTS magical_data JSONB;
 
 -- Force type cast if user_id was previously a UUID
 -- We must drop any dependent policies first
@@ -50,6 +52,9 @@ CREATE TABLE IF NOT EXISTS public.job_descriptions (
 
 ALTER TABLE public.job_descriptions ADD COLUMN IF NOT EXISTS title TEXT;
 ALTER TABLE public.job_descriptions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'local-user';
+-- jd_hash for reliable deduplication (SHA-256 of job_text)
+ALTER TABLE public.job_descriptions ADD COLUMN IF NOT EXISTS jd_hash TEXT;
+CREATE INDEX IF NOT EXISTS idx_job_descriptions_jd_hash ON public.job_descriptions (jd_hash);
 
 -- Match Results table (with user_id for per-user isolation)
 CREATE TABLE IF NOT EXISTS public.match_results (

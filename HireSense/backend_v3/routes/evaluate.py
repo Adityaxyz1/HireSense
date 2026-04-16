@@ -75,7 +75,7 @@ def evaluate_resume(payload: EvaluateRequest, request: Request):
     final_score = compute_final_score(semantic_score, skill_score, exp_score, strength, payload.fair_mode)
     risk_level = get_risk_level(final_score)
 
-    # 6. Save to match_results — with user_id
+    # 6. Save to match_results — upsert to avoid duplicates for same resume+job pair
     insert_data = {
         "user_id": user_id,
         "resume_id": payload.resume_id,
@@ -90,7 +90,12 @@ def evaluate_resume(payload: EvaluateRequest, request: Request):
         "bias_report": bias_report,
         "candidate_status": "pending"
     }
-    db.table("match_results").insert(insert_data).execute()
+    # Check if a match for this resume+job combo already exists
+    existing = db.table("match_results").select("id").eq("resume_id", payload.resume_id).eq("job_id", payload.job_id).execute()
+    if existing.data:
+        db.table("match_results").update(insert_data).eq("id", existing.data[0]["id"]).execute()
+    else:
+        db.table("match_results").insert(insert_data).execute()
 
     # 7. Return response
     return EvaluateResponse(

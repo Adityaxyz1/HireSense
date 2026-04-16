@@ -36,7 +36,11 @@ Ensure your breakdown covers exactly 5 points:
 5. Overall Formatting and parsing clarity.
 Make sure the "type" field is strictly one of "success", "warning", or "critical".
 '''
-    user_prompt = f"Resume Text:\n{resume_text[:25000]}\n\nAnalyze this resume for ATS compliance and return the JSON report."
+    user_prompt = f"Resume Text:\n{resume_text[:25000]}\n\n"
+    if magical_data:
+        user_prompt += f"Structured JSON Extracted (Use this for high accuracy details like name, email, sections):\n{json.dumps(magical_data, indent=2)[:10000]}\n\n"
+    
+    user_prompt += "Analyze this resume for ATS compliance and return the JSON report."
     
     response = prompt_nim(system_prompt, user_prompt)
     

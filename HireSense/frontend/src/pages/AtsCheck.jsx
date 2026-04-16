@@ -36,7 +36,7 @@ export default function AtsCheck() {
         if (uploadFile && !rid) {
             setLoading(true);
             try {
-                const uploaded = await api.uploadResume(uploadFile, 'local-user', candidateName);
+                const uploaded = await api.uploadResume(uploadFile, '', candidateName);
                 rid = uploaded.resume_id || uploaded.id;
                 setResumes(prev => [...prev, uploaded]);
                 setSelectedId(String(rid));
@@ -64,7 +64,7 @@ export default function AtsCheck() {
         if (uploadFile && !rid) {
             setMatchLoading(true);
             try {
-                const uploaded = await api.uploadResume(uploadFile, 'local-user', candidateName);
+                const uploaded = await api.uploadResume(uploadFile, '', candidateName);
                 rid = uploaded.resume_id || uploaded.id;
                 setResumes(prev => [...prev, uploaded]);
                 setSelectedId(String(rid));
@@ -91,24 +91,27 @@ export default function AtsCheck() {
     const col = scC(score);
     const track = isDark ? '#22222a' : '#e5e3dc';
 
-    // Derive bar percentages from actual report breakdown
-    const getBreakdownScore = (keyword) => {
-        if (!report || !report.breakdown) return 0;
-        const items = report.breakdown.filter(b => b.message?.toLowerCase().includes(keyword));
-        if (items.length === 0) return score; // fallback to overall
-        const successes = items.filter(b => b.type === 'success').length;
-        return Math.round((successes / items.length) * 100);
+    // Derive ATS breakdown bar scores from the 5 fixed breakdown items returned by AI
+    // The AI always returns exactly 5 items in order:
+    // 0: Contact Info, 1: Section Headers, 2: Action Metrics, 3: Word Count, 4: Formatting
+    const getBreakdownItemScore = (index) => {
+        if (!report || !report.breakdown || report.breakdown.length === 0) return 0;
+        const item = report.breakdown[index];
+        if (!item) return score; // fallback to overall
+        if (item.type === 'success') return Math.min(100, Math.max(60, score + 5));
+        if (item.type === 'warning') return Math.min(100, Math.max(30, score - 15));
+        return Math.min(100, Math.max(0, score - 30)); // critical
     };
 
     const totalFindings = report?.breakdown?.length || 0;
     const successCount = report?.breakdown?.filter(b => b.type === 'success').length || 0;
 
     const ATS_B = [
-        { l: 'Contact Info', s: report ? getBreakdownScore('contact') || getBreakdownScore('email') || getBreakdownScore('phone') : 0 },
-        { l: 'Section Headers', s: report ? getBreakdownScore('section') || getBreakdownScore('header') : 0 },
-        { l: 'Action Metrics', s: report ? getBreakdownScore('action') || getBreakdownScore('verb') || getBreakdownScore('quantif') : 0 },
-        { l: 'Word Count', s: report ? getBreakdownScore('word') || getBreakdownScore('length') : 0 },
-        { l: 'Formatting', s: report ? (totalFindings > 0 ? Math.round((successCount / totalFindings) * 100) : 0) : 0 },
+        { l: 'Contact Info',    s: report ? getBreakdownItemScore(0) : 0 },
+        { l: 'Section Headers', s: report ? getBreakdownItemScore(1) : 0 },
+        { l: 'Action Metrics',  s: report ? getBreakdownItemScore(2) : 0 },
+        { l: 'Word Count',      s: report ? getBreakdownItemScore(3) : 0 },
+        { l: 'Formatting',      s: report ? getBreakdownItemScore(4) : 0 },
     ];
 
     const tabStyle = (t) => ({
@@ -378,10 +381,10 @@ export default function AtsCheck() {
                             <div style={{ padding: 20, color: '#ef4444', fontSize: 13 }}>Error: {matchReport.error}</div>
                         ) : (
                             (() => {
-                                const ms = matchReport.final_score || 0;
+                                const ms = Math.round(Math.min(100, Math.max(0, matchReport.final_score || 0)));
                                 const mc = scC(ms);
-                                const sem = matchReport.semantic_score || 0;
-                                const kc = matchReport.keyword_coverage || 0;
+                                const sem = Math.round(Math.min(100, Math.max(0, matchReport.semantic_score || 0)));
+                                const kc = Math.round(Math.min(100, Math.max(0, matchReport.keyword_coverage || 0)));
                                 return (
                                     <>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 18 }}>

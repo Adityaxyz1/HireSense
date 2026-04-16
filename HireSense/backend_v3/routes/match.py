@@ -49,7 +49,7 @@ def match_resume(payload: MatchRequest, request: Request):
         raise HTTPException(status_code=422, detail="Resume has no parseable text.")
 
     try:
-        # 2. Check if JD Exists for THIS user, if not, create it to prevent duplication
+        # 2. Check if JD Exists for THIS user
         jd_text = payload.jd_text.strip()
         job_query = db.table("job_descriptions").select("id").eq("job_text", jd_text)
         if auth_user:
@@ -99,7 +99,7 @@ def match_resume(payload: MatchRequest, request: Request):
         else:
             db.table("match_results").update(insert_data).eq("id", chk.data[0]["id"]).execute()
 
-        # Persist match summary to resume record for recruiter reference
+        # Persist match summary to resume record for retriever reference
         try:
             import json as _json
             db.table("resumes").update({
@@ -112,7 +112,11 @@ def match_resume(payload: MatchRequest, request: Request):
                 }),
             }).eq("id", payload.resume_id).execute()
         except Exception as e:
-            print(f"Match data persistence (non-fatal): {e}")
+            print(f"Match data persistence warning: {e}")
+            if "policy" in str(e).lower() or "permission" in str(e).lower():
+                result["_warning"] = "Database policy blocked saving this match. Results are only temporary."
+            elif "column" in str(e).lower():
+                result["_warning"] = "Database schema mismatch. Please run the recovery script."
 
         return result
     except Exception as e:

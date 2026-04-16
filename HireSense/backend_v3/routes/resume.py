@@ -235,13 +235,17 @@ def get_ats_score(resume_id: str, request: Request):
 
     # Persist ATS score and breakdown to resume record for future reference
     try:
-        import json as _json
         db.table("resumes").update({
             "ats_score": report.get("score", 0),
             "ats_breakdown": _json.dumps(report.get("breakdown", [])),
         }).eq("id", resume_id).execute()
     except Exception as e:
-        print(f"ATS data persistence (non-fatal): {e}")
+        print(f"ATS data persistence warning: {e}")
+        # Add a hint to the report if persistence fails due to schema/RLS issues
+        if "policy" in str(e).lower():
+            report["_warning"] = "Database policy blocked saving this report. Please run the SQL recovery script."
+        elif "column" in str(e).lower():
+            report["_warning"] = "Database schema mismatch. Please run the SQL recovery script."
 
     return report
 

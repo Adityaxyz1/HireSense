@@ -41,13 +41,20 @@ def prompt_nim(system_prompt: str, user_prompt: str) -> dict:
             max_tokens=2048
         )
         response_text = completion.choices[0].message.content.strip()
-        if response_text.startswith("```json"):
-            response_text = response_text[7:]
-        if response_text.startswith("```"):
-            response_text = response_text[3:]
-        if response_text.endswith("```"):
-            response_text = response_text[:-3]
-        return json.loads(response_text.strip())
+        # Strip markdown code fences robustly (```json, ``` json, or plain ```)
+        if "```" in response_text:
+            parts = response_text.split("```")
+            if len(parts) >= 3:
+                inner = parts[1]
+                if inner.lower().startswith("json"):
+                    inner = inner[4:]
+                response_text = inner.strip()
+            else:
+                response_text = response_text.replace("```json", "").replace("```", "").strip()
+        return json.loads(response_text)
+    except json.JSONDecodeError as e:
+        print(f"JSON parse error from NVIDIA NIM: {e}. Falling back to Mock Engine.")
+        return _generate_mock_fallback(system_prompt, user_prompt, error=str(e))
     except Exception as e:
         print(f"Error querying NVIDIA NIM API: {e}. Falling back to Mock Engine.")
         return _generate_mock_fallback(system_prompt, user_prompt, error=str(e))
