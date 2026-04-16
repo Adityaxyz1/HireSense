@@ -113,4 +113,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-<p align="center">Made with ❤️ by Adityaxyz1</p>
+<p align="center">Made with by Adityaxyz1</p>
