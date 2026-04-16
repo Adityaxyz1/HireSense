@@ -9,7 +9,7 @@ HireSense is a premium, full-stack recruitment platform designed to streamline t
 
 ## ✨ Features
 
-- **🚀 Cinematic Experience**: Beautifully crafted UI with glassmorphism, 3D backgrounds, and smooth periodic animations using Framer Motion and Three.js.
+- **🚀 Cinematic Experience**: Beautifully crafted UI with 3D backgrounds, and smooth periodic animations using Framer Motion and Three.js.
 - **🧠 AI Resume Scoring**: Automated ATS (Applicant Tracking System) scoring using **NVIDIA NIM** LLMs for unbiased candidate evaluation.
 - **📄 Magical Parser**: Advanced PDF parsing using PyMuPDF to extract text, skills, and experience from complex resume layouts.
 - **🤝 Job Matching**: Intelligent matching algorithm that compares candidate profiles against specific Job Descriptions (JDs).
@@ -113,4 +113,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-<p align="center">Made with ❤️ by Adityaxyz1</p>
+<p align="center">Made by Adityaxyz1</p>
