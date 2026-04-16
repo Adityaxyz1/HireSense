@@ -16,33 +16,20 @@ export const AuthProvider = ({ children }) => {
     const fetchProfile = async (session) => {
         if (!session?.access_token) return;
         try {
-            const res = await fetch(`${API_BASE}/profile`, {
+            const res = await fetch(`${API_BASE}/profile?_t=${Date.now()}`, {
                 headers: { 'Authorization': `Bearer ${session.access_token}` },
             });
             if (res.ok) {
                 const data = await res.json();
                 setProfile(data.profile);
             }
-        } catch { /* non-critical */ }
+        } catch (error) {
+            console.error('[AuthContext] fetchProfile error:', error);
+        }
     };
 
     // Restore session on mount
     useEffect(() => {
-        const restoreSession = async () => {
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                setUser(session?.user ?? null);
-                if (session) {
-                    await fetchProfile(session);
-                }
-            } catch {
-                setUser(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-        restoreSession();
-
         // Listen for auth state changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (_event, session) => {
@@ -52,6 +39,7 @@ export const AuthProvider = ({ children }) => {
                 } else {
                     setProfile(null);
                 }
+                setLoading(false);
             }
         );
 
