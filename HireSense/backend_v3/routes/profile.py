@@ -13,7 +13,7 @@ router = APIRouter()
 # ── Request schemas ──────────────────────────────────────────
 class ProfileUpdate(BaseModel):
     display_name: Optional[str] = None
-
+    avatar_url: Optional[str] = None
 
 class PasswordChange(BaseModel):
     new_password: str
@@ -88,6 +88,8 @@ async def update_profile(payload: ProfileUpdate, request: Request):
         update_data = {}
         if payload.display_name is not None:
             update_data["display_name"] = payload.display_name.strip()
+        if payload.avatar_url is not None:
+            update_data["avatar_url"] = payload.avatar_url.strip()
 
         if not update_data:
             raise HTTPException(status_code=400, detail="No fields to update")
