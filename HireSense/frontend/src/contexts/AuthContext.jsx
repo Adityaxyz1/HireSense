@@ -134,35 +134,28 @@ export const AuthProvider = ({ children }) => {
         return data;
     };
 
-    // Upload avatar directly from frontend for secure RLS
+    // Upload avatar
     const uploadAvatar = async (file) => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error('Not authenticated');
 
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData?.user) throw new Error('User not found');
+        const formData = new FormData();
+        formData.append('file', file);
 
-        // Extract extension and define path
-        const ext = file.name.split('.').pop() || 'png';
-        const fileName = `${userData.user.id}/avatar.${ext}`;
-
-        // Upload to Supabase Storage using the user's secure token
-        const { error: uploadError } = await supabase.storage
-            .from('avatars')
-            .upload(fileName, file, { upsert: true });
-
-        if (uploadError) throw new Error(uploadError.message || 'Failed to upload avatar via Storage');
-
-        // Get the public URL. Note: if bucket is made completely private, use createSignedUrl instead
-        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
-        const avatarUrl = urlData.publicUrl;
-
-        // Update the profile table via backend (PUT)
-        await updateProfile({ avatar_url: avatarUrl });
-        
-        // Local state update
-        setProfile(prev => ({ ...prev, avatar_url: avatarUrl }));
-        return { avatar_url: avatarUrl };
+        const res = await fetch(`${API_BASE}/profile/avatar`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: formData,
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Failed to upload avatar');
+        }
+        const data = await res.json();
+        setProfile(prev => ({ ...prev, avatar_url: data.avatar_url }));
+        return data;
     };
 
     // Change password

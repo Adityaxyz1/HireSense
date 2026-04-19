@@ -2,7 +2,165 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import TwirlBackground from '../components/ui/TwirlBackground';
+
+/* ── Animated circuit-board background ── */
+function CircuitBackground() {
+    const lines = [
+        // Horizontal lines
+        { x1: 0, y1: '12%', x2: '35%', y2: '12%', delay: 0 },
+        { x1: '65%', y1: '18%', x2: '100%', y2: '18%', delay: 0.3 },
+        { x1: 0, y1: '45%', x2: '20%', y2: '45%', delay: 0.6 },
+        { x1: '80%', y1: '52%', x2: '100%', y2: '52%', delay: 0.2 },
+        { x1: 0, y1: '78%', x2: '25%', y2: '78%', delay: 0.8 },
+        { x1: '70%', y1: '85%', x2: '100%', y2: '85%', delay: 0.5 },
+        // Vertical lines
+        { x1: '15%', y1: 0, x2: '15%', y2: '30%', delay: 0.4 },
+        { x1: '85%', y1: '10%', x2: '85%', y2: '40%', delay: 0.7 },
+        { x1: '25%', y1: '60%', x2: '25%', y2: '100%', delay: 0.1 },
+        { x1: '75%', y1: '65%', x2: '75%', y2: '100%', delay: 0.9 },
+        // Diagonal accents
+        { x1: '30%', y1: '10%', x2: '38%', y2: '18%', delay: 1.0 },
+        { x1: '62%', y1: '80%', x2: '70%', y2: '88%', delay: 1.1 },
+    ];
+
+    const nodes = [
+        { cx: '15%', cy: '12%', delay: 0.2 },
+        { cx: '85%', cy: '18%', delay: 0.5 },
+        { cx: '25%', cy: '45%', delay: 0.8 },
+        { cx: '75%', cy: '52%', delay: 0.3 },
+        { cx: '35%', cy: '78%', delay: 1.0 },
+        { cx: '70%', cy: '85%', delay: 0.7 },
+        { cx: '38%', cy: '18%', delay: 1.1 },
+        { cx: '62%', cy: '80%', delay: 0.9 },
+        { cx: '50%', cy: '30%', delay: 0.4 },
+        { cx: '50%', cy: '70%', delay: 0.6 },
+    ];
+
+    return (
+        <svg
+            style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                zIndex: 0,
+                opacity: 0.25,
+            }}
+            xmlns="http://www.w3.org/2000/svg"
+        >
+            <defs>
+                <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="transparent" />
+                    <stop offset="50%" stopColor="var(--text3)" />
+                    <stop offset="100%" stopColor="transparent" />
+                </linearGradient>
+            </defs>
+            {lines.map((l, i) => (
+                <motion.line
+                    key={`line-${i}`}
+                    x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
+                    stroke="var(--border2)"
+                    strokeWidth="1"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: [0, 0.6, 0.3] }}
+                    transition={{
+                        duration: 2.5,
+                        delay: l.delay,
+                        ease: 'easeInOut',
+                        repeat: Infinity,
+                        repeatType: 'reverse',
+                        repeatDelay: 3,
+                    }}
+                />
+            ))}
+            {nodes.map((n, i) => (
+                <motion.circle
+                    key={`node-${i}`}
+                    cx={n.cx} cy={n.cy} r="3"
+                    fill="var(--border2)"
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: [0, 0.8, 0.3], scale: [0, 1.2, 1] }}
+                    transition={{
+                        duration: 2,
+                        delay: n.delay + 0.5,
+                        ease: 'easeOut',
+                        repeat: Infinity,
+                        repeatType: 'reverse',
+                        repeatDelay: 4,
+                    }}
+                />
+            ))}
+            {/* Corner brackets */}
+            {[
+                { d: 'M 30 10 L 10 10 L 10 30', origin: 'top-left' },
+                { d: 'M -30 10 L -10 10 L -10 30', origin: 'top-right', transform: 'translate(100%, 0) scale(-1, 1)' },
+                { d: 'M 30 -10 L 10 -10 L 10 -30', origin: 'bottom-left', transform: 'translate(0, 100%) scale(1, -1)' },
+                { d: 'M -30 -10 L -10 -10 L -10 -30', origin: 'bottom-right', transform: 'translate(100%, 100%) scale(-1, -1)' },
+            ].map((corner, i) => (
+                <motion.path
+                    key={`corner-${i}`}
+                    d={corner.d}
+                    fill="none"
+                    stroke="var(--border2)"
+                    strokeWidth="1.5"
+                    transform={corner.transform}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0, 0.5, 0.2] }}
+                    transition={{
+                        duration: 3,
+                        delay: i * 0.3,
+                        repeat: Infinity,
+                        repeatType: 'reverse',
+                        repeatDelay: 2,
+                    }}
+                />
+            ))}
+        </svg>
+    );
+}
+
+/* ── Floating particles ── */
+function FloatingParticles() {
+    const particles = Array.from({ length: 20 }, (_, i) => ({
+        id: i,
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        size: 1 + Math.random() * 2,
+        delay: Math.random() * 5,
+        duration: 4 + Math.random() * 6,
+    }));
+
+    return (
+        <>
+            {particles.map(p => (
+                <motion.div
+                    key={p.id}
+                    style={{
+                        position: 'absolute',
+                        left: p.left,
+                        top: p.top,
+                        width: p.size,
+                        height: p.size,
+                        borderRadius: '50%',
+                        background: 'var(--border2)',
+                        zIndex: 0,
+                    }}
+                    animate={{
+                        y: [-20, 20, -20],
+                        opacity: [0, 0.5, 0],
+                    }}
+                    transition={{
+                        duration: p.duration,
+                        delay: p.delay,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                    }}
+                />
+            ))}
+        </>
+    );
+}
+
 
 export default function Login() {
     const navigate = useNavigate();
@@ -58,7 +216,8 @@ export default function Login() {
             padding: 20,
         }}>
             {/* Background effects */}
-            <TwirlBackground />
+            <CircuitBackground />
+            <FloatingParticles />
 
             {/* Radial glow behind card */}
             <div style={{
