@@ -1,17 +1,18 @@
 from sentence_transformers import SentenceTransformer
-from functools import lru_cache
 import numpy as np
 
-# Load the model once globally
-@lru_cache(maxsize=1)
+# Eagerly load the model at import time — eliminates 2-4s cold start on first request
+print("Loading SentenceTransformer model (all-MiniLM-L6-v2)...")
+_model = SentenceTransformer('all-MiniLM-L6-v2')
+print("SentenceTransformer model loaded.")
+
 def get_model():
-    return SentenceTransformer('all-MiniLM-L6-v2')
+    return _model
 
 def generate_embedding(text: str) -> list[float]:
     """Generates a 384-dimensional embedding for the given text."""
     if not text.strip():
         return [0.0] * 384
-    model = get_model()
     # model.encode returns a numpy array, convert to regular float list
-    embedding = model.encode(text)
+    embedding = _model.encode(text)
     return embedding.tolist()

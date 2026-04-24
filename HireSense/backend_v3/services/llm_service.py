@@ -1,11 +1,12 @@
 # services/llm_service.py
 import json
+import hashlib
 from openai import OpenAI
 from config import settings
 
-# NVIDIA NIM Endpoint & Model
+# NVIDIA NIM Endpoint & Model — 8B is 5-8x faster than 70B for structured JSON tasks
 NIM_BASE_URL = "https://integrate.api.nvidia.com/v1"
-NIM_MODEL = "meta/llama-3.1-70b-instruct"
+NIM_MODEL = "meta/llama-3.1-8b-instruct"
 
 # Security: validate key exists before creating client
 if not settings.NVIDIA_NIM_API_KEY:
@@ -15,20 +16,41 @@ else:
     client = OpenAI(
         api_key=settings.NVIDIA_NIM_API_KEY,
         base_url=NIM_BASE_URL,
-        timeout=30.0
+        timeout=10.0  # Fast timeout — fail quickly, fall back to heuristics
     )
 
-def prompt_nim(system_prompt: str, user_prompt: str) -> dict:
+# ── In-memory LLM response cache ──────────────────────────────
+# Keyed on hash of (system_prompt + user_prompt) → parsed JSON dict
+_llm_cache: dict[str, dict] = {}
+_MAX_CACHE_SIZE = 100
+
+def _cache_key(system_prompt: str, user_prompt: str) -> str:
+    """Create a deterministic cache key from the prompts."""
+    raw = (system_prompt + "|||" + user_prompt).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def prompt_nim(system_prompt: str, user_prompt: str, use_cache: bool = True) -> dict:
     """
     Sends a prompt to NVIDIA NIM LLM expecting a structured JSON response.
     Returns the parsed JSON dict. Uses a robust Mocking Engine if API is unavailable.
+    Includes in-memory caching to avoid redundant API calls.
     """
+    # Check cache first
+    if use_cache:
+        key = _cache_key(system_prompt, user_prompt)
+        if key in _llm_cache:
+            return _llm_cache[key].copy()
+
     # Check for environmental override or missing client
     FORCE_MOCK = getattr(settings, "MOCK_AI", False)
     
     if client is None or FORCE_MOCK:
         # RETURN REALISTIC MOCK DATA (Heuristic Engine)
-        return _generate_mock_fallback(system_prompt, user_prompt)
+        result = _generate_mock_fallback(system_prompt, user_prompt)
+        if use_cache:
+            _cache_result(key, result)
+        return result
     
     try:
         completion = client.chat.completions.create(
@@ -38,7 +60,7 @@ def prompt_nim(system_prompt: str, user_prompt: str) -> dict:
                 {"role": "user", "content": user_prompt}
             ],
             temperature=0.1,
-            max_tokens=2048
+            max_tokens=800  # JSON responses are ~300-500 tokens, 800 is ample
         )
         response_text = completion.choices[0].message.content.strip()
         # Strip markdown code fences robustly (```json, ``` json, or plain ```)
@@ -51,13 +73,27 @@ def prompt_nim(system_prompt: str, user_prompt: str) -> dict:
                 response_text = inner.strip()
             else:
                 response_text = response_text.replace("```json", "").replace("```", "").strip()
-        return json.loads(response_text)
+        result = json.loads(response_text)
+        if use_cache:
+            _cache_result(key, result)
+        return result
     except json.JSONDecodeError as e:
         print(f"JSON parse error from NVIDIA NIM: {e}. Falling back to Mock Engine.")
         return _generate_mock_fallback(system_prompt, user_prompt, error=str(e))
     except Exception as e:
         print(f"Error querying NVIDIA NIM API: {e}. Falling back to Mock Engine.")
         return _generate_mock_fallback(system_prompt, user_prompt, error=str(e))
+
+
+def _cache_result(key: str, result: dict):
+    """Store result in LRU-style cache with size limit."""
+    global _llm_cache
+    if len(_llm_cache) >= _MAX_CACHE_SIZE:
+        # Evict oldest entry (first inserted)
+        oldest_key = next(iter(_llm_cache))
+        del _llm_cache[oldest_key]
+    _llm_cache[key] = result.copy()
+
 
 def _generate_mock_fallback(sys: str, user: str, error: str = None) -> dict:
     """

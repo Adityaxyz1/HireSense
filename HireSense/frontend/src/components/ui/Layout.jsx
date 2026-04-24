@@ -278,27 +278,40 @@ export default function Layout() {
                             <div
                                 onClick={() => setShowUserMenu(!showUserMenu)}
                                 style={{
+                                    display: 'flex', alignItems: 'center', gap: 10,
+                                    cursor: 'pointer', padding: '4px 6px',
+                                    borderRadius: 10,
+                                    transition: 'background .15s',
+                                }}
+                            >
+                                <div style={{
                                     width: 34, height: 34,
                                     border: `1.5px solid ${showUserMenu ? 'var(--text2)' : 'var(--border2)'}`,
                                     borderRadius: 8,
-                                    overflow: 'hidden', cursor: 'pointer',
+                                    overflow: 'hidden',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     transition: 'border-color .2s',
                                     background: 'var(--bg2)',
-                                }}
-                            >
-                                {avatarUrl ? (
-                                    <img
-                                        src={avatarUrl}
-                                        alt="Profile"
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    />
-                                ) : (
-                                    <span style={{
-                                        fontFamily: 'var(--font)', fontWeight: 800, fontSize: 13,
-                                        color: 'var(--text2)',
-                                    }}>{userInitial}</span>
-                                )}
+                                    flexShrink: 0,
+                                }}>
+                                    {avatarUrl ? (
+                                        <img
+                                            src={avatarUrl}
+                                            alt="Profile"
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                    ) : (
+                                        <span style={{
+                                            fontFamily: 'var(--font)', fontWeight: 800, fontSize: 13,
+                                            color: 'var(--text2)',
+                                        }}>{userInitial}</span>
+                                    )}
+                                </div>
+                                <span style={{
+                                    fontFamily: 'var(--font)', fontWeight: 600, fontSize: 12,
+                                    color: 'var(--text)', letterSpacing: '.02em',
+                                    whiteSpace: 'nowrap',
+                                }}>{displayName}</span>
                             </div>
 
                             {/* Dropdown menu */}

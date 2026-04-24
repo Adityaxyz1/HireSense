@@ -166,28 +166,48 @@ export const api = {
 
     async getAtsScore(resumeId) {
         const authHeaders = await getAuthHeaders();
-        const res = await fetch(`${API_BASE}/resumes/${resumeId}/ats`, {
-            headers: { ...authHeaders },
-        });
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.detail || 'Failed to fetch ATS score');
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+        try {
+            const res = await fetch(`${API_BASE}/resumes/${resumeId}/ats`, {
+                headers: { ...authHeaders },
+                signal: controller.signal,
+            });
+            clearTimeout(timeout);
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Failed to fetch ATS score');
+            }
+            return res.json();
+        } catch (e) {
+            clearTimeout(timeout);
+            if (e.name === 'AbortError') throw new Error('Analysis timed out. Please try again.');
+            throw e;
         }
-        return res.json();
     },
 
     async matchResume(resumeId, jdText) {
         const authHeaders = await getAuthHeaders();
-        const res = await fetch(`${API_BASE}/match`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...authHeaders },
-            body: JSON.stringify({ resume_id: resumeId, jd_text: jdText }),
-        });
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.detail || 'Match analysis failed');
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 45000); // 45s timeout
+        try {
+            const res = await fetch(`${API_BASE}/match`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...authHeaders },
+                body: JSON.stringify({ resume_id: resumeId, jd_text: jdText }),
+                signal: controller.signal,
+            });
+            clearTimeout(timeout);
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Match analysis failed');
+            }
+            return res.json();
+        } catch (e) {
+            clearTimeout(timeout);
+            if (e.name === 'AbortError') throw new Error('Match analysis timed out. Please try again.');
+            throw e;
         }
-        return res.json();
     },
 
     async getStats() {

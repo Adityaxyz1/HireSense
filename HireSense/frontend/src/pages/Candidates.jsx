@@ -201,12 +201,31 @@ export default function Candidates() {
                         }}>
                             {/* Name + avatar */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                                <div style={{
-                                    width: 36, height: 36, borderRadius: 10,
-                                    background: AVC[i % 5] + '22', border: `1.5px solid ${AVC[i % 5]}44`,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 12, fontWeight: 700, color: AVC[i % 5], flexShrink: 0,
-                                }}>{initials}</div>
+                                {(() => {
+                                    const seed = encodeURIComponent(name || initials || 'user');
+                                    const avatarSrc = `https://api.dicebear.com/9.x/notionists/svg?seed=${seed}&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf`;
+                                    return (
+                                        <div style={{
+                                            width: 36, height: 36, borderRadius: 10,
+                                            overflow: 'hidden', flexShrink: 0,
+                                            border: `1.5px solid ${AVC[i % 5]}44`,
+                                        }}>
+                                            <img
+                                                src={avatarSrc}
+                                                alt={name}
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.parentElement.style.background = AVC[i % 5] + '22';
+                                                    e.target.parentElement.style.display = 'flex';
+                                                    e.target.parentElement.style.alignItems = 'center';
+                                                    e.target.parentElement.style.justifyContent = 'center';
+                                                    e.target.parentElement.innerHTML = `<span style="font-size:12px;font-weight:700;color:${AVC[i % 5]}">${initials}</span>`;
+                                                }}
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                            />
+                                        </div>
+                                    );
+                                })()}
                                 <div style={{ minWidth: 0 }}>
                                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
                                     <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 1 }}>

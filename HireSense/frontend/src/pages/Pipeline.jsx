@@ -72,10 +72,23 @@ export default function Pipeline() {
                                         <div style={{ display: 'flex', gap: 9, alignItems: 'center' }}>
                                             <div style={{
                                                 width: 28, height: 28, borderRadius: 8,
-                                                background: col.c + '22', border: `1.5px solid ${col.c}44`,
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                fontSize: 10, fontWeight: 700, color: col.c,
-                                            }}>{initials}</div>
+                                                overflow: 'hidden', flexShrink: 0,
+                                                border: `1.5px solid ${col.c}44`,
+                                            }}>
+                                                <img
+                                                    src={`https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(name)}&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf`}
+                                                    alt={name}
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                        e.target.parentElement.style.background = col.c + '22';
+                                                        e.target.parentElement.style.display = 'flex';
+                                                        e.target.parentElement.style.alignItems = 'center';
+                                                        e.target.parentElement.style.justifyContent = 'center';
+                                                        e.target.parentElement.innerHTML = `<span style="font-size:10px;font-weight:700;color:${col.c}">${initials}</span>`;
+                                                    }}
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                                />
+                                            </div>
                                             <div>
                                                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{name}</div>
                                                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 1 }}>{label}</div>

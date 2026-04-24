@@ -16,21 +16,41 @@ def process_resume_background(resume_id: str, raw_text: str):
     """Background task to generate embedding and update DB."""
     db = get_db()
     try:
-        vector = generate_embedding(raw_text)
-        # Automatic background ATS scoring
+        # Automatic background ATS scoring (fast, always works)
         ats_report = scan_ats_compliance(raw_text)
         
-        db.table("resumes").update({
-            "embedding": vector,
+        update_data = {
             "ats_score": ats_report.get("score", 0),
             "ats_breakdown": _json.dumps(ats_report.get("breakdown", [])),
             "status": "completed"
-        }).eq("id", resume_id).execute()
+        }
+        
+        # Try embedding generation (may fail if pgvector not installed)
+        try:
+            vector = generate_embedding(raw_text)
+            update_data["embedding"] = vector
+        except Exception as e:
+            print(f"Embedding skipped for {resume_id} (non-fatal): {e}")
+        
+        # Save candidate name if extracted by ATS scanner
+        if ats_report.get("candidate_name"):
+            update_data["candidate_name"] = ats_report["candidate_name"]
+        
+        db.table("resumes").update(update_data).eq("id", resume_id).execute()
     except Exception as e:
         print(f"Error processing resume {resume_id}: {e}")
-        db.table("resumes").update({
-            "status": "failed"
-        }).eq("id", resume_id).execute()
+        # Try to update without embedding if that was the issue
+        try:
+            ats_report = scan_ats_compliance(raw_text)
+            db.table("resumes").update({
+                "ats_score": ats_report.get("score", 0),
+                "ats_breakdown": _json.dumps(ats_report.get("breakdown", [])),
+                "status": "completed"
+            }).eq("id", resume_id).execute()
+        except Exception:
+            db.table("resumes").update({
+                "status": "failed"
+            }).eq("id", resume_id).execute()
 
 
 @router.post("/upload-resume", response_model=UploadResponse)
@@ -83,8 +103,10 @@ async def upload_resume(
         return UploadResponse(resume_id=resume_id, status="processing")
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"Resume upload error: {e}")  # Log internally only
-        raise HTTPException(status_code=500, detail="An internal error occurred during upload.")
+        raise HTTPException(status_code=500, detail=f"An internal error occurred during upload: {str(e)}")
 
 
 @router.get("/resumes")
@@ -181,13 +203,15 @@ def delete_resume(resume_id: str, request: Request):
 
 
 @router.get("/resumes/{resume_id}/ats")
-def get_ats_score(resume_id: str, request: Request):
-    """Run a standalone ATS compliance scan on an uploaded resume."""
+def get_ats_score(resume_id: str, request: Request, force: bool = False):
+    """Run a standalone ATS compliance scan on an uploaded resume.
+    Optimized: skips MagicalAPI to avoid 30s polling delay.
+    Uses fast heuristics + LLM for instant results."""
     db = get_db()
     auth_user = get_current_user(request)
     
     query = db.table("resumes").select(
-        "raw_text, status, file_url, candidate_name, user_id"
+        "raw_text, status, file_url, candidate_name, user_id, ats_score, ats_breakdown"
     ).eq("id", resume_id)
     if auth_user:
         query = query.eq("user_id", str(auth_user.id))
@@ -203,25 +227,25 @@ def get_ats_score(resume_id: str, request: Request):
     if not raw_text.strip():
         raise HTTPException(status_code=422, detail="Resume has no parseable text to score.")
 
-    magical_data = None
+    # SPEED: If we already have a cached ATS score, return it instantly (unless force rescan)
+    if not force:
+        cached_score = resume_data.get("ats_score")
+        cached_breakdown = resume_data.get("ats_breakdown")
+        if cached_score and cached_score > 0 and cached_breakdown:
+            try:
+                breakdown = _json.loads(cached_breakdown) if isinstance(cached_breakdown, str) else cached_breakdown
+                if breakdown and len(breakdown) > 0:
+                    return {
+                        "score": cached_score,
+                        "candidate_name": resume_data.get("candidate_name") or None,
+                        "breakdown": breakdown,
+                        "_cached": True,
+                    }
+            except Exception:
+                pass  # Fall through to fresh scan
 
-    # Try MagicalAPI for enhanced parsing (optional — not required)
-    try:
-        import os, tempfile
-        from services.magical_parser import parse_resume_with_magicalapi
-        filename = (resume_data.get("file_url") or "").split("/")[-1]
-        if filename:
-            res_bytes = db.storage.from_("resumes").download(filename)
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                tmp.write(res_bytes)
-                local_tmp_path = tmp.name
-            magical_data = parse_resume_with_magicalapi(local_tmp_path)
-            os.remove(local_tmp_path)
-    except Exception as e:
-        print(f"MagicalAPI skipped (non-fatal): {e}")
-
-    # Run ATS scan — works with or without magical_data
-    report = scan_ats_compliance(raw_text, magical_data)
+    # Run ATS scan directly on raw_text (no MagicalAPI — saves 10-30s)
+    report = scan_ats_compliance(raw_text)
 
     # Always prefer user-provided candidate_name from the resume record
     if resume_data.get("candidate_name"):
@@ -241,7 +265,6 @@ def get_ats_score(resume_id: str, request: Request):
         }).eq("id", resume_id).execute()
     except Exception as e:
         print(f"ATS data persistence warning: {e}")
-        # Add a hint to the report if persistence fails due to schema/RLS issues
         if "policy" in str(e).lower():
             report["_warning"] = "Database policy blocked saving this report. Please run the SQL recovery script."
         elif "column" in str(e).lower():

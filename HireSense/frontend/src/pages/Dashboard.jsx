@@ -72,7 +72,27 @@ function Badge({ status, isDark }) {
     );
 }
 
-function Avatar({ initials, size = 32, color }) {
+function Avatar({ initials, size = 32, color, name }) {
+    const [imgErr, setImgErr] = React.useState(false);
+    const seed = encodeURIComponent(name || initials || 'user');
+    const avatarSrc = `https://api.dicebear.com/9.x/notionists/svg?seed=${seed}&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf`;
+
+    if (!imgErr) {
+        return (
+            <div style={{
+                width: size, height: size, borderRadius: Math.round(size * .3),
+                overflow: 'hidden', flexShrink: 0,
+                border: `1.5px solid ${color}44`,
+            }}>
+                <img
+                    src={avatarSrc}
+                    alt={name || initials}
+                    onError={() => setImgErr(true)}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+            </div>
+        );
+    }
     return (
         <div style={{
             width: size, height: size, borderRadius: Math.round(size * .3),
@@ -89,7 +109,7 @@ function BarChart({ isDark, data }) {
         { d: 'Mo', u: 0, m: 0 }, { d: 'Tu', u: 0, m: 0 }, { d: 'We', u: 0, m: 0 },
         { d: 'Th', u: 0, m: 0 }, { d: 'Fr', u: 0, m: 0 }, { d: 'Sa', u: 0, m: 0 }, { d: 'Su', u: 0, m: 0 },
     ];
-    const max = Math.max(...WEEKLY.map(d => d.u), 1);
+    const max = Math.max(...WEEKLY.map(d => Math.max(d.u, d.m)), 1);
     const ca = isDark ? 'rgba(240,240,244,.8)' : '#1a1a1e';
     const cb = isDark ? '#2a2a34' : '#d8d5ce';
     return (
@@ -98,7 +118,7 @@ function BarChart({ isDark, data }) {
                 <div key={d.d + i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                     <div style={{ width: '100%', display: 'flex', flexDirection: 'column-reverse', gap: 2 }}>
                         <div style={{ width: '100%', borderRadius: '3px 3px 0 0', height: (d.m / max) * 60, background: ca, transition: 'height .8s' }} />
-                        <div style={{ width: '100%', borderRadius: '3px 3px 0 0', height: ((d.u - d.m) / max) * 60, background: cb, transition: 'height .8s' }} />
+                        <div style={{ width: '100%', borderRadius: '3px 3px 0 0', height: (Math.max(0, d.u - d.m) / max) * 60, background: cb, transition: 'height .8s' }} />
                     </div>
                     <span style={{ fontSize: 10, color: 'var(--text3)' }}>{d.d}</span>
                 </div>
@@ -294,7 +314,7 @@ export default function Dashboard() {
                             animationDelay: `${i * 30}ms`,
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                                <Avatar initials={initials} size={32} color={AVC[i % 5]} />
+                                <Avatar initials={initials} size={32} color={AVC[i % 5]} name={name} />
                                 <div style={{ minWidth: 0 }}>
                                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                         {name}

@@ -38,8 +38,11 @@ export default function AtsCheck() {
             try {
                 const uploaded = await api.uploadResume(uploadFile, '', candidateName);
                 rid = uploaded.resume_id || uploaded.id;
-                setResumes(prev => [...prev, uploaded]);
+                const newRes = { ...uploaded, id: rid };
+                setResumes(prev => [...prev, newRes]);
                 setSelectedId(String(rid));
+                // Wait briefly for background processing to start
+                await new Promise(r => setTimeout(r, 1500));
             } catch (e) {
                 setReport({ score: 0, breakdown: [{ type: 'critical', message: 'Upload failed: ' + e.message }] });
                 setLoading(false);
@@ -49,12 +52,26 @@ export default function AtsCheck() {
 
         if (!rid) return;
         setLoading(true);
-        try {
-            const data = await api.getAtsScore(rid);
-            setReport(data);
-        } catch (e) {
-            setReport({ score: 0, breakdown: [{ type: 'critical', message: e.message }] });
+        
+        // Retry logic: try up to 2 times (helps when resume is still processing)
+        let lastError = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                const data = await api.getAtsScore(rid);
+                if (data && data.score !== undefined) {
+                    setReport(data);
+                    setLoading(false);
+                    return;
+                }
+            } catch (e) {
+                lastError = e;
+                // On first failure, wait a moment and retry (resume might still be processing)
+                if (attempt === 0) {
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+            }
         }
+        setReport({ score: 0, breakdown: [{ type: 'critical', message: lastError?.message || 'Analysis failed. Please try again.' }] });
         setLoading(false);
     };
 
@@ -66,7 +83,8 @@ export default function AtsCheck() {
             try {
                 const uploaded = await api.uploadResume(uploadFile, '', candidateName);
                 rid = uploaded.resume_id || uploaded.id;
-                setResumes(prev => [...prev, uploaded]);
+                const newRes = { ...uploaded, id: rid };
+                setResumes(prev => [...prev, newRes]);
                 setSelectedId(String(rid));
             } catch (e) {
                 setMatchReport({ final_score: 0, error: 'Upload failed: ' + e.message });

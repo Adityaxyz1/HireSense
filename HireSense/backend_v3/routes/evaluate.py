@@ -23,20 +23,33 @@ def evaluate_resume(payload: EvaluateRequest, request: Request):
     auth_user = get_current_user(request)
     user_id = str(auth_user.id) if auth_user else "local-user"
 
-    # 1. Fetch Job — verify ownership
-    job_query = db.table("job_descriptions").select("*").eq("id", payload.job_id)
-    if auth_user:
-        job_query = job_query.eq("user_id", user_id)
-    job_res = job_query.execute()
+    # 1. Fetch Job — verify ownership (avoid SELECT * to skip vector columns)
+    try:
+        job_query = db.table("job_descriptions").select("id, user_id, job_text").eq("id", payload.job_id)
+        if auth_user:
+            job_query = job_query.eq("user_id", user_id)
+        job_res = job_query.execute()
+    except Exception:
+        # Fallback if column selection fails
+        job_query = db.table("job_descriptions").select("*").eq("id", payload.job_id)
+        if auth_user:
+            job_query = job_query.eq("user_id", user_id)
+        job_res = job_query.execute()
     if not job_res.data:
         raise HTTPException(status_code=404, detail="Job description not found.")
     job_data = job_res.data[0]
 
-    # 2. Fetch Resume — verify ownership
-    res_query = db.table("resumes").select("*").eq("id", payload.resume_id)
-    if auth_user:
-        res_query = res_query.eq("user_id", user_id)
-    res_res = res_query.execute()
+    # 2. Fetch Resume — verify ownership (avoid SELECT * to skip vector columns)
+    try:
+        res_query = db.table("resumes").select("id, user_id, raw_text, candidate_name, file_url, ats_score, ats_breakdown, status").eq("id", payload.resume_id)
+        if auth_user:
+            res_query = res_query.eq("user_id", user_id)
+        res_res = res_query.execute()
+    except Exception:
+        res_query = db.table("resumes").select("*").eq("id", payload.resume_id)
+        if auth_user:
+            res_query = res_query.eq("user_id", user_id)
+        res_res = res_query.execute()
     if not res_res.data:
         raise HTTPException(status_code=404, detail="Resume not found.")
     resume_data = res_res.data[0]
@@ -49,19 +62,11 @@ def evaluate_resume(payload: EvaluateRequest, request: Request):
 
     # 3. Compute Semantic Score
     # Handle case where embeddings might not be generated yet
-    jd_emb_raw = job_data.get("embedding")
-    r_emb_raw = resume_data.get("embedding")
-
-    if jd_emb_raw and r_emb_raw:
-        jd_emb = np.array(jd_emb_raw)
-        r_emb = np.array(r_emb_raw)
-        semantic_sim = float(cosine_similarity([jd_emb], [r_emb])[0][0])
-    else:
-        # Generate embeddings on-the-fly if not available
-        from services.embedding_engine import generate_embedding
-        r_emb = np.array(generate_embedding(r_text))
-        jd_emb = np.array(generate_embedding(j_text))
-        semantic_sim = float(cosine_similarity([jd_emb], [r_emb])[0][0])
+    # Generate embeddings on-the-fly (always — avoids reliance on stored vector columns)
+    from services.embedding_engine import generate_embedding
+    r_emb = np.array(generate_embedding(r_text))
+    jd_emb = np.array(generate_embedding(j_text))
+    semantic_sim = float(cosine_similarity([jd_emb], [r_emb])[0][0])
     semantic_score = max(0.0, semantic_sim)
 
     # 4. Compute Sub-scores
@@ -90,12 +95,15 @@ def evaluate_resume(payload: EvaluateRequest, request: Request):
         "bias_report": bias_report,
         "candidate_status": "pending"
     }
-    # Check if a match for this resume+job combo already exists
-    existing = db.table("match_results").select("id").eq("resume_id", payload.resume_id).eq("job_id", payload.job_id).execute()
-    if existing.data:
-        db.table("match_results").update(insert_data).eq("id", existing.data[0]["id"]).execute()
-    else:
-        db.table("match_results").insert(insert_data).execute()
+    # Check if a match for this resume+job combo already exists (best-effort)
+    try:
+        existing = db.table("match_results").select("id").eq("resume_id", payload.resume_id).eq("job_id", payload.job_id).execute()
+        if existing.data:
+            db.table("match_results").update(insert_data).eq("id", existing.data[0]["id"]).execute()
+        else:
+            db.table("match_results").insert(insert_data).execute()
+    except Exception as mr_err:
+        print(f"Match results persistence warning (non-fatal): {mr_err}")
 
     # 7. Return response
     return EvaluateResponse(

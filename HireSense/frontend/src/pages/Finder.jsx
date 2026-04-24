@@ -35,7 +35,7 @@ export default function Finder() {
 
             const found = allResumes
                 .filter(r => {
-                    const blob = `${r.candidate_name || ''} ${r.file_url || ''}`.toLowerCase();
+                    const blob = `${r.candidate_name || ''} ${r.file_url || ''} ${r.raw_text || ''}`.toLowerCase();
                     return kws.some(k => blob.includes(k));
                 })
                 .sort((a, b) => ((b.match_score || b.ats_score || 0) - (a.match_score || a.ats_score || 0)));
