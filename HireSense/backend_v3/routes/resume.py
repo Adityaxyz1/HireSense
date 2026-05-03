@@ -1,23 +1,23 @@
-from fastapi import APIRouter, File, UploadFile, BackgroundTasks, Form, HTTPException, Request
+from fastapi import APIRouter, File, UploadFile, BackgroundTasks, Form, HTTPException, Request, Depends
 
 from database import get_db, row_to_dict
 from services.pdf_parser import extract_text
 from services.storage_service import upload_resume_pdf
 from services.embedding_engine import generate_embedding
 from services.ats_scanner import scan_ats_compliance
-from routes.auth_dependency import get_current_user
+from routes.auth_dependency import get_current_user, require_user
 import json as _json
 from routes.schemas import UploadResponse
 
 router = APIRouter()
 
 
-def process_resume_background(resume_id: str, raw_text: str):
+async def process_resume_background(resume_id: str, raw_text: str):
     """Background task to generate embedding and update DB."""
     db = get_db()
     try:
         # Automatic background ATS scoring (fast, always works)
-        ats_report = scan_ats_compliance(raw_text)
+        ats_report = await scan_ats_compliance(raw_text)
         
         update_data = {
             "ats_score": ats_report.get("score", 0),
@@ -32,16 +32,25 @@ def process_resume_background(resume_id: str, raw_text: str):
         except Exception as e:
             print(f"Embedding skipped for {resume_id} (non-fatal): {e}")
         
-        # Save candidate name if extracted by ATS scanner
-        if ats_report.get("candidate_name"):
-            update_data["candidate_name"] = ats_report["candidate_name"]
+        # Save candidate name if extracted by ATS scanner AND it's not a generic placeholder
+        new_name = ats_report.get("candidate_name")
+        if new_name and str(new_name).strip().lower() not in ["candidate", "unknown", "none", "null"]:
+            # Check if current record ALREADY has a valid name (don't overwrite user-provided name)
+            try:
+                curr = db.table("resumes").select("candidate_name").eq("id", resume_id).execute()
+                existing_name = curr.data[0].get("candidate_name") if curr.data else None
+                if not existing_name or str(existing_name).strip().lower() in ["candidate", "unknown", "none", "null"]:
+                    update_data["candidate_name"] = new_name
+            except Exception:
+                # Fallback: if check fails, just don't update name (be safe)
+                pass
         
         db.table("resumes").update(update_data).eq("id", resume_id).execute()
     except Exception as e:
         print(f"Error processing resume {resume_id}: {e}")
         # Try to update without embedding if that was the issue
         try:
-            ats_report = scan_ats_compliance(raw_text)
+            ats_report = await scan_ats_compliance(raw_text)
             db.table("resumes").update({
                 "ats_score": ats_report.get("score", 0),
                 "ats_breakdown": _json.dumps(ats_report.get("breakdown", [])),
@@ -57,16 +66,15 @@ def process_resume_background(resume_id: str, raw_text: str):
 async def upload_resume(
     request: Request,
     background_tasks: BackgroundTasks,
-    user_id: str = Form(default="local-user"),
     candidate_name: str = Form(default=None),
     file: UploadFile = File(...)
 ):
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
 
-    # Get authenticated user — use their ID instead of form param
-    auth_user = get_current_user(request)
-    actual_user_id = str(auth_user.id) if auth_user else user_id
+    # REQUIRE authenticated user — enforcement moved to backend source of truth
+    user = require_user(request)
+    actual_user_id = str(user.id)
 
     try:
         file_bytes = await file.read()
@@ -110,30 +118,20 @@ async def upload_resume(
 
 
 @router.get("/resumes")
-def list_resumes(request: Request):
+def list_resumes(user=Depends(require_user)):
     """List resumes for the authenticated user only."""
     db = get_db()
-    auth_user = get_current_user(request)
-    
-    query = db.table("resumes").select("*").order("created_at", desc=True)
-    if auth_user:
-        query = query.eq("user_id", str(auth_user.id))
-    
-    response = query.execute()
+    # Enforce strict user_id filtering
+    response = db.table("resumes").select("*").eq("user_id", str(user.id)).order("created_at", desc=True).execute()
     return [row_to_dict(r) for r in response.data]
 
 
 @router.get("/candidates")
-def list_candidates(request: Request):
+def list_candidates(user=Depends(require_user)):
     """List uploaded resumes as candidates — scoped to authenticated user."""
     db = get_db()
-    auth_user = get_current_user(request)
-    
-    query = db.table("resumes").select("*").order("created_at", desc=True)
-    if auth_user:
-        query = query.eq("user_id", str(auth_user.id))
-    
-    response = query.execute()
+    # Enforce strict user_id filtering
+    response = db.table("resumes").select("*").eq("user_id", str(user.id)).order("created_at", desc=True).execute()
     result = []
     for r in response.data:
         row = row_to_dict(r)
@@ -149,7 +147,7 @@ class ResumeStatusUpdate(BaseModel):
     status: str
 
 @router.put("/resumes/{resume_id}/status")
-def update_resume_status(resume_id: str, payload: ResumeStatusUpdate, request: Request):
+def update_resume_status(resume_id: str, payload: ResumeStatusUpdate, user=Depends(require_user)):
     """Update the recruiter-facing candidate status for a resume."""
     valid = {"pending", "approved", "rejected"}
     status = payload.status.lower()
@@ -157,16 +155,12 @@ def update_resume_status(resume_id: str, payload: ResumeStatusUpdate, request: R
         raise HTTPException(status_code=400, detail="Status must be pending, approved, or rejected.")
     
     db = get_db()
-    auth_user = get_current_user(request)
     
-    # Verify ownership
-    query = db.table("resumes").select("id").eq("id", resume_id)
-    if auth_user:
-        query = query.eq("user_id", str(auth_user.id))
-    chk = query.execute()
+    # Verify ownership — strict filtering
+    chk = db.table("resumes").select("id").eq("id", resume_id).eq("user_id", str(user.id)).execute()
     
     if not chk.data:
-        raise HTTPException(status_code=404, detail="Resume not found.")
+        raise HTTPException(status_code=404, detail="Resume not found or access denied.")
     try:
         db.table("resumes").update({"candidate_status": status}).eq("id", resume_id).execute()
     except Exception as e:
@@ -176,19 +170,15 @@ def update_resume_status(resume_id: str, payload: ResumeStatusUpdate, request: R
 
 
 @router.delete("/resumes/{resume_id}")
-def delete_resume(resume_id: str, request: Request):
+def delete_resume(resume_id: str, user=Depends(require_user)):
     """Delete a resume — only if owned by the authenticated user."""
     db = get_db()
-    auth_user = get_current_user(request)
     
-    # Verify ownership
-    query = db.table("resumes").select("id").eq("id", resume_id)
-    if auth_user:
-        query = query.eq("user_id", str(auth_user.id))
-    chk = query.execute()
+    # Verify ownership — strict filtering
+    chk = db.table("resumes").select("id").eq("id", resume_id).eq("user_id", str(user.id)).execute()
     
     if not chk.data:
-        raise HTTPException(status_code=404, detail="Resume not found.")
+        raise HTTPException(status_code=404, detail="Resume not found or access denied.")
     
     try:
         # Clear child relations if any restrict it (defensive cleanup)
@@ -203,19 +193,16 @@ def delete_resume(resume_id: str, request: Request):
 
 
 @router.get("/resumes/{resume_id}/ats")
-def get_ats_score(resume_id: str, request: Request, force: bool = False):
+async def get_ats_score(resume_id: str, force: bool = False, user=Depends(require_user)):
     """Run a standalone ATS compliance scan on an uploaded resume.
     Optimized: skips MagicalAPI to avoid 30s polling delay.
     Uses fast heuristics + LLM for instant results."""
     db = get_db()
-    auth_user = get_current_user(request)
     
-    query = db.table("resumes").select(
+    # Enforce ownership
+    response = db.table("resumes").select(
         "raw_text, status, file_url, candidate_name, user_id, ats_score, ats_breakdown"
-    ).eq("id", resume_id)
-    if auth_user:
-        query = query.eq("user_id", str(auth_user.id))
-    response = query.execute()
+    ).eq("id", resume_id).eq("user_id", str(user.id)).execute()
 
     if not response.data:
         raise HTTPException(status_code=404, detail="Resume not found.")
@@ -245,7 +232,7 @@ def get_ats_score(resume_id: str, request: Request, force: bool = False):
                 pass  # Fall through to fresh scan
 
     # Run ATS scan directly on raw_text (no MagicalAPI — saves 10-30s)
-    report = scan_ats_compliance(raw_text)
+    report = await scan_ats_compliance(raw_text)
 
     # Always prefer user-provided candidate_name from the resume record
     if resume_data.get("candidate_name"):
@@ -274,17 +261,14 @@ def get_ats_score(resume_id: str, request: Request, force: bool = False):
 
 
 @router.get("/stats")
-def get_dashboard_stats(request: Request):
+def get_dashboard_stats(user=Depends(require_user)):
     """Compute real-time dashboard stats — scoped to authenticated user."""
     from datetime import datetime, timedelta
 
     db = get_db()
-    auth_user = get_current_user(request)
     
-    query = db.table("resumes").select("ats_score, candidate_status, created_at")
-    if auth_user:
-        query = query.eq("user_id", str(auth_user.id))
-    response = query.execute()
+    # Fetch user-scoped resumes
+    response = db.table("resumes").select("ats_score, candidate_status, created_at").eq("user_id", str(user.id)).execute()
 
     scores = []
     status_counts = {"pending": 0, "approved": 0, "rejected": 0}
@@ -321,15 +305,13 @@ def get_dashboard_stats(request: Request):
 
     # Build daily match counts — scoped to user's resumes
     # Get user's resume IDs first, then filter match_results
-    if auth_user:
-        resume_ids_resp = db.table("resumes").select("id").eq("user_id", str(auth_user.id)).execute()
-        user_resume_ids = [r["id"] for r in resume_ids_resp.data]
-        if user_resume_ids:
-            match_response = db.table("match_results").select("created_at").in_("resume_id", user_resume_ids).execute()
-        else:
-            match_response = type('obj', (object,), {'data': []})()
+    resume_ids_resp = db.table("resumes").select("id").eq("user_id", str(user.id)).execute()
+    user_resume_ids = [r["id"] for r in resume_ids_resp.data]
+
+    if user_resume_ids:
+        match_response = db.table("match_results").select("created_at").in_("resume_id", user_resume_ids).execute()
     else:
-        match_response = db.table("match_results").select("created_at").execute()
+        match_response = type('obj', (object,), {'data': []})()
     
     daily_matches = {}
     for key in daily_uploads:

@@ -12,11 +12,16 @@ class Settings:
     SUPABASE_URL: str = os.getenv("SUPABASE_URL")
     SUPABASE_KEY: str = os.getenv("SUPABASE_KEY")
     
-    # NVIDIA NIM API (must be set in .env)
-    NVIDIA_NIM_API_KEY: str = os.getenv("NVIDIA_NIM_API_KEY", "")
+    # NVIDIA NIM API keys — add multiple for racing strategy
+    NVIDIA_NIM_API_KEY_DEEPSEEK: str = os.getenv("NVIDIA_NIM_API_KEY_DEEPSEEK", "")
+    NVIDIA_NIM_API_KEY_META: str = os.getenv("NVIDIA_NIM_API_KEY_META", "")
+    NVIDIA_NIM_API_KEY_GEMMA: str = os.getenv("NVIDIA_NIM_API_KEY_GEMMA", "")
     
     # MagicalAPI (optional, must be set in .env)
     MAGICAL_API_KEY: str = os.getenv("MAGICAL_API_KEY", "")
+
+    # Admin Panel
+    ADMIN_MASTER_KEY: str = os.getenv("ADMIN_MASTER_KEY", "")
 
 settings = Settings()
 

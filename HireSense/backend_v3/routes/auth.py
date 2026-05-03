@@ -2,10 +2,11 @@
 Authentication routes using Supabase Auth.
 Tracks login/logout/signup events in the auth_logs table.
 """
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel, EmailStr
 from database import get_db
 from datetime import datetime, timezone
+from routes.auth_dependency import require_user
 
 router = APIRouter()
 
@@ -121,41 +122,13 @@ async def logout(payload: LogoutPayload, request: Request):
 
 # ── GET /api/auth/me ──────────────────────────────────────────
 @router.get("/auth/me")
-async def get_current_user(request: Request):
-    """Verify session by checking the Authorization header with Supabase."""
-    auth_header = request.headers.get("authorization", "")
-    if not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    token = auth_header.replace("Bearer ", "")
-    db = get_db()
-    try:
-        result = db.auth.get_user(token)
-        if result.user is None:
-            raise HTTPException(status_code=401, detail="Invalid or expired session")
-        return {
-            "user": {
-                "id": str(result.user.id),
-                "email": result.user.email,
-            }
+async def get_my_info(user=Depends(require_user)):
+    """Verify session and return current user info."""
+    return {
+        "user": {
+            "id": str(user.id),
+            "email": user.email,
         }
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid or expired session")
+    }
 
 
-# ── GET /api/auth/logs ────────────────────────────────────────
-@router.get("/auth/logs")
-async def get_auth_logs():
-    """Fetch recent auth logs (admin use)."""
-    db = get_db()
-    try:
-        result = db.table("auth_logs") \
-            .select("*") \
-            .order("created_at", desc=True) \
-            .limit(100) \
-            .execute()
-        return {"logs": result.data}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch logs: {str(e)}")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
@@ -11,45 +11,32 @@ from services.resume_strength import compute_strength
 from services.bias_engine import generate_bias_report
 from services.scorer import compute_final_score, get_risk_level
 from routes.schemas import EvaluateRequest, EvaluateResponse
-from routes.auth_dependency import get_current_user
+from routes.auth_dependency import require_user
 
 router = APIRouter()
 
 
 @router.post("/evaluate", response_model=EvaluateResponse)
-def evaluate_resume(payload: EvaluateRequest, request: Request):
+def evaluate_resume(payload: EvaluateRequest, user=Depends(require_user)):
     """Evaluate a resume against a job — verifies ownership of both resources."""
     db = get_db()
-    auth_user = get_current_user(request)
-    user_id = str(auth_user.id) if auth_user else "local-user"
+    user_id = str(user.id)
 
     # 1. Fetch Job — verify ownership (avoid SELECT * to skip vector columns)
     try:
-        job_query = db.table("job_descriptions").select("id, user_id, job_text").eq("id", payload.job_id)
-        if auth_user:
-            job_query = job_query.eq("user_id", user_id)
-        job_res = job_query.execute()
+        job_res = db.table("job_descriptions").select("id, user_id, job_text").eq("id", payload.job_id).eq("user_id", user_id).execute()
     except Exception:
         # Fallback if column selection fails
-        job_query = db.table("job_descriptions").select("*").eq("id", payload.job_id)
-        if auth_user:
-            job_query = job_query.eq("user_id", user_id)
-        job_res = job_query.execute()
+        job_res = db.table("job_descriptions").select("*").eq("id", payload.job_id).eq("user_id", user_id).execute()
     if not job_res.data:
         raise HTTPException(status_code=404, detail="Job description not found.")
     job_data = job_res.data[0]
 
     # 2. Fetch Resume — verify ownership (avoid SELECT * to skip vector columns)
     try:
-        res_query = db.table("resumes").select("id, user_id, raw_text, candidate_name, file_url, ats_score, ats_breakdown, status").eq("id", payload.resume_id)
-        if auth_user:
-            res_query = res_query.eq("user_id", user_id)
-        res_res = res_query.execute()
+        res_res = db.table("resumes").select("id, user_id, raw_text, candidate_name, file_url, ats_score, ats_breakdown, status").eq("id", payload.resume_id).eq("user_id", user_id).execute()
     except Exception:
-        res_query = db.table("resumes").select("*").eq("id", payload.resume_id)
-        if auth_user:
-            res_query = res_query.eq("user_id", user_id)
-        res_res = res_query.execute()
+        res_res = db.table("resumes").select("*").eq("id", payload.resume_id).eq("user_id", user_id).execute()
     if not res_res.data:
         raise HTTPException(status_code=404, detail="Resume not found.")
     resume_data = res_res.data[0]

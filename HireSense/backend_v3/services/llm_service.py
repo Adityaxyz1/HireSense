@@ -1,137 +1,217 @@
 # services/llm_service.py
+"""
+Multi-Model LLM Racing Engine for HireSense (Fully Async).
+
+Strategy:
+  - Fires requests to 1–3 NVIDIA NIM models concurrently using AsyncOpenAI
+  - Returns the FIRST valid JSON response (fastest wins)
+  - Validates response structure before accepting
+  - Falls back to heuristic mock engine if all models fail
+  - In-memory cache ensures repeat prompts are instant (~0ms)
+"""
 import json
+import time
 import hashlib
-from openai import OpenAI
+import asyncio
+import logging
+from openai import AsyncOpenAI
 from config import settings
 
-# NVIDIA NIM Endpoint & Model — 8B is 5-8x faster than 70B for structured JSON tasks
-NIM_BASE_URL = "https://integrate.api.nvidia.com/v1"
-NIM_MODEL = "meta/llama-3.1-8b-instruct"
+logger = logging.getLogger("hiresense.llm")
 
-# Security: validate key exists before creating client
-if not settings.NVIDIA_NIM_API_KEY:
-    print("WARNING: NVIDIA_NIM_API_KEY is not set. AI features will return fallback responses.")
-    client = None
-else:
-    client = OpenAI(
-        api_key=settings.NVIDIA_NIM_API_KEY,
-        base_url=NIM_BASE_URL,
-        timeout=10.0  # Fast timeout — fail quickly, fall back to heuristics
+# ── Model Registry ─────────────────────────────────────────────
+NIM_BASE_URL = "https://integrate.api.nvidia.com/v1"
+
+MODEL_REGISTRY = []
+
+# Primary: Meta Llama 3.1 8B Instruct — fast and reliable
+if settings.NVIDIA_NIM_API_KEY_DEEPSEEK: # Keep the key setting name
+    MODEL_REGISTRY.append({
+        "name": "Llama-3.1-8B-Primary",
+        "model_id": "meta/llama-3.1-8b-instruct",
+        "api_key": settings.NVIDIA_NIM_API_KEY_DEEPSEEK,
+        "base_url": NIM_BASE_URL,
+        "timeout": 15.0,
+        "priority": 1,
+    })
+
+# Secondary: Extremely fast runner (Meta Llama 3.2 3B Instruct)
+if settings.NVIDIA_NIM_API_KEY_META:
+    MODEL_REGISTRY.append({
+        "name": "Llama-3.2-3B-Speed",
+        "model_id": "meta/llama-3.2-3b-instruct",
+        "api_key": settings.NVIDIA_NIM_API_KEY_META,
+        "base_url": NIM_BASE_URL,
+        "timeout": 10.0,
+        "priority": 2,
+    })
+
+# Tertiary: Backup runner (Meta Llama 3.2 1B Instruct)
+if settings.NVIDIA_NIM_API_KEY_GEMMA:
+    # Use Llama 3.2 1B as Gemma 2 9B is EOL and Gemma 3 takes too long to cold start
+    MODEL_REGISTRY.append({
+        "name": "Llama-3.2-1B-Speed",
+        "model_id": "meta/llama-3.2-1b-instruct",
+        "api_key": settings.NVIDIA_NIM_API_KEY_GEMMA,
+        "base_url": NIM_BASE_URL,
+        "timeout": 8.0,
+        "priority": 3,
+    })
+
+# Build AsyncOpenAI clients
+_clients: dict[str, AsyncOpenAI] = {}
+for _m in MODEL_REGISTRY:
+    _clients[_m["name"]] = AsyncOpenAI(
+        api_key=_m["api_key"],
+        base_url=_m["base_url"],
+        timeout=_m["timeout"],
     )
 
-# ── In-memory LLM response cache ──────────────────────────────
-# Keyed on hash of (system_prompt + user_prompt) → parsed JSON dict
+_num_models = len(MODEL_REGISTRY)
+print(f"[OK] LLM Racing Engine (Async): {_num_models} model(s) registered")
+
+# ── Cache ──────────────────────────────────────────────────────
 _llm_cache: dict[str, dict] = {}
-_MAX_CACHE_SIZE = 100
+_MAX_CACHE_SIZE = 200
 
 def _cache_key(system_prompt: str, user_prompt: str) -> str:
-    """Create a deterministic cache key from the prompts."""
     raw = (system_prompt + "|||" + user_prompt).encode("utf-8")
     return hashlib.sha256(raw).hexdigest()
 
-
-def prompt_nim(system_prompt: str, user_prompt: str, use_cache: bool = True) -> dict:
-    """
-    Sends a prompt to NVIDIA NIM LLM expecting a structured JSON response.
-    Returns the parsed JSON dict. Uses a robust Mocking Engine if API is unavailable.
-    Includes in-memory caching to avoid redundant API calls.
-    """
-    # Check cache first
-    if use_cache:
-        key = _cache_key(system_prompt, user_prompt)
-        if key in _llm_cache:
-            return _llm_cache[key].copy()
-
-    # Check for environmental override or missing client
-    FORCE_MOCK = getattr(settings, "MOCK_AI", False)
-    
-    if client is None or FORCE_MOCK:
-        # RETURN REALISTIC MOCK DATA (Heuristic Engine)
-        result = _generate_mock_fallback(system_prompt, user_prompt)
-        if use_cache:
-            _cache_result(key, result)
-        return result
-    
-    try:
-        completion = client.chat.completions.create(
-            model=NIM_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.1,
-            max_tokens=800  # JSON responses are ~300-500 tokens, 800 is ample
-        )
-        response_text = completion.choices[0].message.content.strip()
-        # Strip markdown code fences robustly (```json, ``` json, or plain ```)
-        if "```" in response_text:
-            parts = response_text.split("```")
-            if len(parts) >= 3:
-                inner = parts[1]
-                if inner.lower().startswith("json"):
-                    inner = inner[4:]
-                response_text = inner.strip()
-            else:
-                response_text = response_text.replace("```json", "").replace("```", "").strip()
-        result = json.loads(response_text)
-        if use_cache:
-            _cache_result(key, result)
-        return result
-    except json.JSONDecodeError as e:
-        print(f"JSON parse error from NVIDIA NIM: {e}. Falling back to Mock Engine.")
-        return _generate_mock_fallback(system_prompt, user_prompt, error=str(e))
-    except Exception as e:
-        print(f"Error querying NVIDIA NIM API: {e}. Falling back to Mock Engine.")
-        return _generate_mock_fallback(system_prompt, user_prompt, error=str(e))
-
-
 def _cache_result(key: str, result: dict):
-    """Store result in LRU-style cache with size limit."""
     global _llm_cache
     if len(_llm_cache) >= _MAX_CACHE_SIZE:
-        # Evict oldest entry (first inserted)
         oldest_key = next(iter(_llm_cache))
         del _llm_cache[oldest_key]
     _llm_cache[key] = result.copy()
 
+def _parse_llm_response(response_text: str) -> dict | None:
+    text = response_text.strip()
+    if "```" in text:
+        parts = text.split("```")
+        if len(parts) >= 3:
+            inner = parts[1]
+            if inner.lower().startswith("json"): inner = inner[4:]
+            text = inner.strip()
+        else:
+            text = text.replace("```json", "").replace("```", "").strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return None
+
+# ── Core Async Engine ──────────────────────────────────────────
+
+async def _call_single_model(model_cfg: dict, sys: str, user: str) -> dict | None:
+    name = model_cfg["name"]
+    client = _clients.get(name)
+    if not client: return None
+
+    t0 = time.perf_counter()
+    try:
+        # Use low temperature for speed and consistency
+        completion = await client.chat.completions.create(
+            model=model_cfg["model_id"],
+            messages=[{"role": "system", "content": sys}, {"role": "user", "content": user}],
+            temperature=0.01,
+            max_tokens=800, # Sufficient for matching JSON
+        )
+        elapsed = time.perf_counter() - t0
+        raw = completion.choices[0].message.content.strip()
+        result = _parse_llm_response(raw)
+
+        if result:
+            # Validate schema to ensure small models didn't hallucinate a wrong JSON format
+            if "semantic_score" in result or "score" in result:
+                result["_model"] = name
+                result["_latency_ms"] = round(elapsed * 1000)
+                print(f"  >> {name} -> {elapsed:.1f}s (winner)")
+                return result
+            else:
+                print(f"  xx {name} -> {elapsed:.1f}s (schema invalid: {list(result.keys())[:3]})")
+                return None
+        return None
+    except Exception as e:
+        elapsed = time.perf_counter() - t0
+        # Only print error if it's not a common timeout
+        if "timeout" not in str(e).lower():
+            print(f"  xx {name} -> {elapsed:.1f}s (error: {type(e).__name__})")
+        return None
+
+async def prompt_nim_async(system_prompt: str, user_prompt: str, use_cache: bool = True) -> dict:
+    """
+    Primary async interface for the racing engine.
+    Returns the fastest valid response from the registered models.
+    """
+    key = None
+    if use_cache:
+        key = _cache_key(system_prompt, user_prompt)
+        if key in _llm_cache:
+            cached = _llm_cache[key].copy()
+            cached["_cached"] = True
+            return cached
+
+    FORCE_MOCK = getattr(settings, "MOCK_AI", False)
+    if not MODEL_REGISTRY or FORCE_MOCK:
+        return _generate_mock_fallback(system_prompt, user_prompt)
+
+    print(f"  [RACE] Racing {len(MODEL_REGISTRY)} models...")
+    
+    # Create tasks for all models
+    tasks = [
+        asyncio.create_task(_call_single_model(m, system_prompt, user_prompt))
+        for m in MODEL_REGISTRY
+    ]
+
+    # Return first valid result using as_completed
+    winner = None
+    try:
+        # 15s absolute cut-off for the race runner
+        for completed_task in asyncio.as_completed(tasks, timeout=15):
+            try:
+                result = await completed_task
+                if result:
+                    winner = result
+                    # Cancel other tasks
+                    for t in tasks:
+                        if not t.done(): t.cancel()
+                    break
+            except Exception:
+                continue
+    except asyncio.TimeoutError:
+        print("  [WARN] Race timed out - falling back to mock")
+
+    if winner:
+        if use_cache and key: _cache_result(key, winner)
+        return winner
+
+    # All failed or timed out -> Mock fallback
+    res = _generate_mock_fallback(system_prompt, user_prompt, error="All racers failed")
+    if use_cache and key: _cache_result(key, res)
+    return res
+
+def prompt_nim(system_prompt: str, user_prompt: str, use_cache: bool = True) -> dict:
+    """
+    Sync wrapper for the async engine.
+    Used for legacy sync callers.
+    """
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # Already in an event loop (FastAPI) — use a separate thread for the race
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                return pool.submit(asyncio.run, prompt_nim_async(system_prompt, user_prompt, use_cache)).result()
+        else:
+            return asyncio.run(prompt_nim_async(system_prompt, user_prompt, use_cache))
+    except Exception:
+        return asyncio.run(prompt_nim_async(system_prompt, user_prompt, use_cache))
 
 def _generate_mock_fallback(sys: str, user: str, error: str = None) -> dict:
-    """
-    Simulates high-quality LLM output for ATS and Matching flows.
-    Ensures the demo remains functional even without connectivity.
-    """
     import random
-    
-    # Identify context (ATS Scan vs Matcher)
     is_ats = "ATS" in sys or "compliance" in sys
-    
     if is_ats:
-        score = random.randint(72, 89)
-        return {
-            "score": score,
-            "candidate_name": "Candidate",
-            "breakdown": [
-                {"type": "success", "message": "Contact information is correctly formatted and parsed."},
-                {"type": "success", "message": "Standard structural headers (Education, Experience) detected."},
-                {"type": "warning", "message": "Limited quantifiable metrics found in recent job roles."},
-                {"type": "warning", "message": "Word count is slightly below the optimal range for this seniority level."},
-                {"type": "success", "message": "File parsing clarity is high with minimal OCR noise."}
-            ],
-            "mocked": True,
-            "api_error": error
-        }
+        return {"score": random.randint(72, 89), "candidate_name": None, "breakdown": [], "mocked": True, "api_error": error}
     else:
-        # Matcher fallback
         score = random.randint(68, 92)
-        return {
-            "semantic_score": score + 2.4,
-            "keyword_coverage": score - 4.1,
-            "final_score": score,
-            "matched_keywords": ["Python", "Problem Solving", "Teamwork", "Agile", "SQL"],
-            "missing_keywords": ["Kubernetes", "Redis", "Cloud Architecture"],
-            "extra_keywords": ["Project Management", "UI Design"],
-            "resume_keywords": ["Python", "SQL", "Agile", "Teamwork"],
-            "jd_keywords": ["Python", "Kubernetes", "Redis", "SQL"],
-            "mocked": True,
-            "api_error": error
-        }
+        return {"semantic_score": score + 2.4, "keyword_coverage": score - 4.1, "final_score": score, "matched_keywords": ["Python"], "missing_keywords": [], "extra_keywords": [], "resume_keywords": [], "jd_keywords": [], "mocked": True, "api_error": error}

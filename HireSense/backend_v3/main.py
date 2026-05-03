@@ -128,8 +128,8 @@ def startup():
     """Initialize connections on server start."""
     print(f"Backend started: {settings.PROJECT_NAME}")
     # Security: warn if critical keys are missing
-    if not settings.NVIDIA_NIM_API_KEY:
-        print("WARNING: NVIDIA_NIM_API_KEY not set in .env — AI features will fail.")
+    if not (settings.NVIDIA_NIM_API_KEY_DEEPSEEK or settings.NVIDIA_NIM_API_KEY_META or settings.NVIDIA_NIM_API_KEY_GEMMA):
+        print("WARNING: No NVIDIA_NIM_API_KEY set in .env — AI features will fail.")
     if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
         print("WARNING: Supabase credentials not set in .env — database features will fail.")
 
