@@ -1,11 +1,9 @@
-"""
-Profile routes — CRUD for user profiles + password change.
-"""
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form, Depends
 from pydantic import BaseModel
 from database import get_db
 from typing import Optional
 import uuid
+from routes.auth_dependency import require_user, get_current_user
 
 router = APIRouter()
 
@@ -19,30 +17,13 @@ class PasswordChange(BaseModel):
     new_password: str
 
 
-# ── Helper: extract user from token ─────────────────────────
-def _get_user_from_token(request: Request):
-    """Verify session and return user object."""
-    auth_header = request.headers.get("authorization", "")
-    if not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    token = auth_header.replace("Bearer ", "")
-    db = get_db()
-    try:
-        result = db.auth.get_user(token)
-        if result.user is None:
-            raise HTTPException(status_code=401, detail="Invalid or expired session")
-        return result.user, token
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid or expired session")
+# (Redundant auth helper removed, now using require_user dependency)
 
 
 # ── GET /api/profile ─────────────────────────────────────────
 @router.get("/profile")
-async def get_profile(request: Request):
+async def get_profile(user=Depends(require_user)):
     """Fetch the current user's profile."""
-    user, _ = _get_user_from_token(request)
     db = get_db()
 
     try:
@@ -78,9 +59,8 @@ async def get_profile(request: Request):
 
 # ── PUT /api/profile ─────────────────────────────────────────
 @router.put("/profile")
-async def update_profile(payload: ProfileUpdate, request: Request):
+async def update_profile(payload: ProfileUpdate, user=Depends(require_user)):
     """Update display name."""
-    user, _ = _get_user_from_token(request)
     db = get_db()
 
     try:
@@ -119,9 +99,8 @@ async def update_profile(payload: ProfileUpdate, request: Request):
 
 # ── POST /api/profile/avatar ────────────────────────────────
 @router.post("/profile/avatar")
-async def upload_avatar(request: Request, file: UploadFile = File(...)):
+async def upload_avatar(file: UploadFile = File(...), user=Depends(require_user)):
     """Upload a profile picture to Supabase Storage."""
-    user, _ = _get_user_from_token(request)
     db = get_db()
 
     # Validate file type
@@ -183,9 +162,10 @@ async def upload_avatar(request: Request, file: UploadFile = File(...)):
 
 # ── POST /api/profile/change-password ───────────────────────
 @router.post("/profile/change-password")
-async def change_password(payload: PasswordChange, request: Request):
+async def change_password(payload: PasswordChange, request: Request, user=Depends(require_user)):
     """Change the password for the currently authenticated user."""
-    user, token = _get_user_from_token(request)
+    # We need the raw token for some auth operations if we were to use them, 
+    # but here we use admin API which only needs user_id.
 
     if len(payload.new_password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")

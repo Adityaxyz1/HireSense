@@ -21,6 +21,7 @@ export default function AtsCheck() {
     const [candidateName, setCandidateName] = useState('');
 
     // JD Match state
+    const [jdTitle, setJdTitle] = useState('');
     const [jdText, setJdText] = useState('');
     const [matchLoading, setMatchLoading] = useState(false);
     const [matchReport, setMatchReport] = useState(null);
@@ -96,7 +97,7 @@ export default function AtsCheck() {
         if (!rid || !jdText.trim()) return;
         setMatchLoading(true);
         try {
-            const data = await api.matchResume(rid, jdText);
+            const data = await api.matchResume(rid, jdText, jdTitle);
             setMatchReport(data);
         } catch (e) {
             setMatchReport({ final_score: 0, error: e.message });
@@ -213,17 +214,31 @@ export default function AtsCheck() {
 
                     {/* JD Text Area (visible only in match tab) */}
                     {activeTab === 'match' && (
-                        <textarea
-                            value={jdText}
-                            onChange={e => setJdText(e.target.value)}
-                            placeholder="Paste the job description here…"
-                            style={{
-                                width: '100%', marginTop: 10, padding: '10px 12px', minHeight: 100,
-                                background: 'var(--bg)', border: '1.5px solid var(--border)',
-                                borderRadius: 8, color: 'var(--text)', fontSize: 12,
-                                fontFamily: 'var(--font)', outline: 'none', resize: 'vertical',
-                            }}
-                        />
+                        <>
+                            <input 
+                                type="text"
+                                value={jdTitle}
+                                onChange={e => setJdTitle(e.target.value)}
+                                placeholder="Job Title (e.g. Senior Frontend Developer)"
+                                style={{
+                                    width: '100%', marginTop: 10, padding: '9px 12px',
+                                    background: 'var(--bg)', border: '1.5px solid var(--border)',
+                                    borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                                    fontFamily: 'var(--font)', outline: 'none',
+                                }}
+                            />
+                            <textarea
+                                value={jdText}
+                                onChange={e => setJdText(e.target.value)}
+                                placeholder="Paste the job description here…"
+                                style={{
+                                    width: '100%', marginTop: 10, padding: '10px 12px', minHeight: 100,
+                                    background: 'var(--bg)', border: '1.5px solid var(--border)',
+                                    borderRadius: 8, color: 'var(--text)', fontSize: 12,
+                                    fontFamily: 'var(--font)', outline: 'none', resize: 'vertical',
+                                }}
+                            />
+                        </>
                     )}
 
                     <button

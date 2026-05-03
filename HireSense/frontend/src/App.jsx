@@ -13,6 +13,7 @@ import Results from './pages/Results';
 import Recruiter from './pages/Recruiter';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
+import Admin from './pages/Admin';
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
           <Route path="results" element={<Results />} />
           <Route path="recruiter" element={<Recruiter />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="admin" element={<Admin />} />
         </Route>
       </Routes>
     </Router>

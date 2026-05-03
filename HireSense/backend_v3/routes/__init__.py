@@ -7,6 +7,7 @@ from routes.chat import router as chat_router
 from routes.match import router as match_router
 from routes.auth import router as auth_router
 from routes.profile import router as profile_router
+from routes.admin import router as admin_router
 
 api_router = APIRouter()
 
@@ -18,4 +19,4 @@ api_router.include_router(evaluate_router, tags=["Evaluation"])
 api_router.include_router(match_router, tags=["Match"])
 api_router.include_router(rewrite_router, tags=["Rewrite"])
 api_router.include_router(chat_router, tags=["Chat"])
-
+api_router.include_router(admin_router, tags=["Admin"])

@@ -167,7 +167,7 @@ export const api = {
     async getAtsScore(resumeId) {
         const authHeaders = await getAuthHeaders();
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+        const timeout = setTimeout(() => controller.abort(), 30000); // 30s — racing engine returns faster
         try {
             const res = await fetch(`${API_BASE}/resumes/${resumeId}/ats`, {
                 headers: { ...authHeaders },
@@ -186,15 +186,15 @@ export const api = {
         }
     },
 
-    async matchResume(resumeId, jdText) {
+    async matchResume(resumeId, jdText, title = '') {
         const authHeaders = await getAuthHeaders();
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 45000); // 45s timeout
+        const timeout = setTimeout(() => controller.abort(), 45000); // 45s — racing engine returns faster
         try {
             const res = await fetch(`${API_BASE}/match`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...authHeaders },
-                body: JSON.stringify({ resume_id: resumeId, jd_text: jdText }),
+                body: JSON.stringify({ resume_id: resumeId, jd_text: jdText, title }),
                 signal: controller.signal,
             });
             clearTimeout(timeout);
@@ -218,4 +218,93 @@ export const api = {
         if (!res.ok) throw new Error('Failed to fetch stats');
         return res.json();
     },
+
+    // Admin Panel Routes
+    async adminGetUsers() {
+        const authHeaders = await getAuthHeaders();
+        const res = await fetch(`${API_BASE}/admin/users`, {
+            headers: { ...authHeaders },
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Failed to fetch users');
+        }
+        return res.json();
+    },
+
+    async adminDeleteUser(userId) {
+        const authHeaders = await getAuthHeaders();
+        const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+            method: 'DELETE',
+            headers: { ...authHeaders },
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Failed to delete user');
+        }
+        return res.json();
+    },
+
+    async adminWipeUserData(userId) {
+        const authHeaders = await getAuthHeaders();
+        const res = await fetch(`${API_BASE}/admin/users/${userId}/data`, {
+            method: 'DELETE',
+            headers: { ...authHeaders },
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Failed to wipe user data');
+        }
+        return res.json();
+    },
+
+    async adminReassignData(sourceUserId, targetUserId) {
+        const authHeaders = await getAuthHeaders();
+        const res = await fetch(`${API_BASE}/admin/reassign`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...authHeaders },
+            body: JSON.stringify({ source_user_id: sourceUserId, target_user_id: targetUserId }),
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Failed to reassign data');
+        }
+        return res.json();
+    },
+
+    async adminGetLogs() {
+        const authHeaders = await getAuthHeaders();
+        const res = await fetch(`${API_BASE}/admin/logs`, {
+            headers: { ...authHeaders },
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Failed to fetch logs');
+        }
+        return res.json();
+    },
+
+    async adminGetResumes() {
+        const authHeaders = await getAuthHeaders();
+        const res = await fetch(`${API_BASE}/admin/resumes`, {
+            headers: { ...authHeaders },
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Failed to fetch global resumes');
+        }
+        return res.json();
+    },
+
+    async adminGetJobs() {
+        const authHeaders = await getAuthHeaders();
+        const res = await fetch(`${API_BASE}/admin/jobs`, {
+            headers: { ...authHeaders },
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Failed to fetch global jobs');
+        }
+        return res.json();
+    }
 };

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import TwirlBackground from '../components/ui/TwirlBackground';
 
@@ -8,12 +9,25 @@ export default function Login() {
     const navigate = useNavigate();
     const { login, signup } = useAuth();
     const [isSignup, setIsSignup] = useState(false);
+    const [isAdminMode, setIsAdminMode] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [remember, setRemember] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+
+    const toggleAdminMode = () => {
+        setIsAdminMode(!isAdminMode);
+        setIsSignup(false);
+        setError('');
+        setSuccess('');
+        if (!isAdminMode) {
+            setEmail('aditya.poddar3698@gmail.com');
+        } else {
+            setEmail('');
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -31,13 +45,22 @@ export default function Login() {
 
         setLoading(true);
         try {
-            if (isSignup) {
+            if (isSignup && !isAdminMode) {
                 await signup(email, password);
                 setSuccess('Account created! Check your email for verification, or log in now.');
                 setIsSignup(false);
             } else {
                 await login(email, password);
-                navigate('/');
+                if (isAdminMode) {
+                    if (email === 'aditya.poddar3698@gmail.com') {
+                        navigate('/admin');
+                    } else {
+                        setError('⛔ Access Denied — You do not have admin privileges.');
+                        return;
+                    }
+                } else {
+                    navigate('/');
+                }
             }
         } catch (err) {
             setError(err.message || 'Authentication failed');
@@ -66,9 +89,10 @@ export default function Login() {
                 width: 600,
                 height: 600,
                 borderRadius: '50%',
-                background: 'radial-gradient(circle, var(--border) 0%, transparent 70%)',
-                opacity: 0.15,
+                background: isAdminMode ? 'radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, transparent 70%)' : 'radial-gradient(circle, var(--border) 0%, transparent 70%)',
+                opacity: isAdminMode ? 0.3 : 0.15,
                 zIndex: 0,
+                transition: 'background 0.5s ease',
             }} />
 
             {/* Login Card */}
@@ -83,23 +107,51 @@ export default function Login() {
                     maxWidth: 420,
                 }}
             >
+                {/* Admin Toggle Button (Absolute Top Right) */}
+                <button
+                    type="button"
+                    onClick={toggleAdminMode}
+                    style={{
+                        position: 'absolute',
+                        top: 16,
+                        right: 16,
+                        zIndex: 20,
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: 8,
+                        borderRadius: '50%',
+                        color: isAdminMode ? '#f59e0b' : 'var(--text3)',
+                        transition: 'all 0.3s ease',
+                    }}
+                    title={isAdminMode ? "Switch to User Login" : "Admin Vault Access"}
+                >
+                    <Shield size={20} />
+                </button>
+
                 {/* Outer glow border */}
                 <div style={{
                     position: 'absolute',
                     inset: -1,
                     borderRadius: 17,
-                    background: 'linear-gradient(135deg, var(--border2) 0%, transparent 50%, var(--border2) 100%)',
+                    background: isAdminMode 
+                        ? 'linear-gradient(135deg, rgba(245,158,11,0.5) 0%, transparent 50%, rgba(245,158,11,0.5) 100%)'
+                        : 'linear-gradient(135deg, var(--border2) 0%, transparent 50%, var(--border2) 100%)',
                     opacity: 0.5,
                     zIndex: -1,
+                    transition: 'background 0.5s ease',
                 }} />
 
                 <div style={{
                     background: 'var(--surface)',
-                    border: '1.5px solid var(--border)',
+                    border: isAdminMode ? '1.5px solid rgba(245,158,11,0.3)' : '1.5px solid var(--border)',
                     borderRadius: 16,
                     padding: '40px 36px 36px',
                     backdropFilter: 'blur(20px)',
-                    boxShadow: '0 25px 60px rgba(0,0,0,0.3), 0 0 0 1px var(--border)',
+                    boxShadow: isAdminMode 
+                        ? '0 25px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(245,158,11,0.1)' 
+                        : '0 25px 60px rgba(0,0,0,0.3), 0 0 0 1px var(--border)',
+                    transition: 'border 0.5s ease, box-shadow 0.5s ease',
                 }}>
                     {/* Logo */}
                     <motion.div
@@ -116,12 +168,13 @@ export default function Login() {
                             display: 'flex',
                             alignItems: 'stretch',
                             height: 38,
-                            border: '1.5px solid var(--border2)',
+                            border: isAdminMode ? '1.5px solid rgba(245,158,11,0.4)' : '1.5px solid var(--border2)',
                             borderRadius: 8,
                             overflow: 'hidden',
+                            transition: 'border 0.5s ease',
                         }}>
                             <div style={{
-                                background: 'var(--logo-bg)',
+                                background: isAdminMode ? 'linear-gradient(to right, #f59e0b, #d97706)' : 'var(--logo-bg)',
                                 padding: '0 18px',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -130,7 +183,7 @@ export default function Login() {
                                     fontFamily: 'var(--font)',
                                     fontWeight: 800,
                                     fontSize: 15,
-                                    color: 'var(--logo-fg)',
+                                    color: isAdminMode ? '#fff' : 'var(--logo-fg)',
                                     letterSpacing: '.14em',
                                 }}>HIRE</span>
                             </div>
@@ -139,7 +192,7 @@ export default function Login() {
                                 padding: '0 18px',
                                 display: 'flex',
                                 alignItems: 'center',
-                                borderLeft: '1.5px solid var(--border)',
+                                borderLeft: isAdminMode ? '1.5px solid rgba(245,158,11,0.4)' : '1.5px solid var(--border)',
                             }}>
                                 <span style={{
                                     fontFamily: 'var(--font)',
@@ -154,29 +207,30 @@ export default function Login() {
 
                     {/* Title */}
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.3, duration: 0.6 }}
+                        key={isAdminMode ? 'admin' : (isSignup ? 'signup' : 'login')}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.4 }}
                         style={{ textAlign: 'center', marginBottom: 28 }}
                     >
                         <h2 style={{
                             fontFamily: 'var(--font)',
                             fontWeight: 600,
                             fontSize: 18,
-                            color: 'var(--text)',
+                            color: isAdminMode ? '#f59e0b' : 'var(--text)',
                             letterSpacing: '.05em',
                             marginBottom: 6,
                         }}>
-                            {isSignup ? 'Create Account' : 'Welcome Back'}
+                            {isAdminMode ? 'Admin Vault Access' : (isSignup ? 'Create Account' : 'Welcome Back')}
                         </h2>
                         <p style={{
                             fontSize: 12,
                             color: 'var(--text3)',
                             letterSpacing: '.08em',
                         }}>
-                            {isSignup
-                                ? 'Sign up to access the AI recruitment platform'
-                                : 'Sign in to your AI recruitment dashboard'
+                            {isAdminMode 
+                                ? 'Restricted area for system owner'
+                                : (isSignup ? 'Sign up to access the AI recruitment platform' : 'Sign in to your AI recruitment dashboard')
                             }
                         </p>
                     </motion.div>
@@ -336,7 +390,7 @@ export default function Login() {
                                     gap: 8,
                                     cursor: 'pointer',
                                     fontSize: 12,
-                                    color: 'var(--text2)',
+                                    color: isAdminMode ? 'rgba(245, 158, 11, 0.7)' : 'var(--text2)',
                                     fontFamily: 'var(--font)',
                                 }}>
                                     <div
@@ -344,19 +398,19 @@ export default function Login() {
                                         style={{
                                             width: 16,
                                             height: 16,
-                                            border: '1.5px solid var(--border2)',
+                                            border: isAdminMode ? '1.5px solid rgba(245, 158, 11, 0.4)' : '1.5px solid var(--border2)',
                                             borderRadius: 4,
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            background: remember ? 'var(--btn)' : 'transparent',
+                                            background: remember ? (isAdminMode ? '#f59e0b' : 'var(--btn)') : 'transparent',
                                             transition: 'all .2s',
                                             cursor: 'pointer',
                                         }}
                                     >
                                         {remember && (
                                             <svg width="10" height="10" viewBox="0 0 24 24"
-                                                fill="none" stroke="var(--btn-fg)" strokeWidth="3"
+                                                fill="none" stroke={isAdminMode ? '#fff' : 'var(--btn-fg)'} strokeWidth="3"
                                                 strokeLinecap="round" strokeLinejoin="round">
                                                 <polyline points="20 6 9 17 4 12" />
                                             </svg>
@@ -364,18 +418,20 @@ export default function Login() {
                                     </div>
                                     <span onClick={() => setRemember(!remember)}>Remember me</span>
                                 </label>
-                                <span style={{
-                                    fontSize: 12,
-                                    color: 'var(--text3)',
-                                    cursor: 'pointer',
-                                    fontFamily: 'var(--font)',
-                                    transition: 'color .2s',
-                                }}
-                                    onMouseEnter={(e) => e.target.style.color = 'var(--text)'}
-                                    onMouseLeave={(e) => e.target.style.color = 'var(--text3)'}
-                                >
-                                    Forgot password?
-                                </span>
+                                {!isAdminMode && (
+                                    <span style={{
+                                        fontSize: 12,
+                                        color: 'var(--text3)',
+                                        cursor: 'pointer',
+                                        fontFamily: 'var(--font)',
+                                        transition: 'color .2s',
+                                    }}
+                                        onMouseEnter={(e) => e.target.style.color = 'var(--text)'}
+                                        onMouseLeave={(e) => e.target.style.color = 'var(--text3)'}
+                                    >
+                                        Forgot password?
+                                    </span>
+                                )}
                             </motion.div>
                         )}
 
@@ -433,9 +489,9 @@ export default function Login() {
                             style={{
                                 width: '100%',
                                 padding: '14px 0',
-                                background: 'var(--btn)',
-                                color: 'var(--btn-fg)',
-                                border: '1.5px solid var(--border2)',
+                                background: isAdminMode ? '#f59e0b' : 'var(--btn)',
+                                color: isAdminMode ? '#fff' : 'var(--btn-fg)',
+                                border: isAdminMode ? '1.5px solid #d97706' : '1.5px solid var(--border2)',
                                 borderRadius: 10,
                                 fontSize: 13,
                                 fontWeight: 700,
@@ -455,75 +511,78 @@ export default function Login() {
                                 <div style={{
                                     width: 16,
                                     height: 16,
-                                    border: '2px solid var(--btn-fg)',
+                                    border: `2px solid ${isAdminMode ? '#fff' : 'var(--btn-fg)'}`,
                                     borderTopColor: 'transparent',
                                     borderRadius: '50%',
                                     animation: 'spin 0.7s linear infinite',
                                 }} />
                             )}
                             {loading
-                                ? (isSignup ? 'Creating...' : 'Signing in...')
-                                : (isSignup ? 'Create Account' : 'Sign In')
+                                ? (isSignup ? 'Creating...' : (isAdminMode ? 'Authenticating...' : 'Signing in...'))
+                                : (isSignup ? 'Create Account' : (isAdminMode ? 'Access Vault' : 'Sign In'))
                             }
                         </motion.button>
                     </form>
 
-                    {/* Divider */}
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 14,
-                        margin: '24px 0',
-                    }}>
-                        <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                        <span style={{
-                            fontSize: 10,
-                            color: 'var(--text3)',
-                            letterSpacing: '.15em',
-                            textTransform: 'uppercase',
-                            fontFamily: 'var(--font)',
-                        }}>
-                            {isSignup ? 'Already have an account?' : 'New to HireSense?'}
-                        </span>
-                        <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                    </div>
+                    {/* Divider & Signup Toggle (Hidden in Admin Mode) */}
+                    {!isAdminMode && (
+                        <>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 14,
+                                margin: '24px 0',
+                            }}>
+                                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                                <span style={{
+                                    fontSize: 10,
+                                    color: 'var(--text3)',
+                                    letterSpacing: '.15em',
+                                    textTransform: 'uppercase',
+                                    fontFamily: 'var(--font)',
+                                }}>
+                                    {isSignup ? 'Already have an account?' : 'New to HireSense?'}
+                                </span>
+                                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                            </div>
 
-                    {/* Toggle signup/login */}
-                    <motion.button
-                        type="button"
-                        onClick={() => {
-                            setIsSignup(!isSignup);
-                            setError('');
-                            setSuccess('');
-                        }}
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.98 }}
-                        style={{
-                            width: '100%',
-                            padding: '12px 0',
-                            background: 'transparent',
-                            color: 'var(--text2)',
-                            border: '1.5px solid var(--border)',
-                            borderRadius: 10,
-                            fontSize: 12,
-                            fontWeight: 600,
-                            fontFamily: 'var(--font)',
-                            letterSpacing: '.1em',
-                            textTransform: 'uppercase',
-                            cursor: 'pointer',
-                            transition: 'all .2s',
-                        }}
-                        onMouseEnter={(e) => {
-                            e.target.style.borderColor = 'var(--border2)';
-                            e.target.style.background = 'var(--bg3)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.target.style.borderColor = 'var(--border)';
-                            e.target.style.background = 'transparent';
-                        }}
-                    >
-                        {isSignup ? 'Sign In Instead' : 'Create Account'}
-                    </motion.button>
+                            <motion.button
+                                type="button"
+                                onClick={() => {
+                                    setIsSignup(!isSignup);
+                                    setError('');
+                                    setSuccess('');
+                                }}
+                                whileHover={{ scale: 1.01 }}
+                                whileTap={{ scale: 0.98 }}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px 0',
+                                    background: 'transparent',
+                                    color: 'var(--text2)',
+                                    border: '1.5px solid var(--border)',
+                                    borderRadius: 10,
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    fontFamily: 'var(--font)',
+                                    letterSpacing: '.1em',
+                                    textTransform: 'uppercase',
+                                    cursor: 'pointer',
+                                    transition: 'all .2s',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.borderColor = 'var(--border2)';
+                                    e.target.style.background = 'var(--bg3)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.borderColor = 'var(--border)';
+                                    e.target.style.background = 'transparent';
+                                }}
+                            >
+                                {isSignup ? 'Sign In Instead' : 'Create Account'}
+                            </motion.button>
+                        </>
+                    )}
 
                     {/* Footer */}
                     <motion.p

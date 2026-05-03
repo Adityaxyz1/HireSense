@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 import hashlib
 
@@ -8,7 +8,7 @@ from services.embedding_engine import generate_embedding
 from services.experience_engine import calculate_experience_score
 from services.resume_strength import compute_strength
 from services.scorer import get_risk_level
-from routes.auth_dependency import get_current_user
+from routes.auth_dependency import require_user
 
 router = APIRouter()
 
@@ -16,10 +16,11 @@ router = APIRouter()
 class MatchRequest(BaseModel):
     resume_id: str
     jd_text: str
+    title: str = ""
 
 
 @router.post("/match")
-def match_resume(payload: MatchRequest, request: Request):
+async def match_resume(payload: MatchRequest, user=Depends(require_user)):
     """
     POST /api/match
     Runs spaCy keyword extraction + semantic similarity to produce
@@ -31,14 +32,10 @@ def match_resume(payload: MatchRequest, request: Request):
         raise HTTPException(status_code=400, detail="jd_text is required")
 
     db = get_db()
-    auth_user = get_current_user(request)
-    user_id = str(auth_user.id) if auth_user else "local-user"
+    user_id = str(user.id)
 
     # 1. Fetch Candidate Resume — verify ownership
-    query = db.table("resumes").select("raw_text, status, user_id").eq("id", payload.resume_id)
-    if auth_user:
-        query = query.eq("user_id", user_id)
-    response = query.execute()
+    response = db.table("resumes").select("raw_text, status, user_id").eq("id", payload.resume_id).eq("user_id", user_id).execute()
 
     if not response.data:
         raise HTTPException(status_code=404, detail="Resume not found.")
@@ -55,10 +52,7 @@ def match_resume(payload: MatchRequest, request: Request):
 
         # Try full flow (may fail if table has vector column and pgvector schema changed)
         try:
-            job_query = db.table("job_descriptions").select("id").eq("job_text", jd_text)
-            if auth_user:
-                job_query = job_query.eq("user_id", user_id)
-            job_response = job_query.execute()
+            job_response = db.table("job_descriptions").select("id").eq("job_text", jd_text).eq("user_id", user_id).execute()
 
             if job_response.data:
                 job_id = job_response.data[0]["id"]
@@ -74,6 +68,7 @@ def match_resume(payload: MatchRequest, request: Request):
                     "id": job_id,
                     "user_id": user_id,
                     "job_text": jd_text,
+                    "title": payload.title or f"Job Description {job_id[:8]}",
                     "embedding": vector,
                 }).execute()
             except Exception as insert_err:
@@ -81,7 +76,7 @@ def match_resume(payload: MatchRequest, request: Request):
                 # If insert fails entirely, matching still works via LLM
 
         # 3. Compute Precision Match via LLM
-        result = match_resume_to_jd(raw_text, jd_text)
+        result = await match_resume_to_jd(raw_text, jd_text)
 
         # 4. Synthesize Pipeline Data safely
         exp_score = calculate_experience_score(raw_text, jd_text)
