@@ -7,9 +7,10 @@ import TwirlBackground from '../components/ui/TwirlBackground';
 
 export default function Login() {
     const navigate = useNavigate();
-    const { login, signup } = useAuth();
+    const { login, signup, resetPassword } = useAuth();
     const [isSignup, setIsSignup] = useState(false);
     const [isAdminMode, setIsAdminMode] = useState(false);
+    const [isForgot, setIsForgot] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [remember, setRemember] = useState(false);
@@ -20,12 +21,32 @@ export default function Login() {
     const toggleAdminMode = () => {
         setIsAdminMode(!isAdminMode);
         setIsSignup(false);
+        setIsForgot(false);
         setError('');
         setSuccess('');
         if (!isAdminMode) {
             setEmail('aditya.poddar3698@gmail.com');
         } else {
             setEmail('');
+        }
+    };
+
+    const handleForgotPassword = async (e) => {
+        e.preventDefault();
+        setError('');
+        setSuccess('');
+        if (!email) {
+            setError('Please enter your email address');
+            return;
+        }
+        setLoading(true);
+        try {
+            await resetPassword(email);
+            setSuccess('Password reset link sent! Check your email inbox.');
+        } catch (err) {
+            setError(err.message || 'Failed to send reset email');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -207,7 +228,7 @@ export default function Login() {
 
                     {/* Title */}
                     <motion.div
-                        key={isAdminMode ? 'admin' : (isSignup ? 'signup' : 'login')}
+                        key={isAdminMode ? 'admin' : (isForgot ? 'forgot' : (isSignup ? 'signup' : 'login'))}
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.4 }}
@@ -221,7 +242,7 @@ export default function Login() {
                             letterSpacing: '.05em',
                             marginBottom: 6,
                         }}>
-                            {isAdminMode ? 'Admin Vault Access' : (isSignup ? 'Create Account' : 'Welcome Back')}
+                            {isAdminMode ? 'Admin Vault Access' : (isForgot ? 'Reset Password' : (isSignup ? 'Create Account' : 'Welcome Back'))}
                         </h2>
                         <p style={{
                             fontSize: 12,
@@ -230,13 +251,13 @@ export default function Login() {
                         }}>
                             {isAdminMode 
                                 ? 'Restricted area for system owner'
-                                : (isSignup ? 'Sign up to access the AI recruitment platform' : 'Sign in to your AI recruitment dashboard')
+                                : (isForgot ? 'Enter your email to receive a password reset link' : (isSignup ? 'Sign up to access the AI recruitment platform' : 'Sign in to your AI recruitment dashboard'))
                             }
                         </p>
                     </motion.div>
 
                     {/* Form */}
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={isForgot ? handleForgotPassword : handleSubmit}>
                         {/* Email */}
                         <motion.div
                             initial={{ opacity: 0, x: -15 }}
@@ -304,7 +325,8 @@ export default function Login() {
                             </div>
                         </motion.div>
 
-                        {/* Password */}
+                        {/* Password (hidden in forgot mode) */}
+                        {!isForgot && (
                         <motion.div
                             initial={{ opacity: 0, x: -15 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -370,9 +392,10 @@ export default function Login() {
                                 </svg>
                             </div>
                         </motion.div>
+                        )}
 
                         {/* Remember me + Forgot */}
-                        {!isSignup && (
+                        {!isSignup && !isForgot && (
                             <motion.div
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
@@ -428,6 +451,7 @@ export default function Login() {
                                     }}
                                         onMouseEnter={(e) => e.target.style.color = 'var(--text)'}
                                         onMouseLeave={(e) => e.target.style.color = 'var(--text3)'}
+                                        onClick={() => { setIsForgot(true); setError(''); setSuccess(''); }}
                                     >
                                         Forgot password?
                                     </span>
@@ -518,13 +542,13 @@ export default function Login() {
                                 }} />
                             )}
                             {loading
-                                ? (isSignup ? 'Creating...' : (isAdminMode ? 'Authenticating...' : 'Signing in...'))
-                                : (isSignup ? 'Create Account' : (isAdminMode ? 'Access Vault' : 'Sign In'))
+                                ? (isForgot ? 'Sending...' : (isSignup ? 'Creating...' : (isAdminMode ? 'Authenticating...' : 'Signing in...')))
+                                : (isForgot ? 'Send Reset Link' : (isSignup ? 'Create Account' : (isAdminMode ? 'Access Vault' : 'Sign In')))
                             }
                         </motion.button>
                     </form>
 
-                    {/* Divider & Signup Toggle (Hidden in Admin Mode) */}
+                    {/* Divider & Toggle (Hidden in Admin Mode) */}
                     {!isAdminMode && (
                         <>
                             <div style={{
@@ -541,7 +565,7 @@ export default function Login() {
                                     textTransform: 'uppercase',
                                     fontFamily: 'var(--font)',
                                 }}>
-                                    {isSignup ? 'Already have an account?' : 'New to HireSense?'}
+                                    {isForgot ? 'Remembered your password?' : (isSignup ? 'Already have an account?' : 'New to HireSense?')}
                                 </span>
                                 <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                             </div>
@@ -549,7 +573,11 @@ export default function Login() {
                             <motion.button
                                 type="button"
                                 onClick={() => {
-                                    setIsSignup(!isSignup);
+                                    if (isForgot) {
+                                        setIsForgot(false);
+                                    } else {
+                                        setIsSignup(!isSignup);
+                                    }
                                     setError('');
                                     setSuccess('');
                                 }}
@@ -579,7 +607,7 @@ export default function Login() {
                                     e.target.style.background = 'transparent';
                                 }}
                             >
-                                {isSignup ? 'Sign In Instead' : 'Create Account'}
+                                {isForgot ? 'Back to Sign In' : (isSignup ? 'Sign In Instead' : 'Create Account')}
                             </motion.button>
                         </>
                     )}

@@ -12,6 +12,7 @@ import Finder from './pages/Finder';
 import Results from './pages/Results';
 import Recruiter from './pages/Recruiter';
 import Login from './pages/Login';
+import ResetPassword from './pages/ResetPassword';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 
@@ -19,8 +20,9 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Public route */}
+        {/* Public routes */}
         <Route path="/login" element={<Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Protected routes */}
         <Route path="/" element={

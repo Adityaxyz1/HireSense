@@ -178,6 +178,14 @@ export const AuthProvider = ({ children }) => {
         return await res.json();
     };
 
+    // Forgot password — send reset email via Supabase
+    const resetPassword = async (email) => {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+    };
+
     // Refresh profile data
     const refreshProfile = async () => {
         const { data: { session } } = await supabase.auth.getSession();
@@ -187,7 +195,7 @@ export const AuthProvider = ({ children }) => {
     return (
         <AuthContext.Provider value={{
             user, profile, loading,
-            login, signup, logout,
+            login, signup, logout, resetPassword,
             updateProfile, uploadAvatar, changePassword, refreshProfile,
         }}>
             {children}
