@@ -11,7 +11,7 @@ from services.resume_strength import compute_strength
 from services.bias_engine import generate_bias_report
 from services.scorer import compute_final_score, get_risk_level
 from routes.schemas import EvaluateRequest, EvaluateResponse
-from routes.auth_dependency import require_user
+from routes.auth_dependency import require_user, get_current_user
 
 router = APIRouter()
 
