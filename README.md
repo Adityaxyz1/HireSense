@@ -16,6 +16,7 @@ HireSense is a premium, full-stack recruitment platform designed to streamline t
 - **👤 User Profiles**: Personalized recruiter dashboards with custom profile pictures and display names, powered by **Supabase Storage**.
 - **💬 Real-time Chat**: AI-driven chatbot assistant to help recruiters navigate candidates and analysis results.
 - **🔒 Secure Architecture**: Robust authentication and data isolation using **Supabase Auth** and FastAPI middleware.
+- **🛡️ Admin Command Center**: Real-time user activity logs, system-wide auditing, and master-key restricted control panel.
 
 ---
 
@@ -54,7 +55,7 @@ pip install -r requirements.txt
 
 # Configure environment
 cp .env.example .env
-# Edit .env with your SUPABASE_URL, SUPABASE_KEY, and NVIDIA_NIM_API_KEY
+# Edit .env with SUPABASE_URL, SUPABASE_KEY, and NVIDIA_NIM_API_KEY_DEEPSEEK (or META/GEMMA)
 
 # Start the server
 uvicorn main:app --reload --port 8000
@@ -92,6 +93,7 @@ HireSense/
 ├── backend_v3/         # FastAPI application
 │   ├── routes/         # API endpoints (Auth, Resume, Profile)
 │   ├── services/       # AI Engines (LLM, Scorer, Parser)
+│   ├── sql/            # Database schemas and migration files
 │   ├── database.py     # Supabase client initialization
 │   └── main.py         # App entry point and middleware
 └── README.md           # This file
