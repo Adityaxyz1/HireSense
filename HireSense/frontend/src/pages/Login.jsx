@@ -14,6 +14,7 @@ export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [remember, setRemember] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -346,14 +347,14 @@ export default function Login() {
                             <div style={{ position: 'relative' }}>
                                 <input
                                     id="login-password"
-                                    type="password"
+                                    type={showPassword ? 'text' : 'password'}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="••••••••"
                                     autoComplete={isSignup ? 'new-password' : 'current-password'}
                                     style={{
                                         width: '100%',
-                                        padding: '13px 14px 13px 40px',
+                                        padding: '13px 40px 13px 40px',
                                         background: 'var(--input)',
                                         border: '1.5px solid var(--border)',
                                         borderRadius: 10,
@@ -390,6 +391,46 @@ export default function Login() {
                                     <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
                                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                                 </svg>
+                                {/* Eye toggle */}
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    style={{
+                                        position: 'absolute',
+                                        right: 12,
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        padding: 4,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: showPassword ? 'var(--text)' : 'var(--text3)',
+                                        transition: 'color 0.2s ease',
+                                    }}
+                                    tabIndex={-1}
+                                    title={showPassword ? 'Hide password' : 'Show password'}
+                                >
+                                    {showPassword ? (
+                                        /* Eye open icon */
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
+                                            <circle cx="12" cy="12" r="3" />
+                                        </svg>
+                                    ) : (
+                                        /* Eye off icon */
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="m6.18 6.18a10.75 10.75 0 0 0-4.118 5.472 1 1 0 0 0 0 .696 10.75 10.75 0 0 0 15.374 4.57" />
+                                            <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                                            <path d="M14.12 14.12 17.5 17.5" />
+                                            <path d="m6.5 6.5 4.37 4.37" />
+                                            <path d="M13.646 2.336a10.75 10.75 0 0 1 8.292 9.312 1 1 0 0 1 0 .696c-.285.846-.672 1.645-1.15 2.38" />
+                                            <line x1="2" x2="22" y1="2" y2="22" />
+                                        </svg>
+                                    )}
+                                </button>
                             </div>
                         </motion.div>
                         )}

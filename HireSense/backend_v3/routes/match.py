@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 import hashlib
+import json as _json
 
 from database import get_db, row_to_dict, new_id
 from services.resume_matcher import match_resume_to_jd
@@ -111,7 +112,6 @@ async def match_resume(payload: MatchRequest, user=Depends(require_user)):
 
         # Persist match summary to resume record for retriever reference
         try:
-            import json as _json
             db.table("resumes").update({
                 "match_score": round(result.get("final_score", 0), 2),
                 "match_breakdown": _json.dumps({

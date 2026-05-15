@@ -1,7 +1,7 @@
 {
-    "python.defaultInterpreterPath": "d:\\project kes\\HireSense\\backend_v3\\venv\\Scripts\\python.exe",
+    "python.defaultInterpreterPath": "${workspaceFolder}/HireSense/backend_v3/venv/Scripts/python.exe",
     "python.analysis.extraPaths": [
-        "d:\\project kes\\HireSense\\backend_v3",
-        "d:\\project kes\\HireSense\\backend_v3\\venv\\Lib\\site-packages"
-    ]
+        "${workspaceFolder}/HireSense/backend_v3"
+    ],
+    "python.terminal.activateEnvInCurrentTerminal": true
 }

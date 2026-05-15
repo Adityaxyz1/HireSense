@@ -16,5 +16,5 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         </MouseProvider>
       </AuthProvider>
     </ThemeProvider>
-  </React.StrictMode>,
+  </React.StrictMode>
 )

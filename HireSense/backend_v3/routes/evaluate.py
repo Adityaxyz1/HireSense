@@ -2,16 +2,16 @@ from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-import json
 
-from database import get_db, new_id, row_to_dict
+from database import get_db
 from services.skill_engine import calculate_skill_overlap, extract_skills_with_proficiency
 from services.experience_engine import calculate_experience_score
 from services.resume_strength import compute_strength
 from services.bias_engine import generate_bias_report
 from services.scorer import compute_final_score, get_risk_level
+from services.embedding_engine import generate_embedding
 from routes.schemas import EvaluateRequest, EvaluateResponse
-from routes.auth_dependency import require_user, get_current_user
+from routes.auth_dependency import require_user
 
 router = APIRouter()
 
@@ -50,7 +50,6 @@ def evaluate_resume(payload: EvaluateRequest, user=Depends(require_user)):
     # 3. Compute Semantic Score
     # Handle case where embeddings might not be generated yet
     # Generate embeddings on-the-fly (always — avoids reliance on stored vector columns)
-    from services.embedding_engine import generate_embedding
     r_emb = np.array(generate_embedding(r_text))
     jd_emb = np.array(generate_embedding(j_text))
     semantic_sim = float(cosine_similarity([jd_emb], [r_emb])[0][0])
@@ -107,10 +106,9 @@ def evaluate_resume(payload: EvaluateRequest, user=Depends(require_user)):
 
 
 @router.get("/results")
-def get_results(request: Request):
+def get_results(user=Depends(require_user)):
     """Get match results — scoped to authenticated user's data only."""
     db = get_db()
-    auth_user = get_current_user(request)
 
     # Query with Foreign Key joins
     select_query = """
@@ -120,9 +118,8 @@ def get_results(request: Request):
     """
     query = db.table("match_results").select(select_query).order("created_at", desc=True)
 
-    # Scope to user's data
-    if auth_user:
-        query = query.eq("user_id", str(auth_user.id))
+    # Scope to user's data (always enforced — require_user guarantees auth)
+    query = query.eq("user_id", str(user.id))
 
     response = query.execute()
 
@@ -148,7 +145,7 @@ class StatusUpdate(BaseModel):
     status: str
 
 @router.put("/results/{match_id}/status")
-def update_candidate_status(match_id: str, payload: StatusUpdate, request: Request):
+def update_candidate_status(match_id: str, payload: StatusUpdate, user=Depends(require_user)):
     """Update tracking status — only if owned by the authenticated user."""
     valid_statuses = {"pending", "approved", "rejected"}
     status = payload.status.lower()
@@ -157,12 +154,10 @@ def update_candidate_status(match_id: str, payload: StatusUpdate, request: Reque
         raise HTTPException(status_code=400, detail="Invalid status. Must be pending, approved, or rejected.")
 
     db = get_db()
-    auth_user = get_current_user(request)
 
-    # Verify ownership
+    # Verify ownership (always enforced — require_user guarantees auth)
     query = db.table("match_results").select("id").eq("id", match_id)
-    if auth_user:
-        query = query.eq("user_id", str(auth_user.id))
+    query = query.eq("user_id", str(user.id))
     chk = query.execute()
 
     if not chk.data:

@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 from typing import Optional, List
 from database import get_db, row_to_dict
-from routes.auth_dependency import get_current_user
+from routes.auth_dependency import require_user
 import re
 
 router = APIRouter()
@@ -28,7 +28,7 @@ class ChatResponse(BaseModel):
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(payload: SearchRequest, request: Request):
+async def chat(payload: SearchRequest, request: Request, user=Depends(require_user)):
     """Local Candidate Finder — scoped to authenticated user's resumes only."""
     query = payload.message.strip()
     if not query:
@@ -40,15 +40,13 @@ async def chat(payload: SearchRequest, request: Request):
         raise HTTPException(status_code=400, detail="Invalid search query.")
 
     db = get_db()
-    auth_user = get_current_user(request)
 
-    # Build query — scoped to user's resumes only
+    # Build query — scoped to user's resumes only (always enforced)
     db_query = db.table("resumes").select(
         "*, match_results(id, final_score)"
     ).eq("status", "completed").ilike("raw_text", f"%{query}%").limit(5)
 
-    if auth_user:
-        db_query = db_query.eq("user_id", str(auth_user.id))
+    db_query = db_query.eq("user_id", str(user.id))
 
     response = db_query.execute()
 

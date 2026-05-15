@@ -1,4 +1,6 @@
 from fastapi import APIRouter, File, UploadFile, BackgroundTasks, Form, HTTPException, Request, Depends
+from pydantic import BaseModel
+import json as _json
 
 from database import get_db, row_to_dict
 from services.pdf_parser import extract_text
@@ -6,7 +8,6 @@ from services.storage_service import upload_resume_pdf
 from services.embedding_engine import generate_embedding
 from services.ats_scanner import scan_ats_compliance
 from routes.auth_dependency import get_current_user, require_user
-import json as _json
 from routes.schemas import UploadResponse
 
 router = APIRouter()
@@ -141,7 +142,8 @@ def list_candidates(user=Depends(require_user)):
     return result
 
 
-from pydantic import BaseModel
+
+
 
 class ResumeStatusUpdate(BaseModel):
     status: str

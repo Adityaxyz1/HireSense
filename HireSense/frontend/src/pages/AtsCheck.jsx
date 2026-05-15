@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../lib/api';
 
@@ -153,6 +154,14 @@ export default function AtsCheck() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
                 {/* Left panel — Upload + Inputs */}
                 <div style={{ background: 'var(--card)', border: '1.5px solid var(--border)', borderRadius: 10, padding: 18 }}>
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeTab}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2 }}
+                        >
                     <div style={{ marginBottom: 16 }}>
                         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
                             {activeTab === 'ats' ? 'Upload Resume' : 'Match Against JD'}
@@ -314,10 +323,20 @@ export default function AtsCheck() {
                             </div>
                         </>
                     )}
+                        </motion.div>
+                    </AnimatePresence>
                 </div>
 
                 {/* Right panel — Score Report */}
                 <div style={{ background: 'var(--card)', border: '1.5px solid var(--border)', borderRadius: 10, padding: 18 }}>
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeTab}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2 }}
+                        >
                     <div style={{ marginBottom: 16 }}>
                         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
                             {activeTab === 'ats' ? 'ATS Readiness Report' : 'Precision Match Report'}
@@ -491,6 +510,8 @@ export default function AtsCheck() {
                             })()
                         )
                     )}
+                        </motion.div>
+                    </AnimatePresence>
                 </div>
             </div>
         </div>

@@ -54,13 +54,15 @@ export const AuthProvider = ({ children }) => {
         });
         if (error) throw error;
 
-        // Log to backend
+        // Log event to backend (no password — Supabase handles auth)
         try {
-            await fetch(`${API_BASE}/auth/signup`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
+            if (data.user) {
+                await fetch(`${API_BASE}/auth/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                });
+            }
         } catch { /* non-critical */ }
 
         return data;
@@ -79,7 +81,7 @@ export const AuthProvider = ({ children }) => {
             await fetchProfile(data.session);
         }
 
-        // Log to backend
+        // Log event to backend (audit trail only)
         try {
             await fetch(`${API_BASE}/auth/login`, {
                 method: 'POST',

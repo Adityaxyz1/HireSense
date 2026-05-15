@@ -1,10 +1,13 @@
 import re
-from fastapi import FastAPI, Request
+import time
+from collections import defaultdict
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from config import settings
-from database import init_db
+from database import get_db
 from routes import api_router
 
 
@@ -37,8 +40,6 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 # ── Security: Simple in-memory rate limiter ───────────────────
-import time
-from collections import defaultdict
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Simple sliding-window rate limiter: max 60 requests per minute per IP."""
@@ -68,10 +69,24 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+# ── Lifespan (replaces deprecated @app.on_event) ─────────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize connections on server start."""
+    print(f"Backend started: {settings.PROJECT_NAME}")
+    # Security: warn if critical keys are missing
+    if not (settings.NVIDIA_NIM_API_KEY_DEEPSEEK or settings.NVIDIA_NIM_API_KEY_META or settings.NVIDIA_NIM_API_KEY_GEMMA):
+        print("WARNING: No NVIDIA_NIM_API_KEY set in .env — AI features will fail.")
+    if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
+        print("WARNING: Supabase credentials not set in .env — database features will fail.")
+    yield
+
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description="AI-powered ATS backend for HireSense.",
     version="3.0.0",
+    lifespan=lifespan,
     # Security: hide docs in production (set via env if needed)
     docs_url="/docs",
     redoc_url=None,
@@ -99,8 +114,6 @@ app.add_middleware(
 
 
 # ── Secure file proxy ────────────────────────────────────────
-from database import get_db
-from fastapi import HTTPException
 
 # Regex: only allow safe filenames (UUID + alphanumeric + dash/underscore/dot)
 SAFE_FILENAME_RE = re.compile(r'^[a-zA-Z0-9_\-\.]+$')
@@ -123,15 +136,7 @@ def get_upload(filename: str):
 app.include_router(api_router, prefix="/api")
 
 
-@app.on_event("startup")
-def startup():
-    """Initialize connections on server start."""
-    print(f"Backend started: {settings.PROJECT_NAME}")
-    # Security: warn if critical keys are missing
-    if not (settings.NVIDIA_NIM_API_KEY_DEEPSEEK or settings.NVIDIA_NIM_API_KEY_META or settings.NVIDIA_NIM_API_KEY_GEMMA):
-        print("WARNING: No NVIDIA_NIM_API_KEY set in .env — AI features will fail.")
-    if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
-        print("WARNING: Supabase credentials not set in .env — database features will fail.")
+
 
 
 @app.get("/")
