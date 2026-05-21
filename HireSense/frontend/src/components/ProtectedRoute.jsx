@@ -1,43 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import VortexLoader from './ui/VortexLoader';
 
 export default function ProtectedRoute({ children }) {
     const { user, loading } = useAuth();
+    const [showLoader, setShowLoader] = useState(true);
+    const [isExitTriggered, setIsExitTriggered] = useState(false);
 
-    if (loading) {
-        return (
-            <div style={{
-                height: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'var(--bg)',
-            }}>
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 16,
-                }}>
-                    <div style={{
-                        width: 32,
-                        height: 32,
-                        border: '2.5px solid var(--border)',
-                        borderTopColor: 'var(--text)',
-                        borderRadius: '50%',
-                        animation: 'spin 0.8s linear infinite',
-                    }} />
-                    <span style={{
-                        fontSize: 11,
-                        letterSpacing: '.15em',
-                        color: 'var(--text3)',
-                        fontFamily: 'var(--font)',
-                        textTransform: 'uppercase',
-                    }}>Authenticating</span>
-                </div>
-            </div>
-        );
+    useEffect(() => {
+        if (!loading) {
+            // Trigger the portal exit zoom/blur transition
+            setIsExitTriggered(true);
+            const timer = setTimeout(() => {
+                setShowLoader(false);
+            }, 600); // Wait for the transition to complete (600ms match)
+            return () => clearTimeout(timer);
+        }
+    }, [loading]);
+
+    if (showLoader) {
+        return <VortexLoader isExitTriggered={isExitTriggered} />;
     }
 
     if (!user) {
@@ -46,3 +29,4 @@ export default function ProtectedRoute({ children }) {
 
     return children;
 }
+

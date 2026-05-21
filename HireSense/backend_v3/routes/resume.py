@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import APIRouter, File, UploadFile, BackgroundTasks, Form, HTTPException, Request, Depends
 from pydantic import BaseModel
 import json as _json
@@ -17,21 +18,14 @@ async def process_resume_background(resume_id: str, raw_text: str):
     """Background task to generate embedding and update DB."""
     db = get_db()
     try:
-        # Automatic background ATS scoring (fast, always works)
+        # 1. Automatic background ATS scoring (fast, always works)
         ats_report = await scan_ats_compliance(raw_text)
         
-        update_data = {
+        # Prepare immediate ATS update
+        ats_update = {
             "ats_score": ats_report.get("score", 0),
-            "ats_breakdown": _json.dumps(ats_report.get("breakdown", [])),
-            "status": "completed"
+            "ats_breakdown": _json.dumps(ats_report.get("breakdown", []))
         }
-        
-        # Try embedding generation (may fail if pgvector not installed)
-        try:
-            vector = generate_embedding(raw_text)
-            update_data["embedding"] = vector
-        except Exception as e:
-            print(f"Embedding skipped for {resume_id} (non-fatal): {e}")
         
         # Save candidate name if extracted by ATS scanner AND it's not a generic placeholder
         new_name = ats_report.get("candidate_name")
@@ -41,26 +35,36 @@ async def process_resume_background(resume_id: str, raw_text: str):
                 curr = db.table("resumes").select("candidate_name").eq("id", resume_id).execute()
                 existing_name = curr.data[0].get("candidate_name") if curr.data else None
                 if not existing_name or str(existing_name).strip().lower() in ["candidate", "unknown", "none", "null"]:
-                    update_data["candidate_name"] = new_name
+                    ats_update["candidate_name"] = new_name
             except Exception:
-                # Fallback: if check fails, just don't update name (be safe)
                 pass
+
+        # Save ATS score and breakdown immediately so that the frontend's subsequent polling call
+        # hits the cache instantly (0ms) instead of waiting for embedding or re-running the scan!
+        db.table("resumes").update(ats_update).eq("id", resume_id).execute()
         
-        db.table("resumes").update(update_data).eq("id", resume_id).execute()
-    except Exception as e:
-        print(f"Error processing resume {resume_id}: {e}")
-        # Try to update without embedding if that was the issue
+        # 2. Try embedding generation in a separate thread (prevents event loop blocking)
         try:
-            ats_report = await scan_ats_compliance(raw_text)
+            vector = await asyncio.to_thread(generate_embedding, raw_text)
             db.table("resumes").update({
-                "ats_score": ats_report.get("score", 0),
-                "ats_breakdown": _json.dumps(ats_report.get("breakdown", [])),
+                "embedding": vector,
                 "status": "completed"
             }).eq("id", resume_id).execute()
-        except Exception:
+        except Exception as e:
+            print(f"Embedding skipped for {resume_id} (non-fatal): {e}")
+            db.table("resumes").update({
+                "status": "completed"
+            }).eq("id", resume_id).execute()
+
+    except Exception as e:
+        print(f"Error processing resume {resume_id}: {e}")
+        # Try to update status to failed
+        try:
             db.table("resumes").update({
                 "status": "failed"
             }).eq("id", resume_id).execute()
+        except Exception:
+            pass
 
 
 @router.post("/upload-resume", response_model=UploadResponse)

@@ -1,7 +1,9 @@
+import asyncio
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 import hashlib
 import json as _json
+
 
 from database import get_db, row_to_dict, new_id
 from services.resume_matcher import match_resume_to_jd
@@ -64,7 +66,7 @@ async def match_resume(payload: MatchRequest, user=Depends(require_user)):
             job_id = new_id()
             # Insert job description — include embedding if possible
             try:
-                vector = generate_embedding(jd_text)
+                vector = await asyncio.to_thread(generate_embedding, jd_text)
                 db.table("job_descriptions").insert({
                     "id": job_id,
                     "user_id": user_id,
@@ -73,6 +75,7 @@ async def match_resume(payload: MatchRequest, user=Depends(require_user)):
                     "embedding": vector,
                 }).execute()
             except Exception as insert_err:
+
                 print(f"JD insert issue (non-fatal): {insert_err}")
                 # If insert fails entirely, matching still works via LLM
 

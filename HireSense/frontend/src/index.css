@@ -131,3 +131,69 @@ body {
 [data-theme="light"] .toggle-thumb {
   transform: translateX(19px);
 }
+
+/* ── SHIMMER SKELETONS ── */
+@keyframes shimmer-slide {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.shimmer-bg {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg3) !important;
+  border-color: var(--border) !important;
+}
+.shimmer-bg::after {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(240, 240, 244, 0) 0%,
+    rgba(240, 240, 244, 0.03) 20%,
+    rgba(240, 240, 244, 0.08) 60%,
+    rgba(240, 240, 244, 0) 100%
+  );
+  animation: shimmer-slide 1.8s infinite linear;
+  content: '';
+}
+[data-theme="light"] .shimmer-bg::after {
+  background-image: linear-gradient(
+    90deg,
+    rgba(26, 26, 30, 0) 0%,
+    rgba(26, 26, 30, 0.02) 20%,
+    rgba(26, 26, 30, 0.06) 60%,
+    rgba(26, 26, 30, 0) 100%
+  );
+}
+
+/* ── VORTEX PORTAL LOADER ── */
+@keyframes spiral-roll {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes spiral-roll-reverse {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+@keyframes pulse-ring {
+  0% { transform: scale(0.97); opacity: 0.9; }
+  50% { transform: scale(1.03); opacity: 0.5; }
+  100% { transform: scale(0.97); opacity: 0.9; }
+}
+.animate-spiral {
+  animation: spiral-roll 12s linear infinite;
+  transform-origin: center;
+}
+.animate-spiral-fast {
+  animation: spiral-roll 3.5s linear infinite;
+  transform-origin: center;
+}
+.animate-spiral-reverse {
+  animation: spiral-roll-reverse 8s linear infinite;
+  transform-origin: center;
+}
+.animate-pulse-ring {
+  animation: pulse-ring 3s ease-in-out infinite;
+}

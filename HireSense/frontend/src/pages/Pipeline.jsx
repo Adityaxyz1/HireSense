@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../lib/api';
+import { BoardSkeleton } from '../components/ui/Skeletons';
 
 const scC = v => v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
 const AVC = ['#818cf8', '#c084fc', '#f472b6', '#34d399', '#fbbf24'];
@@ -15,9 +16,14 @@ export default function Pipeline() {
     const { isDark } = useTheme();
     const [candidates, setCandidates] = useState([]);
     const [draggingId, setDraggingId] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        api.getCandidates().then(r => setCandidates(r || [])).catch(() => {});
+        setLoading(true);
+        api.getCandidates()
+            .then(r => setCandidates(r || []))
+            .catch(() => {})
+            .finally(() => setLoading(false));
     }, []);
 
     const moveCard = async (id, newStatus) => {
@@ -32,7 +38,10 @@ export default function Pipeline() {
 
     return (
         <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+            {loading ? (
+                <BoardSkeleton />
+            ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
                 {COLS.map(col => (
                     <div key={col.k}
                         onDragOver={e => e.preventDefault()}
@@ -124,6 +133,7 @@ export default function Pipeline() {
                     </div>
                 ))}
             </div>
+            )}
 
             {/* Summary */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 14 }}>
@@ -133,7 +143,7 @@ export default function Pipeline() {
                         borderRadius: 10, padding: 18,
                     }}>
                         <div style={{ fontSize: 11, color: 'var(--text3)', letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: 6, fontWeight: 500 }}>{col.l}</div>
-                        <div style={{ fontSize: 28, fontWeight: 700, color: col.c }}>{groups[col.k].length}</div>
+                        <div style={{ fontSize: 28, fontWeight: 700, color: col.c }}>{loading ? '...' : groups[col.k].length}</div>
                     </div>
                 ))}
             </div>

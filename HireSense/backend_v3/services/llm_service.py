@@ -65,7 +65,9 @@ for _m in MODEL_REGISTRY:
         api_key=_m["api_key"],
         base_url=_m["base_url"],
         timeout=_m["timeout"],
+        max_retries=0,  # Fast fail: do not retry slow or rate-limited NIM racers in the racing engine!
     )
+
 
 _num_models = len(MODEL_REGISTRY)
 print(f"[OK] LLM Racing Engine (Async): {_num_models} model(s) registered")
@@ -109,13 +111,15 @@ async def _call_single_model(model_cfg: dict, sys: str, user: str) -> dict | Non
 
     t0 = time.perf_counter()
     try:
-        # Use low temperature for speed and consistency
+        # Use low temperature for speed and consistency, and enforce strict API-level timeout
         completion = await client.chat.completions.create(
             model=model_cfg["model_id"],
             messages=[{"role": "system", "content": sys}, {"role": "user", "content": user}],
             temperature=0.01,
             max_tokens=800, # Sufficient for matching JSON
+            timeout=model_cfg["timeout"],
         )
+
         elapsed = time.perf_counter() - t0
         raw = completion.choices[0].message.content.strip()
         result = _parse_llm_response(raw)

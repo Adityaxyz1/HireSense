@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../lib/api';
+import { CardSkeleton, ListSkeleton } from '../components/ui/Skeletons';
 
 const scC = v => v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
 const AVC = ['#818cf8', '#c084fc', '#f472b6', '#34d399', '#fbbf24'];
@@ -188,14 +189,17 @@ export default function Dashboard() {
     const [resumes, setResumes] = useState([]);
     const [stats, setStats] = useState(null);
     const [filter, setFilter] = useState('all');
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Primary data source: getCandidates (resumes table) — single source of truth
-        api.getCandidates().then(r => setResumes(r || [])).catch(() => {});
-        // Match results for the "Recent Candidates" table
-        api.getResults().then(r => setCandidates(r || [])).catch(() => {});
-        // Stats for avg ATS score
-        api.getStats().then(s => setStats(s)).catch(() => {});
+        setLoading(true);
+        Promise.all([
+            api.getCandidates().then(r => setResumes(r || [])).catch(() => {}),
+            api.getResults().then(r => setCandidates(r || [])).catch(() => {}),
+            api.getStats().then(s => setStats(s)).catch(() => {})
+        ]).finally(() => {
+            setLoading(false);
+        });
     }, []);
 
     const totalResumes = resumes.length;
@@ -226,10 +230,21 @@ export default function Dashboard() {
         <>
             {/* Stat cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
-                <StatCard color="#6366f1" label="Resumes Uploaded" value={totalResumes} delta={totalResumes > 0 ? totalResumes : 0} />
-                <StatCard color="#8b5cf6" label="Matches Found" value={totalMatches} delta={totalMatches > 0 ? totalMatches : 0} />
-                <StatCard color="#22c55e" label="Approved" value={selectedCount} delta={selectedCount > 0 ? selectedCount : 0} />
-                <StatCard color="#f59e0b" label="Avg ATS Score" value={avgAts} delta={avgAts > 0 ? (avgAts > 70 ? 5 : 2) : 0} />
+                {loading ? (
+                    <>
+                        <CardSkeleton />
+                        <CardSkeleton />
+                        <CardSkeleton />
+                        <CardSkeleton />
+                    </>
+                ) : (
+                    <>
+                        <StatCard color="#6366f1" label="Resumes Uploaded" value={totalResumes} delta={totalResumes > 0 ? totalResumes : 0} />
+                        <StatCard color="#8b5cf6" label="Matches Found" value={totalMatches} delta={totalMatches > 0 ? totalMatches : 0} />
+                        <StatCard color="#22c55e" label="Approved" value={selectedCount} delta={selectedCount > 0 ? selectedCount : 0} />
+                        <StatCard color="#f59e0b" label="Avg ATS Score" value={avgAts} delta={avgAts > 0 ? (avgAts > 70 ? 5 : 2) : 0} />
+                    </>
+                )}
             </div>
 
             {/* Charts row */}
@@ -296,50 +311,56 @@ export default function Dashboard() {
                     ))}
                 </div>
 
-                {vis.length === 0 && (
-                    <div style={{ padding: 32, textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>
-                        No candidates found. Upload resumes and run evaluations to see data here.
-                    </div>
-                )}
+                {loading ? (
+                    <ListSkeleton rows={5} />
+                ) : (
+                    <>
+                        {vis.length === 0 && (
+                            <div style={{ padding: 32, textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>
+                                No candidates found. Upload resumes and run evaluations to see data here.
+                            </div>
+                        )}
 
-                {vis.slice(0, 10).map((c, i) => {
-                    const name = c.candidate_name || (c.file_url ? c.file_url.split('/').pop()?.replace('.pdf','') : 'Candidate');
-                    const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-                    const score = c.match_score || c.ats_score || 0;
-                    return (
-                        <div key={c.id || i} className="up rh" style={{
-                            display: 'grid', gridTemplateColumns: '2.2fr 70px 90px 100px',
-                            gap: 12, alignItems: 'center', padding: '10px 8px',
-                            borderRadius: 8, cursor: 'default',
-                            animationDelay: `${i * 30}ms`,
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                                <Avatar initials={initials} size={32} color={AVC[i % 5]} name={name} />
-                                <div style={{ minWidth: 0 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {name}
+                        {vis.slice(0, 10).map((c, i) => {
+                            const name = c.candidate_name || (c.file_url ? c.file_url.split('/').pop()?.replace('.pdf','') : 'Candidate');
+                            const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                            const score = c.match_score || c.ats_score || 0;
+                            return (
+                                <div key={c.id || i} className="up rh" style={{
+                                    display: 'grid', gridTemplateColumns: '2.2fr 70px 90px 100px',
+                                    gap: 12, alignItems: 'center', padding: '10px 8px',
+                                    borderRadius: 8, cursor: 'default',
+                                    animationDelay: `${i * 30}ms`,
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                                        <Avatar initials={initials} size={32} color={AVC[i % 5]} name={name} />
+                                        <div style={{ minWidth: 0 }}>
+                                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {name}
+                                            </div>
+                                            <div style={{ fontSize: 11, color: 'var(--text3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {c.match_score ? 'JD Matched' : c.ats_score ? 'ATS Scanned' : 'Uploaded'}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div style={{ fontSize: 11, color: 'var(--text3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {c.match_score ? 'JD Matched' : c.ats_score ? 'ATS Scanned' : 'Uploaded'}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={{ fontSize: 15, fontWeight: 700, color: scC(score) }}>
+                                            {c.status === 'processing' ? (
+                                                <div style={{ width: 24, height: 18, background: 'var(--border)', borderRadius: 4, animation: 'pulse 1.5s infinite' }} />
+                                            ) : (
+                                                Math.round(score)
+                                            )}
+                                        </span>
                                     </div>
+                                    <span style={{ fontSize: 11, color: 'var(--text3)' }}>
+                                        {c.created_at ? new Date(c.created_at).toLocaleDateString() : '—'}
+                                    </span>
+                                    <Badge status={c.candidate_status || 'pending'} isDark={isDark} />
                                 </div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span style={{ fontSize: 15, fontWeight: 700, color: scC(score) }}>
-                                    {c.status === 'processing' ? (
-                                        <div style={{ width: 24, height: 18, background: 'var(--border)', borderRadius: 4, animation: 'pulse 1.5s infinite' }} />
-                                    ) : (
-                                        Math.round(score)
-                                    )}
-                                </span>
-                            </div>
-                            <span style={{ fontSize: 11, color: 'var(--text3)' }}>
-                                {c.created_at ? new Date(c.created_at).toLocaleDateString() : '—'}
-                            </span>
-                            <Badge status={c.candidate_status || 'pending'} isDark={isDark} />
-                        </div>
-                    );
-                })}
+                            );
+                        })}
+                    </>
+                )}
             </Card>
         </>
     );

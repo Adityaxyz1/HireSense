@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../lib/api';
+import { ListSkeleton } from '../components/ui/Skeletons';
 
 const scC = v => v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
 const AVC = ['#818cf8', '#c084fc', '#f472b6', '#34d399', '#fbbf24'];
@@ -41,13 +42,17 @@ export default function Candidates() {
     const [sort, setSort] = useState('recent');
     const [updatingId, setUpdatingId] = useState(null);
     const [expandedId, setExpandedId] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     const loadData = useCallback(async () => {
+        setLoading(true);
         try {
             const resumes = await api.getCandidates();
             setCandidates(resumes || []);
         } catch (e) {
             console.error('Failed to load candidates:', e);
+        } finally {
+            setLoading(false);
         }
     }, []);
 
@@ -159,16 +164,17 @@ export default function Candidates() {
                     ))}
                 </div>
 
-                {list.length === 0 && (
+                {loading ? (
+                    <ListSkeleton rows={4} />
+                ) : list.length === 0 ? (
                     <div style={{ padding: 50, textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>
                         <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>{ICONS.empty}</div>
                         {candidates.length === 0
                             ? 'No candidates yet. Upload a resume from the ATS Checker page.'
                             : 'No candidates match this filter.'}
                     </div>
-                )}
-
-                {list.map((c, i) => {
+                ) : (
+                    list.map((c, i) => {
                     const name = c.candidate_name || c.file_url?.split('/').pop()?.replace('.pdf', '') || `Candidate #${i + 1}`;
                     const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
                     const candStatus = c.candidate_status || 'pending';
@@ -408,7 +414,7 @@ export default function Candidates() {
                         )}
                         </React.Fragment>
                     );
-                })}
+                }))}
             </div>
         </>
     );
