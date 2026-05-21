@@ -88,6 +88,16 @@ function Toast({ message, type, onClose }) {
 export default function Profile() {
     const { user, profile, updateProfile, uploadAvatar, changePassword } = useAuth();
 
+    const [width, setWidth] = useState(window.innerWidth);
+
+    useEffect(() => {
+        const handleResize = () => setWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const isMobile = width <= 640;
+
     /* ── State ── */
     const [displayName, setDisplayName] = useState('');
     const [isEditingName, setIsEditingName] = useState(false);
@@ -237,7 +247,7 @@ export default function Profile() {
                     background: 'var(--surface)',
                     border: '1.5px solid var(--border)',
                     borderRadius: 16,
-                    padding: '36px 32px',
+                    padding: isMobile ? '24px 16px' : '36px 32px',
                     marginBottom: 20,
                     position: 'relative',
                     overflow: 'hidden',
@@ -251,8 +261,11 @@ export default function Profile() {
                 }} />
 
                 <div style={{
-                    display: 'flex', alignItems: 'center', gap: 28,
-                    flexWrap: 'wrap',
+                    display: 'flex',
+                    flexDirection: isMobile ? 'column' : 'row',
+                    alignItems: 'center',
+                    justifyContent: isMobile ? 'center' : 'flex-start',
+                    gap: isMobile ? 20 : 28,
                 }}>
                     {/* Avatar */}
                     <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -344,13 +357,31 @@ export default function Profile() {
                     </div>
 
                     {/* User info */}
-                    <div style={{ flex: 1, minWidth: 200 }}>
+                    <div style={{
+                        flex: 1,
+                        minWidth: 200,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: isMobile ? 'center' : 'flex-start',
+                        textAlign: isMobile ? 'center' : 'left',
+                    }}>
                         <div style={{
-                            display: 'flex', alignItems: 'center', gap: 10,
-                            marginBottom: 6,
+                            display: 'flex',
+                            flexDirection: isMobile ? 'column' : 'row',
+                            alignItems: 'center',
+                            gap: isMobile ? 8 : 10,
+                            marginBottom: 10,
+                            width: '100%',
+                            justifyContent: isMobile ? 'center' : 'flex-start',
                         }}>
                             {isEditingName ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                                <div style={{
+                                    display: 'flex',
+                                    flexDirection: isMobile ? 'column' : 'row',
+                                    alignItems: 'stretch',
+                                    gap: 8,
+                                    width: '100%',
+                                }}>
                                     <input
                                         id="profile-display-name"
                                         type="text"
@@ -362,7 +393,7 @@ export default function Profile() {
                                         style={{
                                             ...inputStyle,
                                             padding: '8px 12px',
-                                            fontSize: 18,
+                                            fontSize: 16,
                                             fontWeight: 700,
                                             flex: 1,
                                         }}
@@ -375,40 +406,42 @@ export default function Profile() {
                                             e.target.style.boxShadow = 'none';
                                         }}
                                     />
-                                    <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={handleSaveName}
-                                        disabled={savingName}
-                                        style={{
-                                            padding: '8px 16px', borderRadius: 8,
-                                            background: 'var(--btn)', color: 'var(--btn-fg)',
-                                            border: 'none', cursor: 'pointer',
-                                            fontSize: 12, fontWeight: 600,
-                                            fontFamily: 'var(--font)',
-                                            letterSpacing: '.06em',
-                                            opacity: savingName ? 0.6 : 1,
-                                        }}
-                                    >
-                                        {savingName ? '...' : 'Save'}
-                                    </motion.button>
-                                    <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => {
-                                            setDisplayName(profile?.display_name || '');
-                                            setIsEditingName(false);
-                                        }}
-                                        style={{
-                                            padding: '8px 12px', borderRadius: 8,
-                                            background: 'transparent', color: 'var(--text3)',
-                                            border: '1.5px solid var(--border)', cursor: 'pointer',
-                                            fontSize: 12, fontWeight: 500,
-                                            fontFamily: 'var(--font)',
-                                        }}
-                                    >
-                                        Cancel
-                                    </motion.button>
+                                    <div style={{ display: 'flex', gap: 8, justifyContent: isMobile ? 'center' : 'flex-start' }}>
+                                        <motion.button
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            onClick={handleSaveName}
+                                            disabled={savingName}
+                                            style={{
+                                                padding: '8px 16px', borderRadius: 8,
+                                                background: 'var(--btn)', color: 'var(--btn-fg)',
+                                                border: 'none', cursor: 'pointer',
+                                                fontSize: 12, fontWeight: 600,
+                                                fontFamily: 'var(--font)',
+                                                letterSpacing: '.06em',
+                                                opacity: savingName ? 0.6 : 1,
+                                            }}
+                                        >
+                                            {savingName ? '...' : 'Save'}
+                                        </motion.button>
+                                        <motion.button
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            onClick={() => {
+                                                setDisplayName(profile?.display_name || '');
+                                                setIsEditingName(false);
+                                            }}
+                                            style={{
+                                                padding: '8px 12px', borderRadius: 8,
+                                                background: 'transparent', color: 'var(--text3)',
+                                                border: '1.5px solid var(--border)', cursor: 'pointer',
+                                                fontSize: 12, fontWeight: 500,
+                                                fontFamily: 'var(--font)',
+                                            }}
+                                        >
+                                            Cancel
+                                        </motion.button>
+                                    </div>
                                 </div>
                             ) : (
                                 <>
@@ -437,6 +470,7 @@ export default function Profile() {
                             fontSize: 13, color: 'var(--text2)',
                             fontFamily: 'var(--font)', letterSpacing: '.03em',
                             display: 'flex', alignItems: 'center', gap: 6,
+                            justifyContent: isMobile ? 'center' : 'flex-start',
                         }}>
                             <MailIcon />
                             {user?.email}
@@ -463,7 +497,7 @@ export default function Profile() {
                     background: 'var(--surface)',
                     border: '1.5px solid var(--border)',
                     borderRadius: 16,
-                    padding: '28px 32px',
+                    padding: isMobile ? '20px 16px' : '28px 32px',
                     marginBottom: 20,
                 }}
             >
@@ -487,7 +521,11 @@ export default function Profile() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                     {/* Email row */}
                     <div style={{
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        display: 'flex',
+                        flexDirection: isMobile ? 'column' : 'row',
+                        justifyContent: 'space-between',
+                        alignItems: isMobile ? 'flex-start' : 'center',
+                        gap: isMobile ? 12 : 18,
                         padding: '14px 18px', borderRadius: 10,
                         background: 'var(--bg2)', border: '1px solid var(--border)',
                     }}>
@@ -501,6 +539,7 @@ export default function Profile() {
                             <span style={{
                                 fontSize: 14, color: 'var(--text)',
                                 fontFamily: 'var(--font)',
+                                wordBreak: 'break-all',
                             }}>{user?.email}</span>
                         </div>
                         <div style={{
@@ -510,12 +549,17 @@ export default function Profile() {
                             color: '#22c55e', fontSize: 10,
                             fontWeight: 600, letterSpacing: '.06em',
                             textTransform: 'uppercase', fontFamily: 'var(--font)',
+                            alignSelf: isMobile ? 'flex-start' : 'center',
                         }}>Verified</div>
                     </div>
 
                     {/* Display name row */}
                     <div style={{
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        display: 'flex',
+                        flexDirection: isMobile ? 'column' : 'row',
+                        justifyContent: 'space-between',
+                        alignItems: isMobile ? 'stretch' : 'center',
+                        gap: isMobile ? 12 : 18,
                         padding: '14px 18px', borderRadius: 10,
                         background: 'var(--bg2)', border: '1px solid var(--border)',
                     }}>
@@ -542,6 +586,7 @@ export default function Profile() {
                                 fontSize: 11, fontWeight: 600, fontFamily: 'var(--font)',
                                 letterSpacing: '.05em',
                                 display: 'flex', alignItems: 'center', gap: 6,
+                                justifyContent: 'center',
                             }}
                         >
                             <EditIcon /> Edit
@@ -562,6 +607,7 @@ export default function Profile() {
                         <span style={{
                             fontSize: 12, color: 'var(--text2)',
                             fontFamily: 'monospace', letterSpacing: '.02em',
+                            wordBreak: 'break-all',
                         }}>{user?.id}</span>
                     </div>
                 </div>
@@ -576,7 +622,7 @@ export default function Profile() {
                     background: 'var(--surface)',
                     border: '1.5px solid var(--border)',
                     borderRadius: 16,
-                    padding: '28px 32px',
+                    padding: isMobile ? '20px 16px' : '28px 32px',
                 }}
             >
                 <div style={{
@@ -597,7 +643,11 @@ export default function Profile() {
                 </div>
 
                 <div style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    display: 'flex',
+                    flexDirection: isMobile ? 'column' : 'row',
+                    justifyContent: 'space-between',
+                    alignItems: isMobile ? 'stretch' : 'center',
+                    gap: isMobile ? 12 : 18,
                     padding: '14px 18px', borderRadius: 10,
                     background: 'var(--bg2)', border: '1px solid var(--border)',
                     marginBottom: showPasswordForm ? 20 : 0,
@@ -628,6 +678,7 @@ export default function Profile() {
                             cursor: 'pointer',
                             fontSize: 12, fontWeight: 600, fontFamily: 'var(--font)',
                             letterSpacing: '.06em',
+                            display: 'flex', justifyContent: 'center',
                         }}
                     >
                         {showPasswordForm ? 'Cancel' : 'Change Password'}

@@ -14,6 +14,17 @@ const ICONS = {
 
 export default function AtsCheck() {
     const { isDark } = useTheme();
+
+    const [width, setWidth] = useState(window.innerWidth);
+    useEffect(() => {
+        const handleResize = () => setWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const isMobile = width <= 640;
+    const isTablet = width > 640 && width <= 1024;
+
     const [resumes, setResumes] = useState([]);
     const [selectedId, setSelectedId] = useState('');
     const [loading, setLoading] = useState(false);
@@ -151,7 +162,7 @@ export default function AtsCheck() {
                 <button style={tabStyle('match')} onClick={() => setActiveTab('match')}>JD Precision Match</button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 18 }}>
                 {/* Left panel — Upload + Inputs */}
                 <div style={{ background: 'var(--card)', border: '1.5px solid var(--border)', borderRadius: 10, padding: 18 }}>
                     <AnimatePresence mode="wait">
@@ -354,7 +365,14 @@ export default function AtsCheck() {
                             </div>
                         ) : (
                             <>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 18 }}>
+                                <div style={{ 
+                                    display: 'flex', 
+                                    flexDirection: isMobile ? 'column' : 'row', 
+                                    alignItems: 'center', 
+                                    gap: 18, 
+                                    marginBottom: 18,
+                                    textAlign: isMobile ? 'center' : 'left',
+                                }}>
                                     <svg width="108" height="108">
                                         <circle cx={cx} cy={cy} r={R} fill="none" stroke={track} strokeWidth={sw} />
                                         <circle cx={cx} cy={cy} r={R} fill="none" stroke={col} strokeWidth={sw}
@@ -406,7 +424,7 @@ export default function AtsCheck() {
                                     );
                                 })}
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 14 }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 8, marginTop: 14 }}>
                                     {[['Candidate', report.candidate_name || 'Unknown'],
                                       ['Sections found', `${report.breakdown?.filter(b => b.type === 'success').length || 0} / ${report.breakdown?.length || 0}`],
                                       ['Overall', `${score}%`],
@@ -439,7 +457,14 @@ export default function AtsCheck() {
                                 const kc = Math.round(Math.min(100, Math.max(0, matchReport.keyword_coverage || 0)));
                                 return (
                                     <>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 18 }}>
+                                        <div style={{ 
+                                            display: 'flex', 
+                                            flexDirection: isMobile ? 'column' : 'row', 
+                                            alignItems: 'center', 
+                                            gap: 18, 
+                                            marginBottom: 18,
+                                            textAlign: isMobile ? 'center' : 'left',
+                                        }}>
                                             <svg width="108" height="108">
                                                 <circle cx={cx} cy={cy} r={R} fill="none" stroke={track} strokeWidth={sw} />
                                                 <circle cx={cx} cy={cy} r={R} fill="none" stroke={mc} strokeWidth={sw}
@@ -490,7 +515,7 @@ export default function AtsCheck() {
                                         })}
 
                                         {/* Summary grid */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 14 }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 8, marginTop: 14 }}>
                                             {[['Final Score', `${ms}%`],
                                               ['Semantic', `${sem}%`],
                                               ['Keyword Coverage', `${kc}%`],

@@ -191,6 +191,17 @@ export default function Dashboard() {
     const [filter, setFilter] = useState('all');
     const [loading, setLoading] = useState(true);
 
+    const [width, setWidth] = useState(window.innerWidth);
+
+    useEffect(() => {
+        const handleResize = () => setWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const isMobile = width <= 640;
+    const isTablet = width > 640 && width <= 1024;
+
     useEffect(() => {
         setLoading(true);
         Promise.all([
@@ -229,7 +240,12 @@ export default function Dashboard() {
     return (
         <>
             {/* Stat cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+            <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: isMobile ? '1fr' : (isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)'), 
+                gap: 12, 
+                marginBottom: 16 
+            }}>
                 {loading ? (
                     <>
                         <CardSkeleton />
@@ -248,7 +264,12 @@ export default function Dashboard() {
             </div>
 
             {/* Charts row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: isMobile || isTablet ? '1fr' : '1fr 1fr', 
+                gap: 12, 
+                marginBottom: 16 
+            }}>
                 <Card>
                     <Sec title="Weekly Activity" sub="Uploads vs matches" />
                     <BarChart isDark={isDark} data={stats?.weekly_activity} />
@@ -263,7 +284,9 @@ export default function Dashboard() {
                         </div>
                     </div>
                 </Card>
-                <Card>
+                <Card style={{ 
+                    marginTop: isMobile || isTablet ? 8 : 0 
+                }}>
                     <Sec title="Pipeline Funnel" sub="Candidate flow breakdown" />
                     <RingChart data={PIPE} isDark={isDark} />
                     <div style={{ display: 'flex', gap: 16, marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
@@ -280,9 +303,16 @@ export default function Dashboard() {
 
             {/* Recent Candidates */}
             <Card>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div style={{ 
+                    display: 'flex', 
+                    flexDirection: isMobile ? 'column' : 'row',
+                    justifyContent: 'space-between', 
+                    alignItems: isMobile ? 'flex-start' : 'center', 
+                    marginBottom: 16,
+                    gap: isMobile ? 12 : 0,
+                }}>
                     <Sec title="Recent Candidates" />
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ display: 'flex', gap: 6, width: isMobile ? '100%' : 'auto', overflowX: 'auto', paddingBottom: isMobile ? 4 : 0 }}>
                         {filters.map(f => (
                             <button key={f} onClick={() => setFilter(f)} style={{
                                 padding: '5px 12px', borderRadius: 7,
@@ -292,6 +322,7 @@ export default function Dashboard() {
                                 fontSize: 11, fontWeight: 500, cursor: 'pointer',
                                 letterSpacing: '.04em', textTransform: 'capitalize',
                                 fontFamily: 'var(--font)',
+                                flexShrink: 0,
                             }}>{f}</button>
                         ))}
                     </div>
@@ -299,11 +330,12 @@ export default function Dashboard() {
 
                 {/* Table header */}
                 <div style={{
-                    display: 'grid', gridTemplateColumns: '2.2fr 70px 90px 100px',
+                    display: 'grid', 
+                    gridTemplateColumns: isMobile ? '1.8fr 70px 90px' : '2.2fr 70px 90px 100px',
                     gap: 12, padding: '6px 8px 10px',
                     borderBottom: '1.5px solid var(--border)', marginBottom: 4,
                 }}>
-                    {['Candidate', 'Score', 'Applied', 'Status'].map(h => (
+                    {(isMobile ? ['Candidate', 'Score', 'Status'] : ['Candidate', 'Score', 'Applied', 'Status']).map(h => (
                         <span key={h} style={{
                             fontSize: 10, color: 'var(--text3)', letterSpacing: '.1em',
                             textTransform: 'uppercase', fontWeight: 600,
@@ -327,7 +359,8 @@ export default function Dashboard() {
                             const score = c.match_score || c.ats_score || 0;
                             return (
                                 <div key={c.id || i} className="up rh" style={{
-                                    display: 'grid', gridTemplateColumns: '2.2fr 70px 90px 100px',
+                                    display: 'grid', 
+                                    gridTemplateColumns: isMobile ? '1.8fr 70px 90px' : '2.2fr 70px 90px 100px',
                                     gap: 12, alignItems: 'center', padding: '10px 8px',
                                     borderRadius: 8, cursor: 'default',
                                     animationDelay: `${i * 30}ms`,
@@ -352,9 +385,11 @@ export default function Dashboard() {
                                             )}
                                         </span>
                                     </div>
-                                    <span style={{ fontSize: 11, color: 'var(--text3)' }}>
-                                        {c.created_at ? new Date(c.created_at).toLocaleDateString() : '—'}
-                                    </span>
+                                    {!isMobile && (
+                                        <span style={{ fontSize: 11, color: 'var(--text3)' }}>
+                                            {c.created_at ? new Date(c.created_at).toLocaleDateString() : '—'}
+                                        </span>
+                                    )}
                                     <Badge status={c.candidate_status || 'pending'} isDark={isDark} />
                                 </div>
                             );

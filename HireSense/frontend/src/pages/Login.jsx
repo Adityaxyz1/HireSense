@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield } from 'lucide-react';
@@ -18,6 +18,16 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+
+    const [width, setWidth] = useState(window.innerWidth);
+
+    useEffect(() => {
+        const handleResize = () => setWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const isMobile = width <= 640;
 
     const toggleAdminMode = () => {
         setIsAdminMode(!isAdminMode);
@@ -100,7 +110,7 @@ export default function Login() {
             justifyContent: 'center',
             position: 'relative',
             overflow: 'hidden',
-            padding: 20,
+            padding: isMobile ? 12 : 20,
         }}>
             {/* Background effects */}
             <TwirlBackground />
@@ -108,8 +118,8 @@ export default function Login() {
             {/* Radial glow behind card */}
             <div style={{
                 position: 'absolute',
-                width: 600,
-                height: 600,
+                width: isMobile ? 320 : 600,
+                height: isMobile ? 320 : 600,
                 borderRadius: '50%',
                 background: isAdminMode ? 'radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, transparent 70%)' : 'radial-gradient(circle, var(--border) 0%, transparent 70%)',
                 opacity: isAdminMode ? 0.3 : 0.15,
@@ -135,8 +145,8 @@ export default function Login() {
                     onClick={toggleAdminMode}
                     style={{
                         position: 'absolute',
-                        top: 16,
-                        right: 16,
+                        top: isMobile ? 12 : 16,
+                        right: isMobile ? 12 : 16,
                         zIndex: 20,
                         background: 'transparent',
                         border: 'none',
@@ -168,7 +178,7 @@ export default function Login() {
                     background: 'var(--surface)',
                     border: isAdminMode ? '1.5px solid rgba(245,158,11,0.3)' : '1.5px solid var(--border)',
                     borderRadius: 16,
-                    padding: '40px 36px 36px',
+                    padding: isMobile ? '32px 20px 24px' : '40px 36px 36px',
                     backdropFilter: 'blur(20px)',
                     boxShadow: isAdminMode 
                         ? '0 25px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(245,158,11,0.1)' 
@@ -183,7 +193,7 @@ export default function Login() {
                         style={{
                             display: 'flex',
                             justifyContent: 'center',
-                            marginBottom: 36,
+                            marginBottom: isMobile ? 24 : 36,
                         }}
                     >
                         <div style={{
@@ -233,7 +243,7 @@ export default function Login() {
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.4 }}
-                        style={{ textAlign: 'center', marginBottom: 28 }}
+                        style={{ textAlign: 'center', marginBottom: isMobile ? 20 : 28 }}
                     >
                         <h2 style={{
                             fontFamily: 'var(--font)',

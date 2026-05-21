@@ -47,12 +47,12 @@ export default function Recruiter() {
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-full flex flex-col pt-12">
-            <div className="flex justify-between items-end mb-16">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-6 mb-12 sm:mb-16">
                 <div>
                     <h1 className="text-2xl font-light tracking-[0.1em] text-foreground mb-4 transition-colors duration-300">Recruiter Lounge</h1>
                     <p className="text-[11px] tracking-[0.15em] text-text-secondary uppercase transition-colors duration-300">Upload PDF resumes for AI analysis.</p>
                 </div>
-                <button className="bg-transparent border border-border text-[10px] tracking-[0.15em] text-foreground uppercase px-6 py-3 flex items-center hover:bg-foreground hover:text-background transition-colors duration-300">
+                <button className="bg-transparent border border-border text-[10px] tracking-[0.15em] text-foreground uppercase px-6 py-3 flex items-center justify-center hover:bg-foreground hover:text-background transition-colors duration-300 w-full sm:w-auto">
                     <Filter className="w-3 h-3 mr-3" />
                     Filter Rankings
                 </button>

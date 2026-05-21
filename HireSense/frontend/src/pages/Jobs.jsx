@@ -21,6 +21,16 @@ export default function Jobs() {
     const [jobs, setJobs] = useState([]);
     const [deletingId, setDeletingId] = useState(null);
 
+    const [width, setWidth] = useState(window.innerWidth);
+
+    useEffect(() => {
+        const handleResize = () => setWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const isMobile = width <= 640;
+
     useEffect(() => {
         api.getJobs().then(r => setJobs(r || [])).catch(() => {});
     }, []);
@@ -41,7 +51,7 @@ export default function Jobs() {
     return (
         <>
             {/* Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
                 {[
                     { color: 'var(--text)', label: 'Job Descriptions', value: totalOpenings, delta: 2 },
                     { color: '#8b5cf6', label: 'Total Loaded', value: totalOpenings, delta: 4 },
@@ -83,7 +93,7 @@ export default function Jobs() {
                                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 5 }}>
                                     {j.title || `Job Description #${i + 1}`}
                                 </div>
-                                <div style={{ fontSize: 12, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 500 }}>
+                                <div style={{ fontSize: 12, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 'calc(100vw - 160px)' : 500 }}>
                                     {(j.text || j.job_text || '').slice(0, 120)}…
                                 </div>
                             </div>

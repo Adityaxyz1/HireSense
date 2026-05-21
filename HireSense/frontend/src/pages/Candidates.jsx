@@ -36,6 +36,17 @@ const getStatusStyle = (status, isDark) => {
 export default function Candidates() {
     const { isDark } = useTheme();
     const [searchParams] = useSearchParams();
+    
+    const [width, setWidth] = useState(window.innerWidth);
+    useEffect(() => {
+        const handleResize = () => setWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const isMobile = width <= 640;
+    const isTablet = width > 640 && width <= 1024;
+
     const [candidates, setCandidates] = useState([]);
     const [filter, setFilter] = useState('all');
     const [search, setSearch] = useState('');
@@ -118,8 +129,20 @@ export default function Candidates() {
     return (
         <>
             {/* Filter bar */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
-                <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ 
+                display: 'flex', 
+                flexDirection: isMobile ? 'column' : 'row', 
+                gap: 12, 
+                alignItems: isMobile ? 'stretch' : 'center', 
+                marginBottom: 16 
+            }}>
+                <div style={{ 
+                    display: 'flex', 
+                    gap: 6, 
+                    overflowX: isMobile ? 'auto' : 'visible',
+                    paddingBottom: isMobile ? 6 : 0,
+                    WebkitOverflowScrolling: 'touch',
+                }}>
                     {['all', 'pending', 'approved', 'rejected'].map(f => (
                         <button key={f} onClick={() => setFilter(f)} style={{
                             padding: '6px 12px', borderRadius: 7,
@@ -129,6 +152,7 @@ export default function Candidates() {
                             fontSize: 12, fontWeight: 500, cursor: 'pointer',
                             letterSpacing: '.03em', textTransform: 'capitalize',
                             fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7,
+                            flexShrink: 0,
                         }}>
                             {f}
                             <span style={{
@@ -138,28 +162,44 @@ export default function Candidates() {
                         </button>
                     ))}
                 </div>
-                <div style={{ flex: 1 }} />
-                <div style={{ position: 'relative' }}>
-                    <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', display: 'flex', alignItems: 'center' }}>{ICONS.search}</span>
-                    <input value={search} onChange={e => setSearch(e.target.value)}
-                        placeholder="Search candidates…"
-                        style={{ ...inp, paddingLeft: 30, width: 180 }} />
+                {!isMobile && <div style={{ flex: 1 }} />}
+                <div style={{ 
+                    display: 'flex', 
+                    gap: 8, 
+                    width: isMobile ? '100%' : 'auto',
+                }}>
+                    <div style={{ position: 'relative', flex: isMobile ? 1 : 'none' }}>
+                        <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', display: 'flex', alignItems: 'center' }}>{ICONS.search}</span>
+                        <input value={search} onChange={e => setSearch(e.target.value)}
+                            placeholder="Search candidates…"
+                            style={{ ...inp, paddingLeft: 30, width: '100%', minWidth: isMobile ? 0 : 180 }} />
+                    </div>
+                    <select value={sort} onChange={e => setSort(e.target.value)} style={{ ...inp, cursor: 'pointer', flex: isMobile ? 1 : 'none' }}>
+                        <option value="recent">Newest</option>
+                        <option value="name">Name</option>
+                    </select>
                 </div>
-                <select value={sort} onChange={e => setSort(e.target.value)} style={{ ...inp, cursor: 'pointer' }}>
-                    <option value="recent">Sort: Newest First</option>
-                    <option value="name">Sort: Name</option>
-                </select>
             </div>
 
             {/* Table */}
-            <div style={{ background: 'var(--card)', border: '1.5px solid var(--border)', borderRadius: 10, padding: 18 }}>
+            <div style={{ background: 'var(--card)', border: '1.5px solid var(--border)', borderRadius: 10, padding: isMobile ? 10 : 18 }}>
                 {/* Header */}
                 <div style={{
-                    display: 'grid', gridTemplateColumns: '2.2fr 60px 80px 100px 180px',
+                    display: 'grid', 
+                    gridTemplateColumns: isMobile 
+                        ? '1.2fr 50px 105px' 
+                        : isTablet 
+                            ? '1.8fr 60px 100px 150px' 
+                            : '2.2fr 60px 80px 100px 180px',
                     gap: 12, padding: '6px 10px 10px',
                     borderBottom: '1.5px solid var(--border)', marginBottom: 4,
                 }}>
-                    {['Candidate', 'Score', 'File', 'Status', 'Actions'].map(h => (
+                    {(isMobile 
+                        ? ['Candidate', 'Score', 'Actions'] 
+                        : isTablet 
+                            ? ['Candidate', 'Score', 'Status', 'Actions'] 
+                            : ['Candidate', 'Score', 'File', 'Status', 'Actions']
+                    ).map(h => (
                         <span key={h} style={{ fontSize: 10, color: 'var(--text3)', letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 600 }}>{h}</span>
                     ))}
                 </div>
@@ -196,7 +236,12 @@ export default function Candidates() {
                         <div className="up rh" 
                             onClick={() => setExpandedId(isExpanded ? null : c.id)}
                             style={{
-                            display: 'grid', gridTemplateColumns: '2.2fr 60px 80px 100px 180px',
+                            display: 'grid', 
+                            gridTemplateColumns: isMobile 
+                                ? '1.2fr 50px 105px' 
+                                : isTablet 
+                                    ? '1.8fr 60px 100px 150px' 
+                                    : '2.2fr 60px 80px 100px 180px',
                             gap: 12, alignItems: 'center', padding: '12px 10px',
                             borderBottom: (!isExpanded && i < list.length - 1) ? '1.5px solid var(--border)' : 'none',
                             borderRadius: 8, animationDelay: `${i * 28}ms`,
@@ -206,13 +251,13 @@ export default function Candidates() {
                             background: isHighlighted ? (isDark ? '#6366f110' : '#6366f108') : 'transparent',
                         }}>
                             {/* Name + avatar */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10, minWidth: 0 }}>
                                 {(() => {
                                     const seed = encodeURIComponent(name || initials || 'user');
                                     const avatarSrc = `https://api.dicebear.com/9.x/notionists/svg?seed=${seed}&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf`;
                                     return (
                                         <div style={{
-                                            width: 36, height: 36, borderRadius: 10,
+                                            width: isMobile ? 30 : 36, height: isMobile ? 30 : 36, borderRadius: 10,
                                             overflow: 'hidden', flexShrink: 0,
                                             border: `1.5px solid ${AVC[i % 5]}44`,
                                         }}>
@@ -225,7 +270,7 @@ export default function Candidates() {
                                                     e.target.parentElement.style.display = 'flex';
                                                     e.target.parentElement.style.alignItems = 'center';
                                                     e.target.parentElement.style.justifyContent = 'center';
-                                                    e.target.parentElement.innerHTML = `<span style="font-size:12px;font-weight:700;color:${AVC[i % 5]}">${initials}</span>`;
+                                                    e.target.parentElement.innerHTML = `<span style="font-size:${isMobile ? '10px' : '12px'};font-weight:700;color:${AVC[i % 5]}">${initials}</span>`;
                                                 }}
                                                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                                             />
@@ -233,8 +278,8 @@ export default function Candidates() {
                                     );
                                 })()}
                                 <div style={{ minWidth: 0 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
-                                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 1 }}>
+                                    <div style={{ fontSize: isMobile ? 12 : 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
+                                    <div style={{ fontSize: isMobile ? 9 : 11, color: 'var(--text3)', marginTop: 1 }}>
                                         {c.created_at ? new Date(c.created_at).toLocaleDateString() : '—'}
                                     </div>
                                 </div>
@@ -244,7 +289,7 @@ export default function Candidates() {
                             </div>
 
                             {/* Score Display */}
-                            <div style={{ fontSize: 16, fontWeight: 700, color: scC(score) }}>
+                            <div style={{ fontSize: isMobile ? 14 : 16, fontWeight: 700, color: scC(score) }}>
                                 {procStatus === 'processing' ? (
                                     <div style={{ width: 24, height: 18, background: 'var(--border)', borderRadius: 4, animation: 'pulse 1.5s infinite' }} />
                                 ) : (
@@ -253,80 +298,157 @@ export default function Candidates() {
                             </div>
 
                             {/* Upload date / file */}
-                            <span style={{ fontSize: 11, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                                {c.file_url ? <>{ICONS.check} PDF</> : '—'}
-                            </span>
+                            {!isMobile && !isTablet && (
+                                <span style={{ fontSize: 11, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                    {c.file_url ? <>{ICONS.check} PDF</> : '—'}
+                                </span>
+                            )}
 
                             {/* Processing status */}
-                            <span style={{
-                                fontSize: 11, fontWeight: 600,
-                                display: 'flex', alignItems: 'center', gap: 6,
-                                color: procStatus === 'completed' ? '#22c55e'
-                                    : procStatus === 'failed' ? '#ef4444'
-                                        : '#f59e0b',
-                                textTransform: 'uppercase', letterSpacing: '.05em',
-                            }}>
-                                {procStatus === 'completed' ? 'Active' : procStatus === 'failed' ? 'Error' : 'Scanning'}
-                            </span>
-                            {/* Status selector — approved / pending / rejected */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
-                                {/* Current badge */}
+                            {!isMobile && (
                                 <span style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                                    padding: '3px 9px', borderRadius: 6,
-                                    background: sm.bg, color: sm.color,
-                                    fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
+                                    fontSize: 11, fontWeight: 600,
+                                    display: 'flex', alignItems: 'center', gap: 6,
+                                    color: procStatus === 'completed' ? '#22c55e'
+                                        : procStatus === 'failed' ? '#ef4444'
+                                            : '#f59e0b',
+                                    textTransform: 'uppercase', letterSpacing: '.05em',
                                 }}>
-                                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: sm.color }} />
-                                    {STATUS_META[candStatus]?.label || 'Pending'}
+                                    {procStatus === 'completed' ? 'Active' : procStatus === 'failed' ? 'Error' : 'Scanning'}
                                 </span>
+                            )}
 
-                                {/* Action buttons */}
-                                <div style={{ display: 'flex', gap: 3 }}>
-                                    {[
-                                        { v: 'approved', icon: ICONS.check, title: 'Approve' },
-                                        { v: 'pending', icon: ICONS.circle, title: 'Set Pending' },
-                                        { v: 'rejected', icon: ICONS.x, title: 'Reject' },
-                                    ].map(({ v, icon, title }) => {
-                                        const active = candStatus === v;
-                                        const meta = STATUS_META[v];
-                                        return (
+                            {/* Actions / Status badges */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'flex-end' : 'flex-start', gap: 6 }} onClick={e => e.stopPropagation()}>
+                                {isMobile ? (
+                                    // Mobile view: compact status badge + delete button
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <span style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: 3,
+                                            padding: '2px 6px', borderRadius: 6,
+                                            background: sm.bg, color: sm.color,
+                                            fontSize: 9, fontWeight: 700, whiteSpace: 'nowrap',
+                                        }}>
+                                            {STATUS_META[candStatus]?.label || 'Pending'}
+                                        </span>
+                                        <button
+                                            onClick={() => !uploading && handleDelete(c.id)}
+                                            title="Delete Candidate"
+                                            disabled={uploading}
+                                            style={{
+                                                width: 22, height: 22, borderRadius: 6, border: 'none',
+                                                cursor: uploading ? 'default' : 'pointer',
+                                                background: 'var(--bg3)',
+                                                outline: '1.5px solid var(--border)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontSize: 10, color: '#ef4444',
+                                                fontWeight: 700, transition: 'all .15s',
+                                            }}
+                                        >{ICONS.trash}</button>
+                                    </div>
+                                ) : isTablet ? (
+                                    // Tablet view: status badge + check / x / trash buttons
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <div style={{ display: 'flex', gap: 3 }}>
+                                            {[
+                                                { v: 'approved', icon: ICONS.check, title: 'Approve' },
+                                                { v: 'rejected', icon: ICONS.x, title: 'Reject' },
+                                            ].map(({ v, icon, title }) => {
+                                                const active = candStatus === v;
+                                                const meta = STATUS_META[v];
+                                                return (
+                                                    <button
+                                                        key={v}
+                                                        onClick={() => !uploading && updateStatus(c.id, v)}
+                                                        title={title}
+                                                        disabled={uploading}
+                                                        style={{
+                                                            width: 22, height: 22, borderRadius: 6, border: 'none',
+                                                            cursor: uploading ? 'default' : 'pointer',
+                                                            background: active ? (isDark ? meta.bg_dark : meta.bg_light) : 'var(--bg3)',
+                                                            outline: `1.5px solid ${active ? meta.color + '55' : 'var(--border)'}`,
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            fontSize: 10, color: active ? meta.color : 'var(--text3)',
+                                                            fontWeight: 700, transition: 'all .15s',
+                                                        }}
+                                                    >{icon}</button>
+                                                );
+                                            })}
                                             <button
-                                                key={v}
-                                                onClick={() => !uploading && updateStatus(c.id, v)}
-                                                title={title}
+                                                onClick={() => !uploading && handleDelete(c.id)}
+                                                title="Delete Candidate"
                                                 disabled={uploading}
                                                 style={{
                                                     width: 22, height: 22, borderRadius: 6, border: 'none',
                                                     cursor: uploading ? 'default' : 'pointer',
-                                                    background: active ? (isDark ? meta.bg_dark : meta.bg_light) : 'var(--bg3)',
-                                                    outline: `1.5px solid ${active ? meta.color + '55' : 'var(--border)'}`,
+                                                    background: 'var(--bg3)',
+                                                    outline: '1.5px solid var(--border)',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    fontSize: 10, color: active ? meta.color : 'var(--text3)',
+                                                    fontSize: 10, color: '#ef4444',
                                                     fontWeight: 700, transition: 'all .15s',
                                                 }}
-                                            >{icon}</button>
-                                        );
-                                    })}
+                                            >{ICONS.trash}</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // Desktop view: Full status selector & action buttons
+                                    <>
+                                        <span style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                                            padding: '3px 9px', borderRadius: 6,
+                                            background: sm.bg, color: sm.color,
+                                            fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
+                                        }}>
+                                            <span style={{ width: 5, height: 5, borderRadius: '50%', background: sm.color }} />
+                                            {STATUS_META[candStatus]?.label || 'Pending'}
+                                        </span>
 
-                                    {/* Delete Button */}
-                                    <button
-                                        onClick={() => !uploading && handleDelete(c.id)}
-                                        title="Delete Candidate"
-                                        disabled={uploading}
-                                        style={{
-                                            width: 22, height: 22, borderRadius: 6, border: 'none',
-                                            cursor: uploading ? 'default' : 'pointer',
-                                            marginLeft: 4, background: 'var(--bg3)',
-                                            outline: '1.5px solid var(--border)',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            fontSize: 10, color: '#ef4444',
-                                            fontWeight: 700, transition: 'all .15s', opacity: 0.7
-                                        }}
-                                        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                                        onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
-                                    >{ICONS.trash}</button>
-                                </div>
+                                        <div style={{ display: 'flex', gap: 3 }}>
+                                            {[
+                                                { v: 'approved', icon: ICONS.check, title: 'Approve' },
+                                                { v: 'pending', icon: ICONS.circle, title: 'Set Pending' },
+                                                { v: 'rejected', icon: ICONS.x, title: 'Reject' },
+                                            ].map(({ v, icon, title }) => {
+                                                const active = candStatus === v;
+                                                const meta = STATUS_META[v];
+                                                return (
+                                                    <button
+                                                        key={v}
+                                                        onClick={() => !uploading && updateStatus(c.id, v)}
+                                                        title={title}
+                                                        disabled={uploading}
+                                                        style={{
+                                                            width: 22, height: 22, borderRadius: 6, border: 'none',
+                                                            cursor: uploading ? 'default' : 'pointer',
+                                                            background: active ? (isDark ? meta.bg_dark : meta.bg_light) : 'var(--bg3)',
+                                                            outline: `1.5px solid ${active ? meta.color + '55' : 'var(--border)'}`,
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            fontSize: 10, color: active ? meta.color : 'var(--text3)',
+                                                            fontWeight: 700, transition: 'all .15s',
+                                                        }}
+                                                    >{icon}</button>
+                                                );
+                                            })}
+
+                                            <button
+                                                onClick={() => !uploading && handleDelete(c.id)}
+                                                title="Delete Candidate"
+                                                disabled={uploading}
+                                                style={{
+                                                    width: 22, height: 22, borderRadius: 6, border: 'none',
+                                                    cursor: uploading ? 'default' : 'pointer',
+                                                    marginLeft: 4, background: 'var(--bg3)',
+                                                    outline: '1.5px solid var(--border)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontSize: 10, color: '#ef4444',
+                                                    fontWeight: 700, transition: 'all .15s', opacity: 0.7
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                                                onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+                                            >{ICONS.trash}</button>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -338,7 +460,7 @@ export default function Candidates() {
                                 borderRadius: 10, padding: 18, marginBottom: 10,
                                 animation: 'fadeIn .2s',
                             }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
 
                                     {/* ATS Screening Panel */}
                                     <div>

@@ -36,6 +36,18 @@ export default function Layout() {
     const [showUserMenu, setShowUserMenu] = useState(false);
     const menuRef = useRef(null);
 
+    const [width, setWidth] = useState(window.innerWidth);
+
+    useEffect(() => {
+        const handleResize = () => setWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const isMobile = width <= 640;
+    const isTablet = width > 640 && width <= 1024;
+    const actualSbOpen = isMobile ? false : (isTablet ? false : sbOpen);
+
     const currentPage = location.pathname === '/profile'
         ? 'Profile'
         : (NAV.find(n => n.id === location.pathname)?.label || 'Dashboard');
@@ -63,399 +75,468 @@ export default function Layout() {
     const displayName = profile?.display_name || user?.email?.split('@')[0] || 'User';
 
     return (
-        <div style={{ display: 'flex', height: '100vh', background: 'var(--bg)', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', height: '100vh', background: 'var(--bg)', overflow: 'hidden', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
 
-            {/* ══════ SIDEBAR ══════ */}
-            <aside style={{
-                width: sbOpen ? 220 : 54,
-                flexShrink: 0,
-                background: 'var(--surface)',
-                borderRight: '1.5px solid var(--border)',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'width .28s cubic-bezier(.22,1,.36,1), background .2s, border-color .2s',
-                overflow: 'hidden',
-            }}>
-                {/* Logo */}
-                <div style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    borderBottom: '1.5px solid var(--border)', height: 54,
-                    flexShrink: 0, overflow: 'hidden', padding: '0 10px',
+                {/* ══════ SIDEBAR (Desktop / Tablet) ══════ */}
+                <aside style={{
+                    width: actualSbOpen ? 220 : 54,
+                    flexShrink: 0,
+                    background: 'var(--surface)',
+                    borderRight: '1.5px solid var(--border)',
+                    display: isMobile ? 'none' : 'flex',
+                    flexDirection: 'column',
+                    transition: 'width .28s cubic-bezier(.22,1,.36,1), background .2s, border-color .2s',
+                    overflow: 'hidden',
                 }}>
-                    {sbOpen ? (
-                        <div style={{
-                            display: 'flex', alignItems: 'stretch', height: 30,
-                            border: '1.5px solid var(--border2)', borderRadius: 6,
-                            overflow: 'hidden', width: '100%',
-                        }}>
+                    {/* Logo */}
+                    <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        borderBottom: '1.5px solid var(--border)', height: 54,
+                        flexShrink: 0, overflow: 'hidden', padding: '0 10px',
+                    }}>
+                        {actualSbOpen ? (
                             <div style={{
-                                background: 'var(--logo-bg)', padding: '0 12px',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                display: 'flex', alignItems: 'stretch', height: 30,
+                                border: '1.5px solid var(--border2)', borderRadius: 6,
+                                overflow: 'hidden', width: '100%',
+                            }}>
+                                <div style={{
+                                    background: 'var(--logo-bg)', padding: '0 12px',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    flexShrink: 0,
+                                }}>
+                                    <span style={{
+                                        fontFamily: 'var(--font)', fontWeight: 800, fontSize: 12,
+                                        color: 'var(--logo-fg)', letterSpacing: '.14em',
+                                    }}>HIRE</span>
+                                </div>
+                                <div style={{
+                                    background: 'var(--surface)', padding: '0 12px',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    borderLeft: '1.5px solid var(--border)', flex: 1,
+                                }}>
+                                    <span style={{
+                                        fontFamily: 'var(--font)', fontWeight: 800, fontSize: 12,
+                                        color: 'var(--text)', letterSpacing: '.14em',
+                                    }}>SENSE</span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div style={{
+                                display: 'flex', flexDirection: 'column', height: 32, width: 32,
+                                border: '1.5px solid var(--border2)', borderRadius: 7, overflow: 'hidden',
                                 flexShrink: 0,
                             }}>
-                                <span style={{
-                                    fontFamily: 'var(--font)', fontWeight: 800, fontSize: 12,
-                                    color: 'var(--logo-fg)', letterSpacing: '.14em',
-                                }}>HIRE</span>
+                                <div style={{ flex: 1, background: 'var(--logo-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <span style={{ fontSize: 9, fontWeight: 900, color: 'var(--logo-fg)', fontFamily: 'var(--font)' }}>H</span>
+                                </div>
+                                <div style={{ flex: 1, background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderTop: '1px solid var(--border)' }}>
+                                    <span style={{ fontSize: 9, fontWeight: 900, color: 'var(--text)', fontFamily: 'var(--font)' }}>S</span>
+                                </div>
                             </div>
-                            <div style={{
-                                background: 'var(--surface)', padding: '0 12px',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                borderLeft: '1.5px solid var(--border)', flex: 1,
-                            }}>
-                                <span style={{
-                                    fontFamily: 'var(--font)', fontWeight: 800, fontSize: 12,
-                                    color: 'var(--text)', letterSpacing: '.14em',
-                                }}>SENSE</span>
-                            </div>
-                        </div>
-                    ) : (
-                        <div style={{
-                            display: 'flex', flexDirection: 'column', height: 32, width: 32,
-                            border: '1.5px solid var(--border2)', borderRadius: 7, overflow: 'hidden',
-                            flexShrink: 0,
-                        }}>
-                            <div style={{ flex: 1, background: 'var(--logo-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <span style={{ fontSize: 9, fontWeight: 900, color: 'var(--logo-fg)', fontFamily: 'var(--font)' }}>H</span>
-                            </div>
-                            <div style={{ flex: 1, background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderTop: '1px solid var(--border)' }}>
-                                <span style={{ fontSize: 9, fontWeight: 900, color: 'var(--text)', fontFamily: 'var(--font)' }}>S</span>
-                            </div>
-                        </div>
-                    )}
-                </div>
+                        )}
+                    </div>
 
-                {/* Nav */}
-                <nav style={{ flex: 1, padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 3, overflowY: 'auto' }}>
+                    {/* Nav */}
+                    <nav style={{ flex: 1, padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 3, overflowY: 'auto' }}>
+                        {NAV.map(n => {
+                            const isActive = location.pathname === n.id;
+                            return (
+                                <Link key={n.id} to={n.id} className="nb" style={{
+                                    display: 'flex', alignItems: 'center', 
+                                    justifyContent: actualSbOpen ? 'flex-start' : 'center',
+                                    gap: actualSbOpen ? 10 : 0,
+                                    padding: actualSbOpen ? '9px 11px' : '9px 0', 
+                                    borderRadius: 8, width: '100%',
+                                    textDecoration: 'none',
+                                    background: isActive ? 'var(--nav-on)' : 'transparent',
+                                    color: isActive ? 'var(--nav-on-fg)' : 'var(--text2)',
+                                    transition: 'all .15s', fontFamily: 'var(--font)',
+                                }}>
+                                    <span style={{ 
+                                        fontSize: 14, flexShrink: 0, opacity: 0.7,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                    }}>{n.icon}</span>
+                                    {actualSbOpen && (
+                                        <span style={{ fontSize: 13, fontWeight: 500, letterSpacing: '.02em', whiteSpace: 'nowrap' }}>
+                                            {n.label}
+                                        </span>
+                                    )}
+                                </Link>
+                            );
+                        })}
+                    </nav>
+
+                    {/* Bottom */}
+                    <div style={{
+                        padding: '12px 10px',
+                        borderTop: '1.5px solid var(--border)',
+                        display: 'flex', flexDirection: 'column', gap: 6,
+                    }}>
+                        {/* Theme toggle button */}
+                        <button onClick={toggleTheme} className="nb" style={{
+                            padding: '9px 11px', borderRadius: 8,
+                            border: '1.5px solid var(--border)',
+                            display: 'flex', alignItems: 'center', justifyContent: actualSbOpen ? 'flex-start' : 'center', gap: 9,
+                            cursor: 'pointer', width: '100%',
+                            color: 'var(--text2)', fontFamily: 'var(--font)',
+                            background: isDark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.02)',
+                            transition: 'all .15s',
+                        }}>
+                            {isDark ? ICONS.sun : ICONS.moon}
+                            {actualSbOpen && (
+                                <span style={{
+                                    fontSize: 11, letterSpacing: '.06em',
+                                    fontWeight: 500, whiteSpace: 'nowrap',
+                                }}>
+                                    {isDark ? 'Light Mode' : 'Dark Mode'}
+                                </span>
+                            )}
+                        </button>
+
+                        {/* DB status */}
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            padding: '8px 11px', borderRadius: 8,
+                            border: '1.5px solid var(--border)',
+                            background: isDark ? 'rgba(34,197,94,.04)' : 'rgba(34,197,94,.03)',
+                        }}>
+                            <span style={{
+                                width: 7, height: 7, borderRadius: '50%', background: '#22c55e',
+                                flexShrink: 0, animation: 'pulse-dot 2.5s infinite',
+                                boxShadow: '0 0 6px #22c55e55',
+                            }} />
+                            {actualSbOpen && (
+                                <span style={{
+                                    fontSize: 11, color: 'var(--text3)', letterSpacing: '.06em',
+                                    fontWeight: 500, whiteSpace: 'nowrap',
+                                }}>Supabase · Live</span>
+                            )}
+                        </div>
+
+                        {/* Collapse */}
+                        <button onClick={() => setSbOpen(!sbOpen)} className="nb" style={{
+                            padding: '9px 11px', borderRadius: 8,
+                            border: '1.5px solid var(--border)', color: 'var(--text3)',
+                            fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: actualSbOpen ? 'flex-start' : 'center', gap: 8,
+                            fontWeight: 500, letterSpacing: '.04em', width: '100%',
+                            fontFamily: 'var(--font)',
+                        }}>
+                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                {actualSbOpen ? ICONS.chevronLeft : ICONS.chevronRight}
+                            </span>
+                            {actualSbOpen && <span>Collapse</span>}
+                        </button>
+                    </div>
+                </aside>
+
+                {/* ══════ MAIN ══════ */}
+                <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+
+                    {/* Topbar */}
+                    <header style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: isMobile ? '0 14px' : '0 24px', height: 54,
+                        borderBottom: '1.5px solid var(--border)',
+                        background: 'var(--surface)', flexShrink: 0,
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16 }}>
+                            {/* Mini logo */}
+                            <div style={{
+                                display: 'flex', alignItems: 'stretch', height: 26,
+                                border: '1.5px solid var(--border2)', borderRadius: 4, overflow: 'hidden',
+                            }}>
+                                <div style={{
+                                    background: 'var(--logo-bg)', padding: '0 7px',
+                                    display: 'flex', alignItems: 'center',
+                                }}>
+                                    <span style={{
+                                        fontFamily: 'var(--font)', fontWeight: 800, fontSize: 9,
+                                        color: 'var(--logo-fg)', letterSpacing: '.12em',
+                                    }}>H</span>
+                                </div>
+                                <div style={{
+                                    background: 'var(--surface)', padding: '0 7px',
+                                    display: 'flex', alignItems: 'center',
+                                    borderLeft: '1.5px solid var(--border)',
+                                }}>
+                                    <span style={{
+                                        fontFamily: 'var(--font)', fontWeight: 800, fontSize: 9,
+                                        color: 'var(--text)', letterSpacing: '.12em',
+                                    }}>S</span>
+                                </div>
+                            </div>
+                            <h1 style={{
+                                fontFamily: 'var(--font)', fontWeight: 700, fontSize: isMobile ? 14 : 16,
+                                color: 'var(--text)', letterSpacing: '.01em',
+                            }}>{currentPage}</h1>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12 }}>
+                            <button onClick={toggleTheme} className="nb" style={{
+                                display: 'flex', alignItems: 'center', gap: 6,
+                                padding: '6px 10px', border: '1.5px solid var(--border)',
+                                borderRadius: 8, color: 'var(--text2)', fontSize: 11,
+                                fontWeight: 500, letterSpacing: '.05em', fontFamily: 'var(--font)',
+                            }}>
+                                {isDark ? ICONS.sun : ICONS.moon}
+                                {!isMobile && <span>{isDark ? 'Light mode' : 'Dark mode'}</span>}
+                            </button>
+
+                            <div style={{ width: 1, height: 22, background: 'var(--border)' }} />
+
+                            {/* User avatar with dropdown */}
+                            <div ref={menuRef} style={{ position: 'relative' }}>
+                                <div
+                                    onClick={() => setShowUserMenu(!showUserMenu)}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: isMobile ? 0 : 10,
+                                        cursor: 'pointer', padding: '4px 6px',
+                                        borderRadius: 10,
+                                        transition: 'background .15s',
+                                    }}
+                                >
+                                    <div style={{
+                                        width: 32, height: 32,
+                                        border: `1.5px solid ${showUserMenu ? 'var(--text2)' : 'var(--border2)'}`,
+                                        borderRadius: 8,
+                                        overflow: 'hidden',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        transition: 'border-color .2s',
+                                        background: 'var(--bg2)',
+                                        flexShrink: 0,
+                                    }}>
+                                        {avatarUrl ? (
+                                            <img
+                                                src={avatarUrl}
+                                                alt="Profile"
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            />
+                                        ) : (
+                                            <span style={{
+                                                fontFamily: 'var(--font)', fontWeight: 800, fontSize: 13,
+                                                color: 'var(--text2)',
+                                            }}>{userInitial}</span>
+                                        )}
+                                    </div>
+                                    {!isMobile && (
+                                        <span style={{
+                                            fontFamily: 'var(--font)', fontWeight: 600, fontSize: 12,
+                                            color: 'var(--text)', letterSpacing: '.02em',
+                                            whiteSpace: 'nowrap',
+                                        }}>{displayName}</span>
+                                    )}
+                                </div>
+
+                                {/* Dropdown menu */}
+                                {showUserMenu && (
+                                    <div style={{
+                                        position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                                        width: 220,
+                                        background: 'var(--surface)',
+                                        border: '1.5px solid var(--border)',
+                                        borderRadius: 12,
+                                        boxShadow: '0 12px 40px rgba(0,0,0,0.3)',
+                                        zIndex: 100,
+                                        overflow: 'hidden',
+                                        animation: 'up .2s cubic-bezier(.22,1,.36,1) both',
+                                    }}>
+                                        {/* User info header */}
+                                        <div style={{
+                                            padding: '16px 16px 12px',
+                                            borderBottom: '1px solid var(--border)',
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                <div style={{
+                                                    width: 36, height: 36, borderRadius: 8,
+                                                    overflow: 'hidden',
+                                                    border: '1.5px solid var(--border)',
+                                                    background: 'var(--bg2)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    flexShrink: 0,
+                                                }}>
+                                                    {avatarUrl ? (
+                                                        <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    ) : (
+                                                        <span style={{
+                                                            fontFamily: 'var(--font)', fontWeight: 800, fontSize: 14,
+                                                            color: 'var(--text2)',
+                                                        }}>{userInitial}</span>
+                                                    )}
+                                                </div>
+                                                <div style={{ overflow: 'hidden' }}>
+                                                    <div style={{
+                                                        fontSize: 13, fontWeight: 600, color: 'var(--text)',
+                                                        fontFamily: 'var(--font)', letterSpacing: '.02em',
+                                                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                                    }}>{displayName}</div>
+                                                    <div style={{
+                                                        fontSize: 11, color: 'var(--text3)',
+                                                        fontFamily: 'var(--font)',
+                                                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                                    }}>{user?.email}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Menu items */}
+                                        <div style={{ padding: '6px' }}>
+                                            <button
+                                                onClick={() => { setShowUserMenu(false); navigate('/profile'); }}
+                                                className="nb rh"
+                                                style={{
+                                                    width: '100%', padding: '10px 12px',
+                                                    display: 'flex', alignItems: 'center', gap: 10,
+                                                    borderRadius: 8, color: 'var(--text2)',
+                                                    fontSize: 13, fontWeight: 500,
+                                                    fontFamily: 'var(--font)',
+                                                    textAlign: 'left',
+                                                }}
+                                            >
+                                                {ICONS.profile}
+                                                <span>Profile Settings</span>
+                                            </button>
+                                            <button
+                                                onClick={handleLogout}
+                                                className="nb rh"
+                                                style={{
+                                                    width: '100%', padding: '10px 12px',
+                                                    display: 'flex', alignItems: 'center', gap: 10,
+                                                    borderRadius: 8, color: '#ef4444',
+                                                    fontSize: 13, fontWeight: 500,
+                                                    fontFamily: 'var(--font)',
+                                                    textAlign: 'left',
+                                                }}
+                                            >
+                                                {ICONS.logout}
+                                                <span>Sign Out</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Content */}
+                    <div style={{
+                        flex: 1, overflowY: 'auto', 
+                        padding: isMobile ? '14px 14px 80px' : (isTablet ? '18px 20px' : '22px 26px'),
+                        background: 'var(--bg)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                    }}>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                            <Outlet />
+                        </div>
+                        <footer style={{
+                            marginTop: 40,
+                            paddingTop: 16,
+                            borderTop: '1.5px solid var(--border)',
+                            display: 'flex',
+                            flexDirection: isMobile ? 'column' : 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: isMobile ? 12 : 0,
+                            fontSize: 11,
+                            color: 'var(--text3)',
+                            fontFamily: 'var(--font)',
+                            letterSpacing: '0.04em',
+                            flexShrink: 0,
+                            textAlign: 'center',
+                        }}>
+                            <div>
+                                © {new Date().getFullYear()} HireSense. All rights reserved.
+                            </div>
+                            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                                <Link to="/privacy" style={{
+                                    color: 'var(--text3)',
+                                    textDecoration: 'none',
+                                    transition: 'color 0.2s ease',
+                                }}
+                                onMouseEnter={(e) => e.target.style.color = 'var(--text2)'}
+                                onMouseLeave={(e) => e.target.style.color = 'var(--text3)'}
+                                >
+                                    Privacy Policy
+                                </Link>
+                                <span style={{ color: 'var(--border)', fontSize: 10 }}>|</span>
+                                <Link to="/terms" style={{
+                                    color: 'var(--text3)',
+                                    textDecoration: 'none',
+                                    transition: 'color 0.2s ease',
+                                }}
+                                onMouseEnter={(e) => e.target.style.color = 'var(--text2)'}
+                                onMouseLeave={(e) => e.target.style.color = 'var(--text3)'}
+                                >
+                                    Terms & Conditions
+                                </Link>
+                            </div>
+                        </footer>
+                    </div>
+                </main>
+            </div>
+
+            {/* ══════ MOBILE BOTTOM TAB BAR ══════ */}
+            {isMobile && (
+                <nav style={{
+                    position: 'fixed',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 'calc(60px + env(safe-area-inset-bottom, 0px))',
+                    background: 'var(--surface)',
+                    borderTop: '1.5px solid var(--border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-around',
+                    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                    zIndex: 999,
+                    boxShadow: '0 -4px 20px rgba(0,0,0,0.15)',
+                }}>
                     {NAV.map(n => {
                         const isActive = location.pathname === n.id;
                         return (
                             <Link key={n.id} to={n.id} className="nb" style={{
-                                display: 'flex', alignItems: 'center', 
-                                justifyContent: sbOpen ? 'flex-start' : 'center',
-                                gap: sbOpen ? 10 : 0,
-                                padding: sbOpen ? '9px 11px' : '9px 0', 
-                                borderRadius: 8, width: '100%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 4,
                                 textDecoration: 'none',
-                                background: isActive ? 'var(--nav-on)' : 'transparent',
                                 color: isActive ? 'var(--nav-on-fg)' : 'var(--text2)',
-                                transition: 'all .15s', fontFamily: 'var(--font)',
+                                background: isActive ? 'var(--nav-on)' : 'transparent',
+                                padding: '6px 4px',
+                                borderRadius: 8,
+                                transition: 'all .15s',
+                                flex: 1,
+                                minWidth: 0,
                             }}>
                                 <span style={{ 
-                                    fontSize: 14, flexShrink: 0, opacity: 0.7,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                    fontSize: 16,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    opacity: isActive ? 1 : 0.7,
+                                    color: isActive ? 'var(--nav-on-fg)' : 'var(--text2)',
                                 }}>{n.icon}</span>
-                                {sbOpen && (
-                                    <span style={{ fontSize: 13, fontWeight: 500, letterSpacing: '.02em', whiteSpace: 'nowrap' }}>
-                                        {n.label}
-                                    </span>
-                                )}
+                                <span style={{ 
+                                    fontSize: 9, 
+                                    fontWeight: isActive ? 700 : 500, 
+                                    letterSpacing: '.01em', 
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    maxWidth: '100%',
+                                    color: isActive ? 'var(--nav-on-fg)' : 'var(--text2)',
+                                }}>
+                                    {n.label}
+                                </span>
                             </Link>
                         );
                     })}
                 </nav>
-
-                {/* Bottom */}
-                <div style={{
-                    padding: '12px 10px',
-                    borderTop: '1.5px solid var(--border)',
-                    display: 'flex', flexDirection: 'column', gap: 6,
-                }}>
-                    {/* Theme toggle button */}
-                    <button onClick={toggleTheme} className="nb" style={{
-                        padding: '9px 11px', borderRadius: 8,
-                        border: '1.5px solid var(--border)',
-                        display: 'flex', alignItems: 'center', justifyContent: sbOpen ? 'flex-start' : 'center', gap: 9,
-                        cursor: 'pointer', width: '100%',
-                        color: 'var(--text2)', fontFamily: 'var(--font)',
-                        background: isDark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.02)',
-                        transition: 'all .15s',
-                    }}>
-                        {isDark ? ICONS.sun : ICONS.moon}
-                        {sbOpen && (
-                            <span style={{
-                                fontSize: 11, letterSpacing: '.06em',
-                                fontWeight: 500, whiteSpace: 'nowrap',
-                            }}>
-                                {isDark ? 'Light Mode' : 'Dark Mode'}
-                            </span>
-                        )}
-                    </button>
-
-                    {/* DB status */}
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        padding: '8px 11px', borderRadius: 8,
-                        border: '1.5px solid var(--border)',
-                        background: isDark ? 'rgba(34,197,94,.04)' : 'rgba(34,197,94,.03)',
-                    }}>
-                        <span style={{
-                            width: 7, height: 7, borderRadius: '50%', background: '#22c55e',
-                            flexShrink: 0, animation: 'pulse-dot 2.5s infinite',
-                            boxShadow: '0 0 6px #22c55e55',
-                        }} />
-                        {sbOpen && (
-                            <span style={{
-                                fontSize: 11, color: 'var(--text3)', letterSpacing: '.06em',
-                                fontWeight: 500, whiteSpace: 'nowrap',
-                            }}>Supabase · Live</span>
-                        )}
-                    </div>
-
-                    {/* Collapse */}
-                    <button onClick={() => setSbOpen(!sbOpen)} className="nb" style={{
-                        padding: '9px 11px', borderRadius: 8,
-                        border: '1.5px solid var(--border)', color: 'var(--text3)',
-                        fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: sbOpen ? 'flex-start' : 'center', gap: 8,
-                        fontWeight: 500, letterSpacing: '.04em', width: '100%',
-                        fontFamily: 'var(--font)',
-                    }}>
-                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            {sbOpen ? ICONS.chevronLeft : ICONS.chevronRight}
-                        </span>
-                        {sbOpen && <span>Collapse</span>}
-                    </button>
-                </div>
-            </aside>
-
-            {/* ══════ MAIN ══════ */}
-            <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-
-                {/* Topbar */}
-                <header style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '0 24px', height: 54,
-                    borderBottom: '1.5px solid var(--border)',
-                    background: 'var(--surface)', flexShrink: 0,
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        {/* Mini logo */}
-                        <div style={{
-                            display: 'flex', alignItems: 'stretch', height: 26,
-                            border: '1.5px solid var(--border2)', borderRadius: 4, overflow: 'hidden',
-                        }}>
-                            <div style={{
-                                background: 'var(--logo-bg)', padding: '0 7px',
-                                display: 'flex', alignItems: 'center',
-                            }}>
-                                <span style={{
-                                    fontFamily: 'var(--font)', fontWeight: 800, fontSize: 9,
-                                    color: 'var(--logo-fg)', letterSpacing: '.12em',
-                                }}>H</span>
-                            </div>
-                            <div style={{
-                                background: 'var(--surface)', padding: '0 7px',
-                                display: 'flex', alignItems: 'center',
-                                borderLeft: '1.5px solid var(--border)',
-                            }}>
-                                <span style={{
-                                    fontFamily: 'var(--font)', fontWeight: 800, fontSize: 9,
-                                    color: 'var(--text)', letterSpacing: '.12em',
-                                }}>S</span>
-                            </div>
-                        </div>
-                        <h1 style={{
-                            fontFamily: 'var(--font)', fontWeight: 700, fontSize: 16,
-                            color: 'var(--text)', letterSpacing: '.01em',
-                        }}>{currentPage}</h1>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <button onClick={toggleTheme} className="nb" style={{
-                            display: 'flex', alignItems: 'center', gap: 7,
-                            padding: '6px 12px', border: '1.5px solid var(--border)',
-                            borderRadius: 8, color: 'var(--text2)', fontSize: 11,
-                            fontWeight: 500, letterSpacing: '.05em', fontFamily: 'var(--font)',
-                        }}>
-                            {isDark ? ICONS.sun : ICONS.moon}
-                            <span>{isDark ? 'Light mode' : 'Dark mode'}</span>
-                        </button>
-
-                        <div style={{ width: 1, height: 22, background: 'var(--border)' }} />
-
-                        {/* User avatar with dropdown */}
-                        <div ref={menuRef} style={{ position: 'relative' }}>
-                            <div
-                                onClick={() => setShowUserMenu(!showUserMenu)}
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: 10,
-                                    cursor: 'pointer', padding: '4px 6px',
-                                    borderRadius: 10,
-                                    transition: 'background .15s',
-                                }}
-                            >
-                                <div style={{
-                                    width: 34, height: 34,
-                                    border: `1.5px solid ${showUserMenu ? 'var(--text2)' : 'var(--border2)'}`,
-                                    borderRadius: 8,
-                                    overflow: 'hidden',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    transition: 'border-color .2s',
-                                    background: 'var(--bg2)',
-                                    flexShrink: 0,
-                                }}>
-                                    {avatarUrl ? (
-                                        <img
-                                            src={avatarUrl}
-                                            alt="Profile"
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                        />
-                                    ) : (
-                                        <span style={{
-                                            fontFamily: 'var(--font)', fontWeight: 800, fontSize: 13,
-                                            color: 'var(--text2)',
-                                        }}>{userInitial}</span>
-                                    )}
-                                </div>
-                                <span style={{
-                                    fontFamily: 'var(--font)', fontWeight: 600, fontSize: 12,
-                                    color: 'var(--text)', letterSpacing: '.02em',
-                                    whiteSpace: 'nowrap',
-                                }}>{displayName}</span>
-                            </div>
-
-                            {/* Dropdown menu */}
-                            {showUserMenu && (
-                                <div style={{
-                                    position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-                                    width: 220,
-                                    background: 'var(--surface)',
-                                    border: '1.5px solid var(--border)',
-                                    borderRadius: 12,
-                                    boxShadow: '0 12px 40px rgba(0,0,0,0.3)',
-                                    zIndex: 100,
-                                    overflow: 'hidden',
-                                    animation: 'up .2s cubic-bezier(.22,1,.36,1) both',
-                                }}>
-                                    {/* User info header */}
-                                    <div style={{
-                                        padding: '16px 16px 12px',
-                                        borderBottom: '1px solid var(--border)',
-                                    }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            <div style={{
-                                                width: 36, height: 36, borderRadius: 8,
-                                                overflow: 'hidden',
-                                                border: '1.5px solid var(--border)',
-                                                background: 'var(--bg2)',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                flexShrink: 0,
-                                            }}>
-                                                {avatarUrl ? (
-                                                    <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                ) : (
-                                                    <span style={{
-                                                        fontFamily: 'var(--font)', fontWeight: 800, fontSize: 14,
-                                                        color: 'var(--text2)',
-                                                    }}>{userInitial}</span>
-                                                )}
-                                            </div>
-                                            <div style={{ overflow: 'hidden' }}>
-                                                <div style={{
-                                                    fontSize: 13, fontWeight: 600, color: 'var(--text)',
-                                                    fontFamily: 'var(--font)', letterSpacing: '.02em',
-                                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                                }}>{displayName}</div>
-                                                <div style={{
-                                                    fontSize: 11, color: 'var(--text3)',
-                                                    fontFamily: 'var(--font)',
-                                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                                }}>{user?.email}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Menu items */}
-                                    <div style={{ padding: '6px' }}>
-                                        <button
-                                            onClick={() => { setShowUserMenu(false); navigate('/profile'); }}
-                                            className="nb rh"
-                                            style={{
-                                                width: '100%', padding: '10px 12px',
-                                                display: 'flex', alignItems: 'center', gap: 10,
-                                                borderRadius: 8, color: 'var(--text2)',
-                                                fontSize: 13, fontWeight: 500,
-                                                fontFamily: 'var(--font)',
-                                                textAlign: 'left',
-                                            }}
-                                        >
-                                            {ICONS.profile}
-                                            <span>Profile Settings</span>
-                                        </button>
-                                        <button
-                                            onClick={handleLogout}
-                                            className="nb rh"
-                                            style={{
-                                                width: '100%', padding: '10px 12px',
-                                                display: 'flex', alignItems: 'center', gap: 10,
-                                                borderRadius: 8, color: '#ef4444',
-                                                fontSize: 13, fontWeight: 500,
-                                                fontFamily: 'var(--font)',
-                                                textAlign: 'left',
-                                            }}
-                                        >
-                                            {ICONS.logout}
-                                            <span>Sign Out</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </header>
-
-                {/* Content */}
-                <div style={{
-                    flex: 1, overflowY: 'auto', padding: '22px 26px',
-                    background: 'var(--bg)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                }}>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                        <Outlet />
-                    </div>
-                    <footer style={{
-                        marginTop: 40,
-                        paddingTop: 16,
-                        borderTop: '1.5px solid var(--border)',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        fontSize: 11,
-                        color: 'var(--text3)',
-                        fontFamily: 'var(--font)',
-                        letterSpacing: '0.04em',
-                        flexShrink: 0,
-                    }}>
-                        <div>
-                            © {new Date().getFullYear()} HireSense. All rights reserved.
-                        </div>
-                        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                            <Link to="/privacy" style={{
-                                color: 'var(--text3)',
-                                textDecoration: 'none',
-                                transition: 'color 0.2s ease',
-                            }}
-                            onMouseEnter={(e) => e.target.style.color = 'var(--text2)'}
-                            onMouseLeave={(e) => e.target.style.color = 'var(--text3)'}
-                            >
-                                Privacy Policy
-                            </Link>
-                            <span style={{ color: 'var(--border)', fontSize: 10 }}>|</span>
-                            <Link to="/terms" style={{
-                                color: 'var(--text3)',
-                                textDecoration: 'none',
-                                transition: 'color 0.2s ease',
-                            }}
-                            onMouseEnter={(e) => e.target.style.color = 'var(--text2)'}
-                            onMouseLeave={(e) => e.target.style.color = 'var(--text3)'}
-                            >
-                                Terms & Conditions
-                            </Link>
-                        </div>
-                    </footer>
-                </div>
-            </main>
+            )}
         </div>
     );
 }

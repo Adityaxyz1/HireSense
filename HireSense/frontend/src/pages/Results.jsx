@@ -101,18 +101,25 @@ function SkillProficiencyGraph({ skills = [] }) {
                     return (
                         <motion.div
                             key={skill.name}
-                            className="flex items-center gap-4"
+                            className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4"
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.06 * i, duration: 0.5 }}
                         >
-                            <span className="text-xs font-medium w-20 text-right uppercase tracking-wide"
-                                style={{ color: isDark ? '#F5F5F5' : '#000' }}
-                            >
-                                {skill.name}
-                            </span>
+                            <div className="flex justify-between sm:justify-end sm:w-20 items-center flex-shrink-0">
+                                <span className="text-xs font-medium uppercase tracking-wide"
+                                    style={{ color: isDark ? '#F5F5F5' : '#000' }}
+                                >
+                                    {skill.name}
+                                </span>
+                                <span className="text-[10px] tracking-[0.1em] sm:hidden"
+                                    style={{ color: isDark ? '#8E8E93' : '#6B7280' }}
+                                >
+                                    {skill.mentions}x found
+                                </span>
+                            </div>
 
-                            <div className="flex-1 h-5 rounded-full overflow-hidden relative"
+                            <div className="flex-1 h-3 sm:h-5 rounded-full overflow-hidden relative"
                                 style={{
                                     background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
                                 }}
@@ -126,7 +133,7 @@ function SkillProficiencyGraph({ skills = [] }) {
                                 />
                             </div>
 
-                            <span className="text-[10px] w-16 tracking-[0.1em]"
+                            <span className="text-[10px] w-16 tracking-[0.1em] hidden sm:inline-block"
                                 style={{ color: isDark ? '#8E8E93' : '#6B7280' }}
                             >
                                 {skill.mentions}x found

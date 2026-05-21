@@ -14,11 +14,20 @@ const ICONS = {
 export default function Finder() {
     const { isDark } = useTheme();
     const navigate = useNavigate();
+    const [width, setWidth] = useState(window.innerWidth);
     const [allResumes, setAllResumes] = useState([]);
     const [query, setQuery] = useState('');
     const [searched, setSearched] = useState(false);
     const [searching, setSearching] = useState(false);
     const [results, setResults] = useState([]);
+
+    useEffect(() => {
+        const handleResize = () => setWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const isMobile = width <= 640;
 
     useEffect(() => {
         api.getCandidates().then(r => setAllResumes(r || [])).catch(() => {});
@@ -54,26 +63,46 @@ export default function Finder() {
     return (
         <div style={{ maxWidth: 700 }}>
             {/* Search bar */}
-            <div style={{ position: 'relative', marginBottom: 16 }}>
-                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', display: 'flex', alignItems: 'center' }}>
-                    {ICONS.search}
-                </span>
-                <input value={query} onChange={e => setQuery(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && doSearch()}
-                    placeholder="Search by name, role, or skill…"
-                    style={{
-                        width: '100%', padding: '13px 120px 13px 40px',
-                        background: 'var(--input)', border: '1.5px solid var(--border)',
-                        borderRadius: 10, color: 'var(--text)', fontSize: 13,
-                        outline: 'none', fontFamily: 'var(--font)', fontWeight: 400,
-                    }} />
-                <button onClick={() => doSearch()} style={{
-                    position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                    padding: '7px 16px', borderRadius: 8, border: 'none',
-                    background: 'var(--btn)', color: 'var(--btn-fg)',
-                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                    fontFamily: 'var(--font)', letterSpacing: '.04em',
-                }}>Search</button>
+            <div style={{
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                gap: 10,
+                marginBottom: 16,
+            }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                    <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', display: 'flex', alignItems: 'center' }}>
+                        {ICONS.search}
+                    </span>
+                    <input value={query} onChange={e => setQuery(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && doSearch()}
+                        placeholder="Search by name, role, or skill…"
+                        style={{
+                            width: '100%',
+                            padding: isMobile ? '13px 16px 13px 40px' : '13px 120px 13px 40px',
+                            background: 'var(--input)', border: '1.5px solid var(--border)',
+                            borderRadius: 10, color: 'var(--text)', fontSize: 13,
+                            outline: 'none', fontFamily: 'var(--font)', fontWeight: 400,
+                        }} />
+                    {!isMobile && (
+                        <button onClick={() => doSearch()} style={{
+                            position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                            padding: '7px 16px', borderRadius: 8, border: 'none',
+                            background: 'var(--btn)', color: 'var(--btn-fg)',
+                            fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                            fontFamily: 'var(--font)', letterSpacing: '.04em',
+                        }}>Search</button>
+                    )}
+                </div>
+                {isMobile && (
+                    <button onClick={() => doSearch()} style={{
+                        padding: '12px 16px', borderRadius: 10, border: 'none',
+                        background: 'var(--btn)', color: 'var(--btn-fg)',
+                        fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        fontFamily: 'var(--font)', letterSpacing: '.04em',
+                        width: '100%',
+                        textAlign: 'center',
+                    }}>Search</button>
+                )}
             </div>
 
             {/* Suggestion chips */}

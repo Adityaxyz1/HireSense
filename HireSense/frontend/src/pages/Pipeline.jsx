@@ -14,6 +14,16 @@ const COLS = [
 
 export default function Pipeline() {
     const { isDark } = useTheme();
+    const [width, setWidth] = useState(window.innerWidth);
+
+    useEffect(() => {
+        const handleResize = () => setWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const isMobile = width <= 640;
+
     const [candidates, setCandidates] = useState([]);
     const [draggingId, setDraggingId] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -41,7 +51,12 @@ export default function Pipeline() {
             {loading ? (
                 <BoardSkeleton />
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+                <div className="mobile-scroll-x" style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: isMobile ? 'repeat(3, 280px)' : 'repeat(3, 1fr)', 
+                    gap: 14,
+                    paddingBottom: isMobile ? 12 : 0 
+                }}>
                 {COLS.map(col => (
                     <div key={col.k}
                         onDragOver={e => e.preventDefault()}
@@ -136,11 +151,16 @@ export default function Pipeline() {
             )}
 
             {/* Summary */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 14 }}>
+            <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', 
+                gap: 12, 
+                marginTop: 14 
+            }}>
                 {COLS.map(col => (
                     <div key={col.k} style={{
                         background: 'var(--card)', border: '1.5px solid var(--border)',
-                        borderRadius: 10, padding: 18,
+                        borderRadius: 10, padding: isMobile ? 12 : 18,
                     }}>
                         <div style={{ fontSize: 11, color: 'var(--text3)', letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: 6, fontWeight: 500 }}>{col.l}</div>
                         <div style={{ fontSize: 28, fontWeight: 700, color: col.c }}>{loading ? '...' : groups[col.k].length}</div>
