@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -654,21 +654,59 @@ export default function Login() {
                     )}
 
                     {/* Footer */}
-                    <motion.p
+                    <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.8, duration: 0.5 }}
                         style={{
                             textAlign: 'center',
                             marginTop: 20,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 8,
+                            alignItems: 'center',
+                        }}
+                    >
+                        <p style={{
                             fontSize: 10,
                             color: 'var(--text3)',
                             letterSpacing: '.08em',
                             fontFamily: 'var(--font)',
-                        }}
-                    >
-                        Powered by Supabase Auth · End-to-end encrypted
-                    </motion.p>
+                            margin: 0,
+                        }}>
+                            Powered by Supabase Auth · End-to-end encrypted
+                        </p>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            fontSize: 10,
+                            fontFamily: 'var(--font)',
+                            letterSpacing: '.06em',
+                        }}>
+                            <Link to="/privacy" style={{
+                                color: 'var(--text3)',
+                                textDecoration: 'none',
+                                transition: 'color 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => e.target.style.color = 'var(--text2)'}
+                            onMouseLeave={(e) => e.target.style.color = 'var(--text3)'}
+                            >
+                                Privacy Policy
+                            </Link>
+                            <span style={{ color: 'var(--text3)', opacity: 0.5 }}>•</span>
+                            <Link to="/terms" style={{
+                                color: 'var(--text3)',
+                                textDecoration: 'none',
+                                transition: 'color 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => e.target.style.color = 'var(--text2)'}
+                            onMouseLeave={(e) => e.target.style.color = 'var(--text3)'}
+                            >
+                                Terms & Conditions
+                            </Link>
+                        </div>
+                    </motion.div>
                 </div>
             </motion.div>
         </div>

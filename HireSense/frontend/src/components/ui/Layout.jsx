@@ -408,8 +408,52 @@ export default function Layout() {
                 <div style={{
                     flex: 1, overflowY: 'auto', padding: '22px 26px',
                     background: 'var(--bg)',
+                    display: 'flex',
+                    flexDirection: 'column',
                 }}>
-                    <Outlet />
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                        <Outlet />
+                    </div>
+                    <footer style={{
+                        marginTop: 40,
+                        paddingTop: 16,
+                        borderTop: '1.5px solid var(--border)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: 11,
+                        color: 'var(--text3)',
+                        fontFamily: 'var(--font)',
+                        letterSpacing: '0.04em',
+                        flexShrink: 0,
+                    }}>
+                        <div>
+                            © {new Date().getFullYear()} HireSense. All rights reserved.
+                        </div>
+                        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                            <Link to="/privacy" style={{
+                                color: 'var(--text3)',
+                                textDecoration: 'none',
+                                transition: 'color 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => e.target.style.color = 'var(--text2)'}
+                            onMouseLeave={(e) => e.target.style.color = 'var(--text3)'}
+                            >
+                                Privacy Policy
+                            </Link>
+                            <span style={{ color: 'var(--border)', fontSize: 10 }}>|</span>
+                            <Link to="/terms" style={{
+                                color: 'var(--text3)',
+                                textDecoration: 'none',
+                                transition: 'color 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => e.target.style.color = 'var(--text2)'}
+                            onMouseLeave={(e) => e.target.style.color = 'var(--text3)'}
+                            >
+                                Terms & Conditions
+                            </Link>
+                        </div>
+                    </footer>
                 </div>
             </main>
         </div>
