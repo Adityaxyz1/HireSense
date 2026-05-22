@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HireSense - Architectural Blueprint Download Center</title>
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #07070a;
+            --surface: rgba(15, 15, 22, 0.65);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.16);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --accent-primary: #8b5cf6; /* Indigo */
+            --accent-secondary: #06b6d4; /* Cyan */
+            --accent-emerald: #10b981; /* Emerald */
+            --accent-glow: rgba(139, 92, 246, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            padding: 40px 20px;
+            position: relative;
+        }
+
+        /* Ambient background glow elements */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            top: -10%;
+            left: -10%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            width: 550px;
+            height: 550px;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, transparent 70%);
+            bottom: -15%;
+            right: -10%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 1100px;
+            width: 100%;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 10px;
+            animation: fadeInDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .logo {
+            display: inline-flex;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .logo-h {
+            background: linear-gradient(135deg, var(--accent-primary), #6366f1);
+            color: #ffffff;
+            padding: 6px 16px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            font-size: 13px;
+        }
+
+        .logo-s {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-primary);
+            padding: 6px 16px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            font-size: 13px;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 2.8rem;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 30%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+        }
+
+        /* Glassmorphic Cards */
+        .card {
+            background: var(--surface);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 28px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%);
+            pointer-events: none;
+        }
+
+        .card:hover {
+            transform: translateY(-6px);
+            border-color: var(--border-hover);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 
+                        0 0 30px rgba(139, 92, 246, 0.05);
+        }
+
+        .card-top {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .icon-wrapper {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.1);
+        }
+
+        /* Color accents for icon blocks */
+        .card:nth-child(1) .icon-wrapper {
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.25);
+            color: var(--accent-primary);
+        }
+
+        .card:nth-child(2) .icon-wrapper {
+            background: rgba(6, 182, 212, 0.15);
+            border: 1px solid rgba(6, 182, 212, 0.25);
+            color: var(--accent-secondary);
+        }
+
+        .card:nth-child(3) .icon-wrapper {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            color: var(--accent-emerald);
+        }
+
+        .card:nth-child(4) .icon-wrapper {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            color: #f59e0b; /* Amber */
+        }
+
+        .card:nth-child(5) .icon-wrapper {
+            background: rgba(236, 72, 153, 0.15);
+            border: 1px solid rgba(236, 72, 153, 0.25);
+            color: #ec4899; /* Pink */
+        }
+
+        .card:nth-child(6) .icon-wrapper {
+            background: rgba(244, 63, 94, 0.15);
+            border: 1px solid rgba(244, 63, 94, 0.25);
+            color: #f43f5e; /* Rose */
+        }
+
+        .card:nth-child(7) .icon-wrapper {
+            background: rgba(249, 115, 22, 0.15);
+            border: 1px solid rgba(249, 115, 22, 0.25);
+            color: #f97316; /* Orange */
+        }
+
+        .card:nth-child(8) .icon-wrapper {
+            background: rgba(168, 85, 247, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.25);
+            color: #a855f7; /* Purple */
+        }
+
+        .card:nth-child(9) .icon-wrapper {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            color: #ef4444; /* Red */
+        }
+
+        .card:nth-child(10) .icon-wrapper {
+            background: rgba(217, 70, 239, 0.15);
+            border: 1px solid rgba(217, 70, 239, 0.25);
+            color: #d946ef; /* Fuchsia */
+        }
+
+        .card:nth-child(11) .icon-wrapper {
+            background: rgba(14, 165, 233, 0.15);
+            border: 1px solid rgba(14, 165, 233, 0.25);
+            color: #0ea5e9; /* Sky Blue */
+        }
+
+        .card:nth-child(12) .icon-wrapper {
+            background: rgba(132, 204, 22, 0.15);
+            border: 1px solid rgba(132, 204, 22, 0.25);
+            color: #84cc16; /* Lime */
+        }
+
+        .card:nth-child(13) .icon-wrapper {
+            background: rgba(20, 184, 166, 0.15);
+            border: 1px solid rgba(20, 184, 166, 0.25);
+            color: #14b8a6; /* Teal */
+        }
+
+        .card:nth-child(14) .icon-wrapper {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            color: #f59e0b; /* Amber */
+        }
+
+        h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.3;
+        }
+
+        p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .metadata-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: #9ca3af;
+            padding: 4px 10px;
+            font-size: 11px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-weight: 500;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+            border: none;
+            outline: none;
+        }
+
+        /* Color variations for action buttons */
+        .card:nth-child(1) .btn {
+            background: var(--text-primary);
+            color: var(--bg);
+        }
+        .card:nth-child(1) .btn:hover {
+            background: #ffffff;
+            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.25);
+        }
+
+        .card:nth-child(2) .btn {
+            background: linear-gradient(135deg, var(--accent-primary), #6366f1);
+            color: #ffffff;
+        }
+        .card:nth-child(2) .btn:hover {
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+            filter: brightness(1.08);
+        }
+
+        .card:nth-child(3) .btn {
+            background: linear-gradient(135deg, var(--accent-secondary), #0891b2);
+            color: #ffffff;
+        }
+        .card:nth-child(3) .btn:hover {
+            box-shadow: 0 4px 20px rgba(6, 182, 212, 0.4);
+            filter: brightness(1.08);
+        }
+
+        .card:nth-child(4) .btn {
+            background: linear-gradient(135deg, var(--accent-emerald), #059669);
+            color: #ffffff;
+        }
+        .card:nth-child(4) .btn:hover {
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+            filter: brightness(1.08);
+        }
+
+        .card:nth-child(5) .btn {
+            background: linear-gradient(135deg, #ec4899, #db2777);
+            color: #ffffff;
+        }
+        .card:nth-child(5) .btn:hover {
+            box-shadow: 0 4px 20px rgba(236, 72, 153, 0.4);
+            filter: brightness(1.08);
+        }
+
+        .card:nth-child(6) .btn {
+            background: linear-gradient(135deg, #f43f5e, #e11d48);
+            color: #ffffff;
+        }
+        .card:nth-child(6) .btn:hover {
+            box-shadow: 0 4px 20px rgba(244, 63, 94, 0.4);
+            filter: brightness(1.08);
+        }
+
+        .card:nth-child(7) .btn {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: #ffffff;
+        }
+        .card:nth-child(7) .btn:hover {
+            box-shadow: 0 4px 20px rgba(249, 115, 22, 0.4);
+            filter: brightness(1.08);
+        }
+
+        .card:nth-child(8) .btn {
+            background: linear-gradient(135deg, #a855f7, #7e22ce);
+            color: #ffffff;
+        }
+        .card:nth-child(8) .btn:hover {
+            box-shadow: 0 4px 20px rgba(168, 85, 247, 0.4);
+            filter: brightness(1.08);
+        }
+
+        .card:nth-child(9) .btn {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #ffffff;
+        }
+        .card:nth-child(9) .btn:hover {
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+            filter: brightness(1.08);
+        }
+
+        .card:nth-child(10) .btn {
+            background: linear-gradient(135deg, #d946ef, #a21caf);
+            color: #ffffff;
+        }
+        .card:nth-child(10) .btn:hover {
+            box-shadow: 0 4px 20px rgba(217, 70, 239, 0.4);
+            filter: brightness(1.08);
+        }
+
+        .card:nth-child(11) .btn {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            color: #ffffff;
+        }
+        .card:nth-child(11) .btn:hover {
+            box-shadow: 0 4px 20px rgba(14, 165, 233, 0.4);
+            filter: brightness(1.08);
+        }
+
+        .card:nth-child(12) .btn {
+            background: linear-gradient(135deg, #84cc16, #65a30d);
+            color: #ffffff;
+        }
+        .card:nth-child(12) .btn:hover {
+            box-shadow: 0 4px 20px rgba(132, 204, 22, 0.4);
+            filter: brightness(1.08);
+        }
+
+        .card:nth-child(13) .btn {
+            background: linear-gradient(135deg, #14b8a6, #0d9488);
+            color: #ffffff;
+        }
+        .card:nth-child(13) .btn:hover {
+            box-shadow: 0 4px 20px rgba(20, 184, 166, 0.4);
+            filter: brightness(1.08);
+        }
+
+        .card:nth-child(14) .btn {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #ffffff;
+        }
+        .card:nth-child(14) .btn:hover {
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+            filter: brightness(1.08);
+        }
+
+        .btn svg {
+            transition: transform 0.25s ease;
+        }
+        .btn:hover svg {
+            transform: translateY(2px);
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Footer credits */
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #4b5563;
+            font-size: 0.85rem;
+            z-index: 10;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.2rem;
+            }
+            .subtitle {
+                font-size: 1rem;
+            }
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- HEADER -->
+        <header>
+            <div class="logo">
+                <div class="logo-h">HIRE</div>
+                <div class="logo-s">SENSE</div>
+            </div>
+            <h1>System Design Download Center</h1>
+            <p class="subtitle">Access and download the comprehensive architectural layouts, portal sequence plans, and product specifications compiled as production blueprints.</p>
+        </header>
+
+        <!-- CARDS GRID -->
+        <div class="grid">
+            
+            <!-- Card 1: Project Codebase Analysis -->
+            <div class="card">
+                <div class="card-top">
+                    <div class="icon-wrapper">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    </div>
+                    <h2>Project Codebase Analysis</h2>
+                    <p>An in-depth evaluation of the existing HireSense FastAPI repository, analyzing the multi-model LLM racing service, PyMuPDF parsers, and React components.</p>
+                    <div class="metadata-tags">
+                        <span class="tag">System Audit</span>
+                        <span class="tag">PDF</span>
+                    </div>
+                </div>
+                <a href="project_analysis.pdf" download="HireSense_Project_Analysis.pdf" class="btn">
+                    <span>Download PDF</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+            </div>
+
+            <!-- Card 2: Student Portal Integration Plan -->
+            <div class="card">
+                <div class="card-top">
+                    <div class="icon-wrapper">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                    </div>
+                    <h2>Student Portal Real-time Plan</h2>
+                    <p>Complete sequence mapping, transactional table migrations, and Supabase real-time client configurations to link applicants to recruiters dynamically.</p>
+                    <div class="metadata-tags">
+                        <span class="tag">Integration</span>
+                        <span class="tag">Schema</span>
+                    </div>
+                </div>
+                <a href="realtime_student_portal_plan.pdf" download="HireSense_Realtime_Student_Portal_Plan.pdf" class="btn">
+                    <span>Download PDF</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+            </div>
+
+            <!-- Card 3: Proposed System Upgrades -->
+            <div class="card">
+                <div class="card-top">
+                    <div class="icon-wrapper">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 19 21 12 17 5 21 12 2"/></svg>
+                    </div>
+                    <h2>Strategic Scale Upgrades</h2>
+                    <p>Architectural improvements to optimize data parsing throughput using Celery/Redis, HNSW vector database indices, and custom RLS policies.</p>
+                    <div class="metadata-tags">
+                        <span class="tag">Optimization</span>
+                        <span class="tag">Scale</span>
+                    </div>
+                </div>
+                <a href="proposed_system_upgrades.pdf" download="HireSense_Proposed_System_Upgrades.pdf" class="btn">
+                    <span>Download PDF</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+            </div>
+
+            <!-- Card 4: Major SaaS Requirements -->
+            <div class="card">
+                <div class="card-top">
+                    <div class="icon-wrapper">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                    </div>
+                    <h2>Enterprise SaaS Blueprints</h2>
+                    <p>Future-grade business requirements targeting multi-tenant workspaces, Google/Outlook calendar schedulers, NYC LL144 AI bias auditing, and RBAC matrix structures.</p>
+                    <div class="metadata-tags">
+                        <span class="tag">SaaS Core</span>
+                        <span class="tag">Product</span>
+                    </div>
+                </div>
+                <a href="major_web_app_requirements.pdf" download="HireSense_Major_Web_App_Requirements.pdf" class="btn">
+                    <span>Download PDF</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+            </div>
+
+            <!-- Card 5: Product Requirement Document (PRD) -->
+            <div class="card">
+                <div class="card-top">
+                    <div class="icon-wrapper">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    </div>
+                    <h2>Product Requirement Document (PRD)</h2>
+                    <p>Official PRD outlining user personas, functional specifications (AI matching, NIM prompt racing), database schemas, security compliance, and strategic scaling benchmarks.</p>
+                    <div class="metadata-tags">
+                        <span class="tag">PRD</span>
+                        <span class="tag">Specifications</span>
+                    </div>
+                </div>
+                <a href="hire_sense_prd.pdf" download="HireSense_Product_Requirement_Document.pdf" class="btn">
+                    <span>Download PDF</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+            </div>
+
+            <!-- Card 6: Technical Design Document (TDD) -->
+            <div class="card">
+                <div class="card-top">
+                    <div class="icon-wrapper">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                    </div>
+                    <h2>Technical Design Document (TDD)</h2>
+                    <p>Core engineering specification outlining pgvector HNSW configurations, multi-model NIM API racing services, custom row-level security logic, and real-time synchronization pipelines.</p>
+                    <div class="metadata-tags">
+                        <span class="tag">TDD</span>
+                        <span class="tag">Architecture</span>
+                    </div>
+                </div>
+                <a href="hire_sense_tdd.pdf" download="HireSense_Technical_Design_Document.pdf" class="btn">
+                    <span>Download PDF</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+            </div>
+
+            <!-- Card 7: Software Requirements Specification (SRS) -->
+            <div class="card">
+                <div class="card-top">
+                    <div class="icon-wrapper">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    </div>
+                    <h2>System Requirements (SRS)</h2>
+                    <p>Unified SRS integrating the full Business Requirements Document (BRD) scope and KPIs with the Functional Requirements Specification (FRS) parsing module workflows.</p>
+                    <div class="metadata-tags">
+                        <span class="tag">SRS</span>
+                        <span class="tag">BRD & FRS</span>
+                    </div>
+                </div>
+                <a href="hire_sense_srs.pdf" download="HireSense_Software_Requirements_Specification.pdf" class="btn">
+                    <span>Download PDF</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+            </div>
+
+            <!-- Card 8: Database Scaling & Replication -->
+            <div class="card">
+                <div class="card-top">
+                    <div class="icon-wrapper">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
+                    </div>
+                    <h2>Database Scaling & Replication</h2>
+                    <p>Enterprise data scaling blueprint addressing Supavisor connection transaction pooling, multi-region replica read splits, and automated logical backup schemas.</p>
+                    <div class="metadata-tags">
+                        <span class="tag">Database</span>
+                        <span class="tag">Scaling</span>
+                    </div>
+                </div>
+                <a href="database_scaling_architecture.pdf" download="HireSense_Database_Scaling_Architecture.pdf" class="btn">
+                    <span>Download PDF</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+            </div>
+
+            <!-- Card 9: Traffic Load & Crash Mitigation -->
+            <div class="card">
+                <div class="card-top">
+                    <div class="icon-wrapper">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    </div>
+                    <h2>Traffic Load Mitigation</h2>
+                    <p>Comprehensive stress boundaries analysis outlining API rate limits, database crash-point protection, horizontal auto-scaling matrices, and query optimizations.</p>
+                    <div class="metadata-tags">
+                        <span class="tag">Load Test</span>
+                        <span class="tag">Mitigation</span>
+                    </div>
+                </div>
+                <a href="traffic_crash_points_and_solutions.pdf" download="HireSense_Traffic_Load_Mitigation_Plan.pdf" class="btn">
+                    <span>Download PDF</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+            </div>
+
+            <!-- Card 10: UI/UX Design & Action Specs -->
+            <div class="card">
+                <div class="card-top">
+                    <div class="icon-wrapper">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                    </div>
+                    <h2>UI/UX Design & Action Specs</h2>
+                    <p>Cinematic, glassmorphic design token guidelines, micro-interactions, responsive grid layouts, and visual mappings linking front-end events to database API endpoints.</p>
+                    <div class="metadata-tags">
+                        <span class="tag">UI/UX</span>
+                        <span class="tag">Tokens & Specs</span>
+                    </div>
+                </div>
+                <a href="hire_sense_ui_ux.pdf" download="HireSense_UI_UX_Design_Specs.pdf" class="btn">
+                    <span>Download PDF</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+            </div>
+
+            <!-- Card 11: Disaster Recovery & Backup Guide -->
+            <div class="card">
+                <div class="card-top">
+                    <div class="icon-wrapper">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </div>
+                    <h2>Disaster Recovery & Backup</h2>
+                    <p>Step-by-step pipeline configuration implementing daily database backups via GitHub Actions crons and uploading to Cloudflare R2's free tier with zero egress costs.</p>
+                    <div class="metadata-tags">
+                        <span class="tag">Backups</span>
+                        <span class="tag">Disaster Recovery</span>
+                    </div>
+                </div>
+                <a href="free_backup_pipeline_guide.pdf" download="HireSense_Disaster_Recovery_Backup_Guide.pdf" class="btn">
+                    <span>Download PDF</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+            </div>
+
+            <!-- Card 12: API Reference & Integrations -->
+            <div class="card">
+                <div class="card-top">
+                    <div class="icon-wrapper">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18l6-6-6-6M8 6L2 12l6 6"/></svg>
+                    </div>
+                    <h2>API Reference & Integrations</h2>
+                    <p>Engineering manual for FastAPI routing gateways, Pydantic v2 validation structures, and real-time Supabase PostgreSQL status-change trigger notifications.</p>
+                    <div class="metadata-tags">
+                        <span class="tag">API REST</span>
+                        <span class="tag">Triggers</span>
+                    </div>
+                </div>
+                <a href="api_integration_guide.pdf" download="HireSense_API_Integration_Guide.pdf" class="btn">
+                    <span>Download PDF</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+            </div>
+
+            <!-- Card 13: QA Testing & CI/CD Strategy -->
+            <div class="card">
+                <div class="card-top">
+                    <div class="icon-wrapper">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                    <h2>QA Testing &amp; CI/CD Strategy</h2>
+                    <p>Automated QA playbook outlining async Pytest mocks for FastAPI, Playwright browser drag-and-drop E2E scripts, and GitHub Actions production deployment gates.</p>
+                    <div class="metadata-tags">
+                        <span class="tag">CI/CD DevOps</span>
+                        <span class="tag">QA Pytest</span>
+                    </div>
+                </div>
+                <a href="ci_cd_testing_strategy.pdf" download="HireSense_QA_Testing_CICD_Strategy.pdf" class="btn">
+                    <span>Download PDF</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+            </div>
+
+            <!-- Card 14: NVIDIA NIM LLMOps Guide -->
+            <div class="card">
+                <div class="card-top">
+                    <div class="icon-wrapper">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="15" x2="23" y2="15"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="15" x2="4" y2="15"/></svg>
+                    </div>
+                    <h2>NVIDIA NIM LLMOps Guide</h2>
+                    <p>Performance manual detailing local TensorRT-LLM runtimes, high-dimensional Redis Semantic vector caches, prompt registries, and GPU load-limit guardrails.</p>
+                    <div class="metadata-tags">
+                        <span class="tag">LLMOps NIM</span>
+                        <span class="tag">GPU Optimization</span>
+                    </div>
+                </div>
+                <a href="llm_ops_guide.pdf" download="HireSense_NIM_LLMOps_Optimization_Guide.pdf" class="btn">
+                    <span>Download PDF</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>&copy; 2026 Adityaxyz1 / HireSense. Premium AI Recruiting Infrastructure.</p>
+    </footer>
+
+</body>
+</html>
