@@ -10,8 +10,8 @@ const ICONS = {
     pipeline: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path></svg>,
     ats: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 14l2 2 4-4"></path></svg>,
     finder: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
-    sun: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: '#fbbf24' }}><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>,
-    moon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none" style={{ flexShrink: 0, color: '#6366f1' }}><circle cx="12" cy="12" r="8"/></svg>,
+    sun: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: '#fbbf24' }}><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>,
+    moon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none" style={{ flexShrink: 0, color: '#6366f1' }}><circle cx="12" cy="12" r="8" /></svg>,
     chevronLeft: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>,
     chevronRight: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
     profile: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>,
@@ -19,12 +19,12 @@ const ICONS = {
 };
 
 const NAV = [
-    { id: '/',          icon: ICONS.dashboard, label: 'Dashboard' },
+    { id: '/', icon: ICONS.dashboard, label: 'Dashboard' },
     { id: '/candidates', icon: ICONS.candidates, label: 'Candidates' },
-    { id: '/jobs',       icon: ICONS.jobs, label: 'Job Roles' },
-    { id: '/pipeline',   icon: ICONS.pipeline, label: 'Pipeline' },
-    { id: '/ats-check',  icon: ICONS.ats, label: 'ATS Checker' },
-    { id: '/finder',     icon: ICONS.finder, label: 'AI Finder' },
+    { id: '/jobs', icon: ICONS.jobs, label: 'Job Roles' },
+    { id: '/pipeline', icon: ICONS.pipeline, label: 'Pipeline' },
+    { id: '/ats-check', icon: ICONS.ats, label: 'ATS Checker' },
+    { id: '/finder', icon: ICONS.finder, label: 'AI Finder' },
 ];
 
 export default function Layout() {
@@ -144,17 +144,17 @@ export default function Layout() {
                             const isActive = location.pathname === n.id;
                             return (
                                 <Link key={n.id} to={n.id} className="nb" style={{
-                                    display: 'flex', alignItems: 'center', 
+                                    display: 'flex', alignItems: 'center',
                                     justifyContent: actualSbOpen ? 'flex-start' : 'center',
                                     gap: actualSbOpen ? 10 : 0,
-                                    padding: actualSbOpen ? '9px 11px' : '9px 0', 
+                                    padding: actualSbOpen ? '9px 11px' : '9px 0',
                                     borderRadius: 8, width: '100%',
                                     textDecoration: 'none',
                                     background: isActive ? 'var(--nav-on)' : 'transparent',
                                     color: isActive ? 'var(--nav-on-fg)' : 'var(--text2)',
                                     transition: 'all .15s', fontFamily: 'var(--font)',
                                 }}>
-                                    <span style={{ 
+                                    <span style={{
                                         fontSize: 14, flexShrink: 0, opacity: 0.7,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center'
                                     }}>{n.icon}</span>
@@ -421,7 +421,7 @@ export default function Layout() {
 
                     {/* Content */}
                     <div style={{
-                        flex: 1, overflowY: 'auto', 
+                        flex: 1, overflowY: 'auto',
                         padding: isMobile ? '14px 14px 80px' : (isTablet ? '18px 20px' : '22px 26px'),
                         background: 'var(--bg)',
                         display: 'flex',
@@ -449,34 +449,34 @@ export default function Layout() {
                             <div>
                                 © {new Date().getFullYear()} HireSense. All rights reserved.
                             </div>
-                            <div style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
                                 gap: 6,
                                 color: 'var(--text3)',
                                 transition: 'color 0.2s ease',
                                 cursor: 'default',
                             }}
-                            onMouseEnter={(e) => {
-                                const textSpan = e.currentTarget.querySelector('.cf-text');
-                                const svgElement = e.currentTarget.querySelector('.cf-svg');
-                                if (textSpan) textSpan.style.color = 'var(--text2)';
-                                if (svgElement) svgElement.style.color = '#F4811F';
-                            }}
-                            onMouseLeave={(e) => {
-                                const textSpan = e.currentTarget.querySelector('.cf-text');
-                                const svgElement = e.currentTarget.querySelector('.cf-svg');
-                                if (textSpan) textSpan.style.color = 'var(--text3)';
-                                if (svgElement) svgElement.style.color = 'currentColor';
-                            }}
+                                onMouseEnter={(e) => {
+                                    const textSpan = e.currentTarget.querySelector('.cf-text');
+                                    const svgElement = e.currentTarget.querySelector('.cf-svg');
+                                    if (textSpan) textSpan.style.color = 'var(--text2)';
+                                    if (svgElement) svgElement.style.color = '#F4811F';
+                                }}
+                                onMouseLeave={(e) => {
+                                    const textSpan = e.currentTarget.querySelector('.cf-text');
+                                    const svgElement = e.currentTarget.querySelector('.cf-svg');
+                                    if (textSpan) textSpan.style.color = 'var(--text3)';
+                                    if (svgElement) svgElement.style.color = 'currentColor';
+                                }}
                             >
-                                <svg 
+                                <svg
                                     className="cf-svg"
-                                    role="img" 
-                                    viewBox="0 0 24 24" 
-                                    width="15" 
-                                    height="15" 
-                                    fill="currentColor" 
+                                    role="img"
+                                    viewBox="0 0 24 24"
+                                    width="15"
+                                    height="15"
+                                    fill="currentColor"
                                     style={{ transition: 'color 0.2s ease' }}
                                 >
                                     <title>Cloudflare</title>
@@ -492,8 +492,8 @@ export default function Layout() {
                                     textDecoration: 'none',
                                     transition: 'color 0.2s ease',
                                 }}
-                                onMouseEnter={(e) => e.target.style.color = 'var(--text2)'}
-                                onMouseLeave={(e) => e.target.style.color = 'var(--text3)'}
+                                    onMouseEnter={(e) => e.target.style.color = 'var(--text2)'}
+                                    onMouseLeave={(e) => e.target.style.color = 'var(--text3)'}
                                 >
                                     Privacy Policy
                                 </Link>
@@ -503,8 +503,8 @@ export default function Layout() {
                                     textDecoration: 'none',
                                     transition: 'color 0.2s ease',
                                 }}
-                                onMouseEnter={(e) => e.target.style.color = 'var(--text2)'}
-                                onMouseLeave={(e) => e.target.style.color = 'var(--text3)'}
+                                    onMouseEnter={(e) => e.target.style.color = 'var(--text2)'}
+                                    onMouseLeave={(e) => e.target.style.color = 'var(--text3)'}
                                 >
                                     Terms & Conditions
                                 </Link>
@@ -549,7 +549,7 @@ export default function Layout() {
                                 flex: 1,
                                 minWidth: 0,
                             }}>
-                                <span style={{ 
+                                <span style={{
                                     fontSize: 16,
                                     display: 'flex',
                                     alignItems: 'center',
@@ -557,10 +557,10 @@ export default function Layout() {
                                     opacity: isActive ? 1 : 0.7,
                                     color: isActive ? 'var(--nav-on-fg)' : 'var(--text2)',
                                 }}>{n.icon}</span>
-                                <span style={{ 
-                                    fontSize: 9, 
-                                    fontWeight: isActive ? 700 : 500, 
-                                    letterSpacing: '.01em', 
+                                <span style={{
+                                    fontSize: 9,
+                                    fontWeight: isActive ? 700 : 500,
+                                    letterSpacing: '.01em',
                                     whiteSpace: 'nowrap',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
