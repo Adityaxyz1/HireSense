@@ -34,7 +34,8 @@ def generate_embedding(text: str) -> list[float]:
             # wait_for_model=True tells HF to load the model on their end if it's currently cold/idle
             payload = {"inputs": text, "options": {"wait_for_model": True}}
             
-            res = requests.post(url, headers=headers, json=payload, timeout=15)
+            # Set a very short connection timeout (1.5s) to fail-fast if DNS/network is blocked
+            res = requests.post(url, headers=headers, json=payload, timeout=(1.5, 10.0))
             if res.status_code == 200:
                 embedding = res.json()
                 if isinstance(embedding, list) and len(embedding) == 384:

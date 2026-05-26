@@ -70,14 +70,20 @@ if settings.HF_API_KEY:
     })
 
 # Build AsyncOpenAI clients
+import httpx
 _clients: dict[str, AsyncOpenAI] = {}
 for _m in MODEL_REGISTRY:
     # Pass custom headers for Hugging Face to wait for model download on cold starts
-    hf_headers = {"X-Wait-For-Model": "true"} if "api-inference.huggingface.co" in _m["base_url"] else None
+    is_hf = "api-inference.huggingface.co" in _m["base_url"]
+    hf_headers = {"X-Wait-For-Model": "true"} if is_hf else None
+    
+    # For Hugging Face, use a fast-connect timeout (1.5s) to fail-fast if DNS is blocked
+    client_timeout = httpx.Timeout(_m["timeout"], connect=1.5) if is_hf else _m["timeout"]
+    
     _clients[_m["name"]] = AsyncOpenAI(
         api_key=_m["api_key"],
         base_url=_m["base_url"],
-        timeout=_m["timeout"],
+        timeout=client_timeout,
         max_retries=0,  # Fast fail: do not retry slow or rate-limited NIM racers in the racing engine!
         default_headers=hf_headers
     )
