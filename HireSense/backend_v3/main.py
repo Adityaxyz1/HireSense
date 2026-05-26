@@ -1,5 +1,6 @@
 import re
 import time
+import asyncio
 from collections import defaultdict
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
@@ -74,6 +75,16 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 async def lifespan(app: FastAPI):
     """Initialize connections on server start."""
     print(f"Backend started: {settings.PROJECT_NAME}")
+    
+    # Preload the local embedding model to eliminate 15-second first-request cold starts
+    try:
+        from services.embedding_engine import get_model
+        print("[Lifespan] Preloading embedding model in background thread...")
+        await asyncio.to_thread(get_model)
+        print("[Lifespan] Embedding model preloaded and warm!")
+    except Exception as e:
+        print(f"[Lifespan] Warning preloading embedding model: {e}")
+        
     # Security: warn if critical keys are missing
     if not (settings.NVIDIA_NIM_API_KEY_DEEPSEEK or settings.NVIDIA_NIM_API_KEY_META or settings.NVIDIA_NIM_API_KEY_GEMMA):
         print("WARNING: No NVIDIA_NIM_API_KEY set in .env — AI features will fail.")
