@@ -23,6 +23,9 @@ class Settings:
     # Admin Panel
     ADMIN_MASTER_KEY: str = os.getenv("ADMIN_MASTER_KEY", "")
 
+    # Hugging Face Inference API key
+    HF_API_KEY: str = os.getenv("HF_API_KEY", "")
+
 settings = Settings()
 
 # Ensure directories exist
