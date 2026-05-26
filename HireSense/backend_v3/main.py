@@ -1,6 +1,5 @@
 import re
 import time
-import asyncio
 from collections import defaultdict
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
@@ -75,20 +74,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 async def lifespan(app: FastAPI):
     """Initialize connections on server start."""
     print(f"Backend started: {settings.PROJECT_NAME}")
-    
-    # Preload local model ONLY if we don't have a Hugging Face API key configured.
-    # If we have the key, we will use cloud inference (which has a 0MB RAM footprint).
-    if not settings.HF_API_KEY:
-        try:
-            from services.embedding_engine import get_model
-            print("[Lifespan] Preloading local embedding model in background thread...")
-            await asyncio.to_thread(get_model)
-            print("[Lifespan] Local embedding model preloaded and warm!")
-        except Exception as e:
-            print(f"[Lifespan] Warning preloading embedding model: {e}")
-    else:
-        print("[Lifespan] Hugging Face Cloud key detected. Skipping local model preload to conserve RAM.")
-        
     # Security: warn if critical keys are missing
     if not (settings.NVIDIA_NIM_API_KEY_DEEPSEEK or settings.NVIDIA_NIM_API_KEY_META or settings.NVIDIA_NIM_API_KEY_GEMMA):
         print("WARNING: No NVIDIA_NIM_API_KEY set in .env — AI features will fail.")
