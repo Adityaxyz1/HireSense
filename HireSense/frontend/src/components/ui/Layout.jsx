@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { useBreakpoint } from '../../hooks/useBreakpoint';
 
 const ICONS = {
     dashboard: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>,
@@ -39,7 +38,16 @@ export default function Layout() {
     const [showUserMenu, setShowUserMenu] = useState(false);
     const menuRef = useRef(null);
 
-    const { isMobile, isTablet } = useBreakpoint();
+    const [width, setWidth] = useState(window.innerWidth);
+
+    useEffect(() => {
+        const handleResize = () => setWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const isMobile = width <= 640;
+    const isTablet = width > 640 && width <= 1024;
     const actualSbOpen = isMobile ? false : (isTablet ? false : sbOpen);
 
     const currentPage = location.pathname === '/profile'
