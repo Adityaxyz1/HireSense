@@ -35,6 +35,12 @@ from routes.auth_dependency import require_user
 
 router = APIRouter()
 
+# Statuses a job can have while it's open to applicants on the student board.
+# The recruiter UI uses 'active' (the DB default) and 'closed'; 'published' is
+# kept for backward-compat with any legacy rows. Anything else (closed/draft/
+# archived/paused) is hidden from the student feed.
+OPEN_JOB_STATUSES = ("active", "published")
+
 
 # ── Background screening engine ───────────────────────────────────────────
 async def process_student_application(app_id: str, resume_id: str, job_id: str,
@@ -131,14 +137,14 @@ async def process_student_application(app_id: str, resume_id: str, job_id: str,
 # ── Public job feed (student-facing) ──────────────────────────────────────
 @router.get("/feed/jobs")
 def feed_jobs():
-    """List all PUBLISHED jobs for the student job board (no auth required)."""
+    """List all OPEN jobs for the student job board (no auth required)."""
     db = get_admin_db()
     # NOTE: recruitment_docs is intentionally NOT exposed on the public feed —
     # those are internal recruiter documents.
     res = (
         db.table("job_descriptions")
         .select("id, title, job_text, location, salary_range, created_at")
-        .eq("status", "published")
+        .in_("status", OPEN_JOB_STATUSES)
         .order("created_at", desc=True)
         .execute()
     )
@@ -147,7 +153,7 @@ def feed_jobs():
 
 @router.get("/feed/jobs/{job_id}")
 def feed_job_detail(job_id: str):
-    """Single published job detail for the student-facing job page."""
+    """Single open job detail for the student-facing job page."""
     db = get_admin_db()
     res = (
         db.table("job_descriptions")
@@ -155,7 +161,7 @@ def feed_job_detail(job_id: str):
         .eq("id", job_id)
         .execute()
     )
-    if not res.data or res.data[0].get("status") != "published":
+    if not res.data or res.data[0].get("status") not in OPEN_JOB_STATUSES:
         raise HTTPException(status_code=404, detail="Job not found or not open for applications.")
     return res.data[0]
 
@@ -179,7 +185,7 @@ async def apply_to_job(
 
     # Validate the job exists and is open
     job_res = db.table("job_descriptions").select("id, user_id, status").eq("id", job_id).execute()
-    if not job_res.data or job_res.data[0].get("status") != "published":
+    if not job_res.data or job_res.data[0].get("status") not in OPEN_JOB_STATUSES:
         raise HTTPException(status_code=404, detail="Job not found or not open for applications.")
     recruiter_id = job_res.data[0]["user_id"]
 

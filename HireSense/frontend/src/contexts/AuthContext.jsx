@@ -28,13 +28,45 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Key used to carry the chosen persona across an OAuth redirect.
+    const OAUTH_ROLE_KEY = 'hs_oauth_role';
+
+    // After an OAuth redirect, ensure the user has a persona. The backend sets
+    // the role ONLY for brand-new accounts (it never clobbers an existing one).
+    const syncOAuthRole = async (session, role) => {
+        if (!session?.access_token || !session.user) return;
+        try {
+            const meta = session.user.user_metadata || {};
+            await fetch(`${API_BASE}/auth/oauth-sync`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({
+                    user_id: session.user.id,
+                    email: session.user.email,
+                    role,
+                    full_name: meta.full_name || meta.name || null,
+                }),
+            });
+        } catch { /* non-critical — profile fetch will still resolve a role */ }
+    };
+
     // Restore session on mount
     useEffect(() => {
         // Listen for auth state changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (_event, session) => {
+            async (event, session) => {
                 setUser(session?.user ?? null);
                 if (session) {
+                    // Returning from an OAuth redirect — assign the persona once
+                    // before we read the profile so the persona gate routes right.
+                    if (event === 'SIGNED_IN') {
+                        let pendingRole = null;
+                        try { pendingRole = localStorage.getItem(OAUTH_ROLE_KEY); } catch { /* ignore */ }
+                        if (pendingRole) await syncOAuthRole(session, pendingRole);
+                    }
                     await fetchProfile(session);
                 } else {
                     setProfile(null);
@@ -45,6 +77,24 @@ export const AuthProvider = ({ children }) => {
 
         return () => subscription.unsubscribe();
     }, []);
+
+    // Social / OAuth sign-in (Google, GitHub, LinkedIn, Microsoft). The browser
+    // redirects to the provider and back to /login, where AuthContext assigns the
+    // persona (`role`) and Login.jsx routes the user to the right region.
+    const signInWithOAuth = async (provider, role = 'applicant') => {
+        try { localStorage.setItem(OAUTH_ROLE_KEY, role); } catch { /* ignore */ }
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider,
+            options: {
+                redirectTo: `${window.location.origin}/login`,
+                queryParams: { prompt: 'select_account' },
+            },
+        });
+        if (error) {
+            try { localStorage.removeItem(OAUTH_ROLE_KEY); } catch { /* ignore */ }
+            throw error;
+        }
+    };
 
     // Signup — `role` selects the persona ('recruiter' | 'applicant')
     const signup = async (email, password, role = 'recruiter') => {
@@ -201,7 +251,7 @@ export const AuthProvider = ({ children }) => {
         <AuthContext.Provider value={{
             user, profile, loading,
             role: profile?.role || 'recruiter',
-            login, signup, logout, resetPassword,
+            login, signup, signInWithOAuth, logout, resetPassword,
             updateProfile, uploadAvatar, changePassword, refreshProfile,
         }}>
             {children}
