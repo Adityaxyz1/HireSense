@@ -12,6 +12,11 @@ class JobUploadRequest(BaseModel):
     job_text: str
     title: Optional[str] = None
 
+class JobUpdateRequest(BaseModel):
+    job_text: Optional[str] = None
+    title: Optional[str] = None
+    status: Optional[str] = None
+
 class EvaluateRequest(BaseModel):
     resume_id: str
     job_id: str

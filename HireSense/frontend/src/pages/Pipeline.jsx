@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../lib/api';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 import { BoardSkeleton } from '../components/ui/Skeletons';
 
 const scC = v => v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
@@ -14,15 +15,7 @@ const COLS = [
 
 export default function Pipeline() {
     const { isDark } = useTheme();
-    const [width, setWidth] = useState(window.innerWidth);
-
-    useEffect(() => {
-        const handleResize = () => setWidth(window.innerWidth);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    const isMobile = width <= 640;
+    const { isMobile } = useBreakpoint();
 
     const [candidates, setCandidates] = useState([]);
     const [draggingId, setDraggingId] = useState(null);
@@ -37,9 +30,10 @@ export default function Pipeline() {
     }, []);
 
     const moveCard = async (id, newStatus) => {
+        if (!id) return;
         setCandidates(prev => prev.map(c => c.id === id ? { ...c, candidate_status: newStatus } : c));
         try {
-            await api.updateCandidateStatus(id, newStatus);
+            await api.updateResumeStatus(id, newStatus);
         } catch (e) { console.error(e); }
     };
 
@@ -48,6 +42,12 @@ export default function Pipeline() {
 
     return (
         <>
+            <div className="section-head" style={{ marginBottom: 16 }}>
+                <div>
+                    <div className="title" style={{ fontSize: 25, fontWeight: 700, letterSpacing: '-.02em', color: 'var(--text)' }}>Pipeline</div>
+                    <div className="subtitle" style={{ fontSize: 13, color: 'var(--text3)' }}>Drag candidates across stages to update their status</div>
+                </div>
+            </div>
             {loading ? (
                 <BoardSkeleton />
             ) : (
@@ -65,7 +65,7 @@ export default function Pipeline() {
                     >
                         {/* Column header */}
                         <div style={{
-                            padding: '11px 16px', borderRadius: 9,
+                            padding: '12px 16px', borderRadius: 'var(--r-sm)',
                             background: col.c + '0e', border: `1.5px solid ${col.c}28`,
                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                         }}>
@@ -80,16 +80,21 @@ export default function Pipeline() {
                         {groups[col.k].map(c => {
                             const name = c.candidate_name || (c.file_url ? c.file_url.split('/').pop()?.replace('.pdf','') : 'Candidate');
                             const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-                            const score = c.match_score || c.ats_score || 0;
+                            const hasScore = c.match_score != null || c.ats_score != null;
+                            const score = c.match_score != null ? c.match_score : (c.ats_score != null ? c.ats_score : 0);
                             const label = c.match_score ? 'JD Matched' : c.ats_score ? 'ATS Scanned' : 'Uploaded';
                             return (
                                 <div key={c.id} draggable
-                                    onDragStart={() => setDraggingId(c.id)}
+                                    className="card-modern hover-lift-sm"
+                                    onDragStart={(e) => {
+                                        setDraggingId(c.id);
+                                        e.dataTransfer.effectAllowed = 'move';
+                                        e.dataTransfer.setData('text/plain', c.id);
+                                    }}
                                     onDragEnd={() => setDraggingId(null)}
                                     style={{
-                                        background: 'var(--card)', border: '1.5px solid var(--border)',
-                                        borderRadius: 9, padding: '13px 15px', cursor: 'grab',
-                                        userSelect: 'none', transition: 'border-color .12s',
+                                        padding: '14px 16px', cursor: 'grab',
+                                        userSelect: 'none',
                                     }}
                                 >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 9 }}>
@@ -119,10 +124,12 @@ export default function Pipeline() {
                                             </div>
                                         </div>
                                         <span style={{ fontSize: 15, fontWeight: 700, color: scC(score) }}>
-                                            {c.status === 'processing' ? (
+                                            {hasScore ? (
+                                                Math.round(score)
+                                            ) : c.status === 'processing' ? (
                                                 <div style={{ width: 24, height: 18, background: 'var(--border)', borderRadius: 4, animation: 'pulse 1.5s infinite' }} />
                                             ) : (
-                                                Math.round(score)
+                                                0
                                             )}
                                         </span>
                                     </div>
@@ -131,7 +138,7 @@ export default function Pipeline() {
                                             {c.created_at ? new Date(c.created_at).toLocaleDateString() : '—'}
                                         </span>
                                         <span style={{ fontSize: 11, color: col.c, fontWeight: 500 }}>
-                                            {c.status === 'processing' ? 'Processing...' : `Score ${Math.round(score)}`}
+                                            {hasScore ? `Score ${Math.round(score)}` : (c.status === 'processing' ? 'Processing...' : `Score 0`)}
                                         </span>
                                     </div>
                                 </div>
@@ -140,7 +147,7 @@ export default function Pipeline() {
 
                         {groups[col.k].length === 0 && (
                             <div style={{
-                                border: '1.5px dashed var(--border)', borderRadius: 9,
+                                border: '1.5px dashed var(--border)', borderRadius: 'var(--r-sm)',
                                 padding: '28px 12px', textAlign: 'center',
                                 color: 'var(--text3)', fontSize: 12,
                             }}>Drop candidate here</div>
@@ -151,16 +158,11 @@ export default function Pipeline() {
             )}
 
             {/* Summary */}
-            <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', 
-                gap: 12, 
-                marginTop: 14 
-            }}>
-                {COLS.map(col => (
-                    <div key={col.k} style={{
-                        background: 'var(--card)', border: '1.5px solid var(--border)',
-                        borderRadius: 10, padding: isMobile ? 12 : 18,
+            <div className="bento stagger" style={{ marginTop: 16 }}>
+                {COLS.map((col, i) => (
+                    <div key={col.k} className="card-modern col-4" style={{
+                        '--i': i,
+                        padding: isMobile ? 16 : 20,
                     }}>
                         <div style={{ fontSize: 11, color: 'var(--text3)', letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: 6, fontWeight: 500 }}>{col.l}</div>
                         <div style={{ fontSize: 28, fontWeight: 700, color: col.c }}>{loading ? '...' : groups[col.k].length}</div>

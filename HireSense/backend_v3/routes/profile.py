@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form, Depends
 from pydantic import BaseModel
-from database import get_db
+from database import get_db, get_auth_db
 from typing import Optional
 import uuid
 from routes.auth_dependency import require_user, get_current_user
@@ -15,6 +15,7 @@ class ProfileUpdate(BaseModel):
 
 class PasswordChange(BaseModel):
     new_password: str
+    current_password: Optional[str] = None
 
 
 # (Redundant auth helper removed, now using require_user dependency)
@@ -49,12 +50,14 @@ async def get_profile(user=Depends(require_user)):
                 "email": user.email,
                 "display_name": profile.get("display_name", ""),
                 "avatar_url": profile.get("avatar_url", ""),
+                "role": profile.get("role") or "recruiter",
             }
         }
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch profile: {str(e)}")
+        print(f"Fetch profile error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch profile.")
 
 
 # ── PUT /api/profile ─────────────────────────────────────────
@@ -94,7 +97,8 @@ async def update_profile(payload: ProfileUpdate, user=Depends(require_user)):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
+        print(f"Update profile error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update profile.")
 
 
 # ── POST /api/profile/avatar ────────────────────────────────
@@ -157,29 +161,49 @@ async def upload_avatar(file: UploadFile = File(...), user=Depends(require_user)
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to upload avatar: {str(e)}")
+        print(f"Avatar upload error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to upload avatar.")
 
 
 # ── POST /api/profile/change-password ───────────────────────
 @router.post("/profile/change-password")
 async def change_password(payload: PasswordChange, request: Request, user=Depends(require_user)):
-    """Change the password for the currently authenticated user."""
-    # We need the raw token for some auth operations if we were to use them, 
-    # but here we use admin API which only needs user_id.
+    """Change the password for the currently authenticated user.
 
-    if len(payload.new_password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
+    Requires re-authentication with the current password to prevent a stolen
+    or lingering session token from silently taking over the account.
+    """
+    if len(payload.new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
+    if not payload.current_password:
+        raise HTTPException(status_code=400, detail="Current password is required.")
 
-    db = get_db()
+    # Re-authenticate the user with their current password (anon client).
     try:
-        # Use update_user with the user's token to change password
-        # We need to use the admin API with the service role key
-        db.auth.admin.update_user_by_id(
-            str(user.id),
-            {"password": payload.new_password}
-        )
+        auth = get_auth_db()
+        result = auth.auth.sign_in_with_password({
+            "email": user.email,
+            "password": payload.current_password,
+        })
+        if not result or not getattr(result, "user", None):
+            raise HTTPException(status_code=401, detail="Current password is incorrect.")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=401, detail="Current password is incorrect.")
 
+    if payload.current_password == payload.new_password:
+        raise HTTPException(status_code=400, detail="New password must differ from the current password.")
+
+    # Apply the change via the admin API (service-role key).
+    try:
+        get_db().auth.admin.update_user_by_id(
+            str(user.id),
+            {"password": payload.new_password},
+        )
         return {"message": "Password changed successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
-        error_msg = str(e)
-        raise HTTPException(status_code=400, detail=f"Failed to change password: {error_msg}")
+        print(f"Password change error for {user.id}: {e}")  # log internally only
+        raise HTTPException(status_code=400, detail="Failed to change password. Please try again.")

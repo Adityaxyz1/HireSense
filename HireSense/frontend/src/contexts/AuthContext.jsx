@@ -46,21 +46,22 @@ export const AuthProvider = ({ children }) => {
         return () => subscription.unsubscribe();
     }, []);
 
-    // Signup
-    const signup = async (email, password) => {
+    // Signup — `role` selects the persona ('recruiter' | 'applicant')
+    const signup = async (email, password, role = 'recruiter') => {
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
         });
         if (error) throw error;
 
-        // Log event to backend (no password — Supabase handles auth)
+        // Log signup event + persist persona role to the backend
+        // (audit trail only — never send password)
         try {
             if (data.user) {
                 await fetch(`${API_BASE}/auth/signup`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password }),
+                    body: JSON.stringify({ user_id: data.user.id, email, role }),
                 });
             }
         } catch { /* non-critical */ }
@@ -81,13 +82,15 @@ export const AuthProvider = ({ children }) => {
             await fetchProfile(data.session);
         }
 
-        // Log event to backend (audit trail only)
+        // Log login event to backend (audit trail only — never send password)
         try {
-            await fetch(`${API_BASE}/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
+            if (data.user) {
+                await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: data.user.id, email }),
+                });
+            }
         } catch { /* non-critical */ }
 
         return data;
@@ -160,8 +163,8 @@ export const AuthProvider = ({ children }) => {
         return data;
     };
 
-    // Change password
-    const changePassword = async (newPassword) => {
+    // Change password — requires the current password for re-authentication
+    const changePassword = async (currentPassword, newPassword) => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error('Not authenticated');
 
@@ -171,7 +174,7 @@ export const AuthProvider = ({ children }) => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${session.access_token}`,
             },
-            body: JSON.stringify({ new_password: newPassword }),
+            body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
         });
         if (!res.ok) {
             const err = await res.json();
@@ -197,6 +200,7 @@ export const AuthProvider = ({ children }) => {
     return (
         <AuthContext.Provider value={{
             user, profile, loading,
+            role: profile?.role || 'recruiter',
             login, signup, logout, resetPassword,
             updateProfile, uploadAvatar, changePassword, refreshProfile,
         }}>

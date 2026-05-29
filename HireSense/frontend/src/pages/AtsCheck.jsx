@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../lib/api';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 
 const scC = v => v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
 
@@ -15,15 +16,7 @@ const ICONS = {
 export default function AtsCheck() {
     const { isDark } = useTheme();
 
-    const [width, setWidth] = useState(window.innerWidth);
-    useEffect(() => {
-        const handleResize = () => setWidth(window.innerWidth);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    const isMobile = width <= 640;
-    const isTablet = width > 640 && width <= 1024;
+    const { isMobile } = useBreakpoint();
 
     const [resumes, setResumes] = useState([]);
     const [selectedId, setSelectedId] = useState('');
@@ -49,7 +42,7 @@ export default function AtsCheck() {
         if (uploadFile && !rid) {
             setLoading(true);
             try {
-                const uploaded = await api.uploadResume(uploadFile, '', candidateName);
+                const uploaded = await api.uploadResume(uploadFile, candidateName);
                 rid = uploaded.resume_id || uploaded.id;
                 const newRes = { ...uploaded, id: rid };
                 setResumes(prev => [...prev, newRes]);
@@ -94,7 +87,7 @@ export default function AtsCheck() {
         if (uploadFile && !rid) {
             setMatchLoading(true);
             try {
-                const uploaded = await api.uploadResume(uploadFile, '', candidateName);
+                const uploaded = await api.uploadResume(uploadFile, candidateName);
                 rid = uploaded.resume_id || uploaded.id;
                 const newRes = { ...uploaded, id: rid };
                 setResumes(prev => [...prev, newRes]);
@@ -146,16 +139,23 @@ export default function AtsCheck() {
     ];
 
     const tabStyle = (t) => ({
-        padding: '8px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-        border: '1.5px solid var(--border)', borderRadius: 8,
+        padding: '8px 18px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+        border: '1.5px solid var(--border)', borderRadius: 999,
         background: activeTab === t ? 'var(--btn)' : 'transparent',
         color: activeTab === t ? 'var(--btn-fg)' : 'var(--text2)',
-        transition: 'all .2s', letterSpacing: '.04em',
+        transition: 'all .15s', letterSpacing: '.04em',
         fontFamily: 'var(--font)',
+        boxShadow: activeTab === t ? 'var(--shadow-sm)' : 'none',
     });
 
     return (
         <div style={{ maxWidth: 960 }}>
+            {/* Page header */}
+            <div style={{ marginBottom: 18 }}>
+                <h2 style={{ fontSize: 25, fontWeight: 700, letterSpacing: '-.02em', color: 'var(--text)' }}>Resume Analysis</h2>
+                <p style={{ fontSize: 13, color: 'var(--text3)', marginTop: 6 }}>Score ATS readiness and run precision matches against any job description</p>
+            </div>
+
             {/* Tab Switcher */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
                 <button style={tabStyle('ats')} onClick={() => setActiveTab('ats')}>ATS Readiness</button>
@@ -164,7 +164,7 @@ export default function AtsCheck() {
 
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 18 }}>
                 {/* Left panel — Upload + Inputs */}
-                <div style={{ background: 'var(--card)', border: '1.5px solid var(--border)', borderRadius: 10, padding: 18 }}>
+                <div className="card-modern" style={{ padding: 20 }}>
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeTab}
@@ -187,9 +187,11 @@ export default function AtsCheck() {
                         onDragOver={e => e.preventDefault()}
                         onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) { setUploadFile(f); setSelectedId(''); setCandidateName(''); } }}
                         onClick={() => document.getElementById('ats-file-input')?.click()}
+                        className="hover-lift-sm"
                         style={{
-                            border: '1.5px dashed var(--border)', borderRadius: 9,
+                            border: '1.5px dashed var(--border)', borderRadius: 'var(--r-sm)',
                             padding: '24px 20px', textAlign: 'center', cursor: 'pointer', background: 'var(--bg)',
+                            transition: 'all .15s',
                         }}
                     >
                         <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}>{ICONS.upload}</div>
@@ -202,15 +204,16 @@ export default function AtsCheck() {
                         onChange={e => { if (e.target.files[0]) { setUploadFile(e.target.files[0]); setSelectedId(''); } }} />
 
                     {uploadFile && !selectedId && (
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
+                            className="focusable"
                             placeholder="Candidate Name (Optional)"
                             value={candidateName}
                             onChange={e => setCandidateName(e.target.value)}
                             style={{
                                 width: '100%', marginTop: 10, padding: '9px 12px',
                                 background: 'transparent', border: '1.5px solid var(--border)',
-                                borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                                borderRadius: 'var(--r-sm)', color: 'var(--text)', fontSize: 13,
                                 fontFamily: 'var(--font)', outline: 'none',
                             }}
                         />
@@ -219,10 +222,11 @@ export default function AtsCheck() {
                     {/* Resume selector */}
                     {resumes.length > 0 && (
                         <select value={selectedId} onChange={e => { setSelectedId(e.target.value); setUploadFile(null); setCandidateName(''); }}
+                            className="focusable"
                             style={{
                                 width: '100%', marginTop: 10, padding: '9px 12px',
                                 background: 'var(--input)', border: '1.5px solid var(--border)',
-                                borderRadius: 8, color: 'var(--text)', fontSize: 12,
+                                borderRadius: 'var(--r-sm)', color: 'var(--text)', fontSize: 12,
                                 fontFamily: 'var(--font)', outline: 'none',
                             }}>
                             <option value="">Select existing resume…</option>
@@ -235,26 +239,28 @@ export default function AtsCheck() {
                     {/* JD Text Area (visible only in match tab) */}
                     {activeTab === 'match' && (
                         <>
-                            <input 
+                            <input
                                 type="text"
+                                className="focusable"
                                 value={jdTitle}
                                 onChange={e => setJdTitle(e.target.value)}
                                 placeholder="Job Title (e.g. Senior Frontend Developer)"
                                 style={{
                                     width: '100%', marginTop: 10, padding: '9px 12px',
                                     background: 'var(--bg)', border: '1.5px solid var(--border)',
-                                    borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                                    borderRadius: 'var(--r-sm)', color: 'var(--text)', fontSize: 13,
                                     fontFamily: 'var(--font)', outline: 'none',
                                 }}
                             />
                             <textarea
                                 value={jdText}
+                                className="focusable"
                                 onChange={e => setJdText(e.target.value)}
                                 placeholder="Paste the job description here…"
                                 style={{
                                     width: '100%', marginTop: 10, padding: '10px 12px', minHeight: 100,
                                     background: 'var(--bg)', border: '1.5px solid var(--border)',
-                                    borderRadius: 8, color: 'var(--text)', fontSize: 12,
+                                    borderRadius: 'var(--r-sm)', color: 'var(--text)', fontSize: 12,
                                     fontFamily: 'var(--font)', outline: 'none', resize: 'vertical',
                                 }}
                             />
@@ -265,10 +271,11 @@ export default function AtsCheck() {
                         onClick={activeTab === 'ats' ? handleScan : handleMatch}
                         disabled={activeTab === 'ats' ? (loading || (!selectedId && !uploadFile)) : (matchLoading || (!selectedId && !uploadFile) || !jdText.trim())}
                         style={{
-                            width: '100%', marginTop: 12, padding: 11, borderRadius: 9,
+                            width: '100%', marginTop: 12, padding: 11, borderRadius: 'var(--r-sm)',
                             background: 'var(--btn)', border: 'none', color: 'var(--btn-fg)',
                             fontSize: 13, fontWeight: 600, cursor: 'pointer',
                             letterSpacing: '.05em', fontFamily: 'var(--font)',
+                            boxShadow: 'var(--shadow-sm)', transition: 'all .15s',
                             opacity: (activeTab === 'ats' ? loading : matchLoading) ? 0.6 : 1,
                         }}>
                         {activeTab === 'ats'
@@ -287,8 +294,8 @@ export default function AtsCheck() {
                                 return (
                                     <div key={i} style={{
                                         display: 'flex', gap: 10, alignItems: 'flex-start',
-                                        padding: '9px 11px', background: 'var(--bg3)',
-                                        borderRadius: 8, border: '1px solid var(--border)', marginBottom: 5,
+                                        padding: '10px 12px', background: 'var(--bg3)',
+                                        borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', marginBottom: 6,
                                     }}>
                                         <span style={{ color: c, flexShrink: 0, display: 'flex', alignItems: 'center', marginTop: 1 }}>
                                             {d.type === 'success' ? ICONS.check : ICONS.alert}
@@ -339,7 +346,7 @@ export default function AtsCheck() {
                 </div>
 
                 {/* Right panel — Score Report */}
-                <div style={{ background: 'var(--card)', border: '1.5px solid var(--border)', borderRadius: 10, padding: 18 }}>
+                <div className="card-modern sheen" style={{ padding: 20 }}>
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeTab}
@@ -431,8 +438,8 @@ export default function AtsCheck() {
                                       ['File format', <div key="format" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>{ICONS.check} PDF</div>],
                                     ].map(([l, v]) => (
                                         <div key={l} style={{
-                                            padding: '10px 13px', background: 'var(--bg3)',
-                                            borderRadius: 8, border: '1.5px solid var(--border)',
+                                            padding: '11px 14px', background: 'var(--bg3)',
+                                            borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)',
                                         }}>
                                             <div style={{ fontSize: 10, color: 'var(--text3)', letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: 4, fontWeight: 500 }}>{l}</div>
                                             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)' }}>{v}</div>
@@ -522,8 +529,8 @@ export default function AtsCheck() {
                                               ['Keywords Matched', `${matchReport.matched_keywords?.length || 0}`],
                                             ].map(([l, v]) => (
                                                 <div key={l} style={{
-                                                    padding: '10px 13px', background: 'var(--bg3)',
-                                                    borderRadius: 8, border: '1.5px solid var(--border)',
+                                                    padding: '11px 14px', background: 'var(--bg3)',
+                                                    borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)',
                                                 }}>
                                                     <div style={{ fontSize: 10, color: 'var(--text3)', letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: 4, fontWeight: 500 }}>{l}</div>
                                                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)' }}>{v}</div>

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 
 /* ── SVG Icons ── */
 const CameraIcon = () => (
@@ -88,15 +89,7 @@ function Toast({ message, type, onClose }) {
 export default function Profile() {
     const { user, profile, updateProfile, uploadAvatar, changePassword } = useAuth();
 
-    const [width, setWidth] = useState(window.innerWidth);
-
-    useEffect(() => {
-        const handleResize = () => setWidth(window.innerWidth);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    const isMobile = width <= 640;
+    const { isMobile } = useBreakpoint();
 
     /* ── State ── */
     const [displayName, setDisplayName] = useState('');
@@ -107,6 +100,7 @@ export default function Profile() {
 
     // Password change
     const [showPasswordForm, setShowPasswordForm] = useState(false);
+    const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [changingPassword, setChangingPassword] = useState(false);
@@ -164,8 +158,12 @@ export default function Profile() {
     };
 
     const handleChangePassword = async () => {
-        if (newPassword.length < 6) {
-            showToast('Password must be at least 6 characters', 'error');
+        if (!currentPassword) {
+            showToast('Please enter your current password', 'error');
+            return;
+        }
+        if (newPassword.length < 8) {
+            showToast('Password must be at least 8 characters', 'error');
             return;
         }
         if (newPassword !== confirmPassword) {
@@ -175,8 +173,9 @@ export default function Profile() {
 
         setChangingPassword(true);
         try {
-            await changePassword(newPassword);
+            await changePassword(currentPassword, newPassword);
             showToast('Password changed successfully!');
+            setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
             setShowPasswordForm(false);
@@ -200,7 +199,7 @@ export default function Profile() {
         padding: '13px 14px 13px 42px',
         background: 'var(--input)',
         border: '1.5px solid var(--border)',
-        borderRadius: 10,
+        borderRadius: 'var(--r-sm)',
         color: 'var(--text)',
         fontSize: 14,
         fontFamily: 'var(--font)',
@@ -229,8 +228,8 @@ export default function Profile() {
                 style={{ marginBottom: 32 }}
             >
                 <h1 style={{
-                    fontFamily: 'var(--font)', fontWeight: 700, fontSize: 24,
-                    color: 'var(--text)', letterSpacing: '.01em', marginBottom: 6,
+                    fontFamily: 'var(--font)', fontWeight: 700, fontSize: 25,
+                    color: 'var(--text)', letterSpacing: '-.02em', marginBottom: 6,
                 }}>Profile Settings</h1>
                 <p style={{
                     fontSize: 13, color: 'var(--text3)', letterSpacing: '.04em',
@@ -240,13 +239,11 @@ export default function Profile() {
 
             {/* ── Profile Card ── */}
             <motion.div
+                className="card-modern sheen"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
                 style={{
-                    background: 'var(--surface)',
-                    border: '1.5px solid var(--border)',
-                    borderRadius: 16,
                     padding: isMobile ? '24px 16px' : '36px 32px',
                     marginBottom: 20,
                     position: 'relative',
@@ -272,7 +269,7 @@ export default function Profile() {
                         <motion.div
                             whileHover={{ scale: 1.04 }}
                             style={{
-                                width: 100, height: 100, borderRadius: 16,
+                                width: 100, height: 100, borderRadius: 'var(--r)',
                                 overflow: 'hidden',
                                 border: '2px solid var(--border2)',
                                 background: 'var(--bg2)',
@@ -383,6 +380,7 @@ export default function Profile() {
                                     width: '100%',
                                 }}>
                                     <input
+                                        className="focusable"
                                         id="profile-display-name"
                                         type="text"
                                         value={displayName}
@@ -490,13 +488,11 @@ export default function Profile() {
 
             {/* ── Account Details Card ── */}
             <motion.div
+                className="card-modern"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
                 style={{
-                    background: 'var(--surface)',
-                    border: '1.5px solid var(--border)',
-                    borderRadius: 16,
                     padding: isMobile ? '20px 16px' : '28px 32px',
                     marginBottom: 20,
                 }}
@@ -615,13 +611,11 @@ export default function Profile() {
 
             {/* ── Security Card ── */}
             <motion.div
+                className="card-modern"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
                 style={{
-                    background: 'var(--surface)',
-                    border: '1.5px solid var(--border)',
-                    borderRadius: 16,
                     padding: isMobile ? '20px 16px' : '28px 32px',
                 }}
             >
@@ -706,9 +700,45 @@ export default function Profile() {
                                         color: 'var(--text2)', letterSpacing: '.1em',
                                         textTransform: 'uppercase', marginBottom: 8,
                                         fontFamily: 'var(--font)',
+                                    }}>Current Password</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            className="focusable"
+                                            id="current-password"
+                                            type="password"
+                                            value={currentPassword}
+                                            onChange={(e) => setCurrentPassword(e.target.value)}
+                                            placeholder="••••••••"
+                                            style={inputStyle}
+                                            onFocus={(e) => {
+                                                e.target.style.borderColor = 'var(--text2)';
+                                                e.target.style.boxShadow = '0 0 0 3px rgba(160,160,176,0.1)';
+                                            }}
+                                            onBlur={(e) => {
+                                                e.target.style.borderColor = 'var(--border)';
+                                                e.target.style.boxShadow = 'none';
+                                            }}
+                                        />
+                                        <div style={{
+                                            position: 'absolute', left: 13, top: '50%',
+                                            transform: 'translateY(-50%)', color: 'var(--text3)',
+                                            pointerEvents: 'none',
+                                        }}>
+                                            <LockIcon />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ marginBottom: 16 }}>
+                                    <label style={{
+                                        display: 'block', fontSize: 11, fontWeight: 600,
+                                        color: 'var(--text2)', letterSpacing: '.1em',
+                                        textTransform: 'uppercase', marginBottom: 8,
+                                        fontFamily: 'var(--font)',
                                     }}>New Password</label>
                                     <div style={{ position: 'relative' }}>
                                         <input
+                                            className="focusable"
                                             id="new-password"
                                             type="password"
                                             value={newPassword}
@@ -743,6 +773,7 @@ export default function Profile() {
                                     }}>Confirm New Password</label>
                                     <div style={{ position: 'relative' }}>
                                         <input
+                                            className="focusable"
                                             id="confirm-password"
                                             type="password"
                                             value={confirmPassword}
@@ -778,7 +809,7 @@ export default function Profile() {
                                     whileHover={{ scale: 1.01 }}
                                     whileTap={{ scale: 0.98 }}
                                     onClick={handleChangePassword}
-                                    disabled={changingPassword || !newPassword || newPassword !== confirmPassword}
+                                    disabled={changingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword}
                                     style={{
                                         width: '100%', padding: '13px 0',
                                         background: 'var(--btn)', color: 'var(--btn-fg)',
@@ -787,7 +818,7 @@ export default function Profile() {
                                         fontFamily: 'var(--font)',
                                         letterSpacing: '.1em', textTransform: 'uppercase',
                                         cursor: changingPassword ? 'not-allowed' : 'pointer',
-                                        opacity: (changingPassword || !newPassword || newPassword !== confirmPassword) ? 0.5 : 1,
+                                        opacity: (changingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword) ? 0.5 : 1,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                                     }}
                                 >

@@ -70,14 +70,14 @@ export default function Analyze() {
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto py-12 transition-colors duration-300">
-            <div className="mb-16">
-                <h1 className="text-2xl font-light tracking-[0.1em] text-foreground mb-4 transition-colors duration-300">Analyze Candidate</h1>
-                <p className="text-[11px] tracking-[0.15em] text-text-secondary uppercase transition-colors duration-300">Upload a resume and job description to get a deep semantic match score.</p>
+            <div className="section-head mb-16">
+                <h1 className="title" style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.02em', color: 'var(--text)', marginBottom: 6 }}>Analyze Candidate</h1>
+                <p className="subtitle" style={{ fontSize: 13, color: 'var(--text3)' }}>Upload a resume and job description to get a deep semantic match score.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-16">
                 {/* Resume Selection */}
-                <div className="bg-transparent border border-border transition-colors duration-300 flex flex-col h-64">
+                <div className="card-modern transition-colors duration-300 flex flex-col h-64" style={{ borderRadius: 'var(--r)', overflow: 'hidden' }}>
                     <div className="p-4 border-b border-border transition-colors duration-300 flex items-center">
                         <UploadCloud className="w-4 h-4 mr-3 text-text-secondary transition-colors duration-300" />
                         <h3 className="text-[11px] tracking-[0.2em] font-medium uppercase text-foreground transition-colors duration-300">Select Resume</h3>
@@ -86,8 +86,8 @@ export default function Analyze() {
                         {resumes.length > 0 ? (
                             <div className="space-y-3">
                                 {resumes.map(r => (
-                                    <label key={r.id} className={`flex items-center p-3 cursor-pointer border transition-colors duration-300 ${selectedResumeId === r.id ? 'border-foreground bg-foreground/5' : 'border-border hover:bg-foreground/5'
-                                        }`}>
+                                    <label key={r.id} className={`hover-lift-sm flex items-center p-3 cursor-pointer border transition-colors duration-300 ${selectedResumeId === r.id ? 'border-foreground bg-foreground/5' : 'border-border hover:bg-foreground/5'
+                                        }`} style={{ borderRadius: 'var(--r-sm)' }}>
                                         <input
                                             type="radio"
                                             name="resume"
@@ -112,7 +112,7 @@ export default function Analyze() {
                 </div>
 
                 {/* Job Description */}
-                <div className="bg-transparent border border-border transition-colors duration-300 flex flex-col h-64">
+                <div className="card-modern transition-colors duration-300 flex flex-col h-64" style={{ borderRadius: 'var(--r)', overflow: 'hidden' }}>
                     <div className="p-4 border-b border-border transition-colors duration-300 flex items-center">
                         <FileText className="w-4 h-4 mr-3 text-text-secondary transition-colors duration-300" />
                         <h3 className="text-[11px] tracking-[0.2em] font-medium uppercase text-foreground transition-colors duration-300">Job Description</h3>
@@ -123,20 +123,22 @@ export default function Analyze() {
                             value={jobTitle}
                             onChange={(e) => setJobTitle(e.target.value)}
                             placeholder="Job Title (e.g. Senior Frontend Engineer)"
-                            className="w-full bg-transparent border-b border-border p-2 focus:outline-none text-[12px] font-medium text-foreground transition-colors duration-300"
+                            className="focusable w-full bg-transparent border-b border-border p-2 focus:outline-none text-[12px] font-medium text-foreground transition-colors duration-300"
+                            style={{ borderRadius: 'var(--r-sm)' }}
                         />
                     </div>
                     <textarea
                         value={jobText}
                         onChange={(e) => setJobText(e.target.value)}
-                        className="flex-1 w-full bg-transparent p-6 focus:outline-none resize-none text-sm font-light text-foreground placeholder-text-secondary/50 transition-colors duration-300"
+                        className="focusable flex-1 w-full bg-transparent p-6 focus:outline-none resize-none text-sm font-light text-foreground placeholder-text-secondary/50 transition-colors duration-300"
+                        style={{ borderRadius: 'var(--r-sm)' }}
                         placeholder="Paste the job requirements here..."
                     />
                 </div>
             </div>
 
             {status && (
-                <div className="text-[10px] uppercase tracking-[0.1em] text-text-secondary mb-6 p-3 border border-border text-center">
+                <div className="card-modern text-[10px] uppercase tracking-[0.1em] text-text-secondary mb-6 p-3 text-center" style={{ borderRadius: 'var(--r-sm)' }}>
                     {status}
                 </div>
             )}
@@ -146,6 +148,7 @@ export default function Analyze() {
                     onClick={handleAnalyze}
                     disabled={analyzing || (!selectedResumeId && !resumeFile) || !jobText.trim()}
                     className="border border-border text-[11px] tracking-[0.2em] uppercase text-foreground px-8 py-4 hover:bg-foreground hover:text-background transition-colors duration-300 disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-foreground disabled:cursor-not-allowed flex items-center"
+                    style={{ borderRadius: 999, fontWeight: 600, transition: 'all .15s' }}
                 >
                     {analyzing ? (
                         <>

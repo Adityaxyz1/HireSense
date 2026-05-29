@@ -2,13 +2,14 @@ import re
 import time
 from collections import defaultdict
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from config import settings
 from database import get_db
 from routes import api_router
+from routes.auth_dependency import require_user
 
 
 # ── Security: Request size limiter middleware ──────────────────
@@ -79,6 +80,9 @@ async def lifespan(app: FastAPI):
         print("WARNING: No NVIDIA_NIM_API_KEY set in .env — AI features will fail.")
     if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
         print("WARNING: Supabase credentials not set in .env — database features will fail.")
+    if not settings.SUPABASE_ANON_KEY:
+        print("WARNING: SUPABASE_ANON_KEY not set — JWT verification falls back to the "
+              "service-role key. Set SUPABASE_ANON_KEY in .env for least-privilege auth.")
     yield
 
 
@@ -87,15 +91,23 @@ app = FastAPI(
     description="AI-powered ATS backend for HireSense.",
     version="3.0.0",
     lifespan=lifespan,
-    # Security: hide docs in production (set via env if needed)
-    docs_url="/docs",
+    # Security: docs can be disabled in production via ENABLE_DOCS=false
+    docs_url="/docs" if settings.ENABLE_DOCS else None,
     redoc_url=None,
+    openapi_url="/openapi.json" if settings.ENABLE_DOCS else None,
 )
 
 # ── Middleware stack (order matters: outermost runs first) ─────
 
-# Security: Rate limiting (Disabled for local dev / relaxed)
-# app.add_middleware(RateLimitMiddleware, max_requests=6000, window_seconds=60)
+# Security: Rate limiting — generous per-IP cap to stop abusive loops/DoS
+# without breaking normal multi-request page loads. NOTE: this is in-memory,
+# so it only protects a single worker; use a shared store (Redis) or a
+# reverse-proxy limit when running multiple workers.
+app.add_middleware(
+    RateLimitMiddleware,
+    max_requests=settings.RATE_LIMIT_MAX,
+    window_seconds=settings.RATE_LIMIT_WINDOW,
+)
 
 # Security: Request size limit
 app.add_middleware(RequestSizeLimitMiddleware)
@@ -103,16 +115,10 @@ app.add_middleware(RequestSizeLimitMiddleware)
 # Security: Response headers
 app.add_middleware(SecurityHeadersMiddleware)
 
-# Security: Strict CORS — local development origins
+# Security: Strict CORS — origins from config (override via CORS_ORIGINS env)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-        "https://hiresense.pages.dev"
-    ],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -125,13 +131,45 @@ app.add_middleware(
 SAFE_FILENAME_RE = re.compile(r'^[a-zA-Z0-9_\-\.]+$')
 
 @app.get("/uploads/{filename}")
-def get_upload(filename: str):
-    """Proxy private Supabase Storage files to the frontend."""
+def get_upload(filename: str, user=Depends(require_user)):
+    """Proxy private resume PDFs — requires auth AND ownership.
+
+    Access is granted only if the caller owns the resume, or is the recruiter
+    who received it via an application to one of their own jobs.
+    """
     # Security: path traversal prevention
     if not SAFE_FILENAME_RE.match(filename) or '..' in filename or '/' in filename or '\\' in filename:
         raise HTTPException(status_code=400, detail="Invalid filename.")
-    
+
     db = get_db()
+    file_url = f"/uploads/{filename}"
+    uid = str(user.id)
+
+    # Resolve which resume row this file belongs to.
+    allowed = False
+    try:
+        rows = (db.table("resumes").select("id, user_id")
+                .eq("file_url", file_url).execute().data) or []
+        if any(str(r.get("user_id")) == uid for r in rows):
+            allowed = True
+        elif rows:
+            # Recruiter access: the resume applied to a job this user owns.
+            resume_ids = [r["id"] for r in rows]
+            apps = (db.table("applications")
+                    .select("resume_id, job_descriptions(user_id)")
+                    .in_("resume_id", resume_ids).execute().data) or []
+            for a in apps:
+                jd = a.get("job_descriptions") or {}
+                if str(jd.get("user_id")) == uid:
+                    allowed = True
+                    break
+    except Exception:
+        allowed = False
+
+    if not allowed:
+        # Don't reveal whether the file exists.
+        raise HTTPException(status_code=404, detail="File not found.")
+
     try:
         res = db.storage.from_("resumes").download(filename)
         return Response(content=res, media_type="application/pdf")
@@ -144,7 +182,23 @@ app.include_router(api_router, prefix="/api")
 
 
 
-
 @app.get("/")
 async def root():
     return {"message": f"Welcome to {settings.PROJECT_NAME}"}
+
+
+@app.get("/health")
+async def health_check():
+    """Health check for deployment monitoring (Render, etc.) — probes the DB."""
+    db_ok = False
+    try:
+        get_db().table("profiles").select("id").limit(1).execute()
+        db_ok = True
+    except Exception:
+        db_ok = False
+    return {
+        "status": "healthy" if db_ok else "degraded",
+        "service": settings.PROJECT_NAME,
+        "version": "3.0.0",
+        "database": "up" if db_ok else "down",
+    }

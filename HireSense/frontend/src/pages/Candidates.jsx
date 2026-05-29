@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../lib/api';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 import { ListSkeleton } from '../components/ui/Skeletons';
 
 const scC = v => v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
@@ -37,15 +38,7 @@ export default function Candidates() {
     const { isDark } = useTheme();
     const [searchParams] = useSearchParams();
     
-    const [width, setWidth] = useState(window.innerWidth);
-    useEffect(() => {
-        const handleResize = () => setWidth(window.innerWidth);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    const isMobile = width <= 640;
-    const isTablet = width > 640 && width <= 1024;
+    const { isMobile, isTablet } = useBreakpoint();
 
     const [candidates, setCandidates] = useState([]);
     const [filter, setFilter] = useState('all');
@@ -122,19 +115,26 @@ export default function Candidates() {
 
     const inp = {
         background: 'var(--input)', border: '1.5px solid var(--border)',
-        borderRadius: 8, padding: '7px 12px', color: 'var(--text)',
+        borderRadius: 'var(--r-sm)', padding: '8px 12px', color: 'var(--text)',
         fontSize: 12, outline: 'none', fontFamily: 'var(--font)',
     };
 
     return (
         <>
+            <div className="section-head" style={{ marginBottom: 16 }}>
+                <div>
+                    <div className="title" style={{ fontSize: 25, fontWeight: 700, letterSpacing: '-.02em', color: 'var(--text)' }}>Candidates</div>
+                    <div className="subtitle" style={{ fontSize: 13, color: 'var(--text3)' }}>Review, score, and triage every applicant in one place</div>
+                </div>
+            </div>
+
             {/* Filter bar */}
-            <div style={{ 
-                display: 'flex', 
-                flexDirection: isMobile ? 'column' : 'row', 
-                gap: 12, 
-                alignItems: isMobile ? 'stretch' : 'center', 
-                marginBottom: 16 
+            <div style={{
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                gap: 12,
+                alignItems: isMobile ? 'stretch' : 'center',
+                marginBottom: 16
             }}>
                 <div style={{ 
                     display: 'flex', 
@@ -145,14 +145,14 @@ export default function Candidates() {
                 }}>
                     {['all', 'pending', 'approved', 'rejected'].map(f => (
                         <button key={f} onClick={() => setFilter(f)} style={{
-                            padding: '6px 12px', borderRadius: 7,
+                            padding: '7px 14px', borderRadius: 999,
                             border: `1.5px solid ${f === filter ? 'var(--border2)' : 'var(--border)'}`,
                             background: f === filter ? 'var(--btn)' : 'transparent',
                             color: f === filter ? 'var(--btn-fg)' : 'var(--text2)',
-                            fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                            fontSize: 12, fontWeight: 600, cursor: 'pointer',
                             letterSpacing: '.03em', textTransform: 'capitalize',
                             fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7,
-                            flexShrink: 0,
+                            flexShrink: 0, transition: 'all .15s',
                         }}>
                             {f}
                             <span style={{
@@ -171,6 +171,7 @@ export default function Candidates() {
                     <div style={{ position: 'relative', flex: isMobile ? 1 : 'none' }}>
                         <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', display: 'flex', alignItems: 'center' }}>{ICONS.search}</span>
                         <input value={search} onChange={e => setSearch(e.target.value)}
+                            className="focusable"
                             placeholder="Search candidates…"
                             style={{ ...inp, paddingLeft: 30, width: '100%', minWidth: isMobile ? 0 : 180 }} />
                     </div>
@@ -182,7 +183,7 @@ export default function Candidates() {
             </div>
 
             {/* Table */}
-            <div style={{ background: 'var(--card)', border: '1.5px solid var(--border)', borderRadius: 10, padding: isMobile ? 10 : 18 }}>
+            <div className="card-modern" style={{ padding: isMobile ? 12 : 20 }}>
                 {/* Header */}
                 <div style={{
                     display: 'grid', 
@@ -223,7 +224,8 @@ export default function Candidates() {
                     const uploading = updatingId === c.id;
                     const isExpanded = expandedId === c.id;
                     const isHighlighted = searchParams.get('highlight') === c.id;
-                    const score = c.match_score || c.ats_score || 0;
+                    const hasScore = c.match_score != null || c.ats_score != null;
+                    const score = c.match_score != null ? c.match_score : (c.ats_score != null ? c.ats_score : 0);
 
                     // Parse stored breakdown data
                     let atsBreakdown = [];
@@ -290,10 +292,12 @@ export default function Candidates() {
 
                             {/* Score Display */}
                             <div style={{ fontSize: isMobile ? 14 : 16, fontWeight: 700, color: scC(score) }}>
-                                {procStatus === 'processing' ? (
+                                {hasScore ? (
+                                    Math.round(score)
+                                ) : procStatus === 'processing' ? (
                                     <div style={{ width: 24, height: 18, background: 'var(--border)', borderRadius: 4, animation: 'pulse 1.5s infinite' }} />
                                 ) : (
-                                    Math.round(score)
+                                    0
                                 )}
                             </div>
 
@@ -314,7 +318,7 @@ export default function Candidates() {
                                             : '#f59e0b',
                                     textTransform: 'uppercase', letterSpacing: '.05em',
                                 }}>
-                                    {procStatus === 'completed' ? 'Active' : procStatus === 'failed' ? 'Error' : 'Scanning'}
+                                    {hasScore ? 'Completed' : (procStatus === 'completed' ? 'Active' : procStatus === 'failed' ? 'Error' : 'Scanning')}
                                 </span>
                             )}
 
@@ -457,7 +461,8 @@ export default function Candidates() {
                             <div style={{
                                 background: isDark ? '#14141a' : '#f8f8f5',
                                 border: '1.5px solid var(--border)',
-                                borderRadius: 10, padding: 18, marginBottom: 10,
+                                borderRadius: 'var(--r)', padding: 18, marginBottom: 10,
+                                boxShadow: 'var(--shadow-sm)',
                                 animation: 'fadeIn .2s',
                             }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>

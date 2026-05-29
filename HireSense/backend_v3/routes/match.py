@@ -82,6 +82,14 @@ async def match_resume(payload: MatchRequest, user=Depends(require_user)):
         # 3. Compute Precision Match via LLM
         result = await match_resume_to_jd(raw_text, jd_text)
 
+        # If the AI engine was unavailable, fail honestly instead of saving a
+        # fabricated score. The job description (above) is still persisted.
+        if result.get("degraded"):
+            raise HTTPException(
+                status_code=503,
+                detail="AI scoring is temporarily unavailable. Please try again in a moment.",
+            )
+
         # 4. Synthesize Pipeline Data safely
         exp_score = calculate_experience_score(raw_text, jd_text)
         strength = compute_strength(raw_text)
@@ -128,6 +136,9 @@ async def match_resume(payload: MatchRequest, user=Depends(require_user)):
             print(f"Match data persistence warning: {e}")
 
         return result
+    except HTTPException:
+        # Preserve intended status codes (e.g. 503 when AI is unavailable).
+        raise
     except Exception as e:
         import traceback
         print(f"Match error: {e}")

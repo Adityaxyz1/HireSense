@@ -1,26 +1,59 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { lazy, Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/ui/Layout';
+import StudentLayout from './components/ui/StudentLayout';
 import ProtectedRoute from './components/ProtectedRoute';
-import Dashboard from './pages/Dashboard';
-import Candidates from './pages/Candidates';
-import Pipeline from './pages/Pipeline';
-import Analyze from './pages/Analyze';
-import AtsCheck from './pages/AtsCheck';
-import Jobs from './pages/Jobs';
-import Finder from './pages/Finder';
-import Results from './pages/Results';
-import Recruiter from './pages/Recruiter';
-import Login from './pages/Login';
-import ResetPassword from './pages/ResetPassword';
-import Profile from './pages/Profile';
-import Admin from './pages/Admin';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
+import { useAuth } from './contexts/AuthContext';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Candidates = lazy(() => import('./pages/Candidates'));
+const Pipeline = lazy(() => import('./pages/Pipeline'));
+const Analyze = lazy(() => import('./pages/Analyze'));
+const AtsCheck = lazy(() => import('./pages/AtsCheck'));
+const Jobs = lazy(() => import('./pages/Jobs'));
+const Finder = lazy(() => import('./pages/Finder'));
+const Results = lazy(() => import('./pages/Results'));
+const Recruiter = lazy(() => import('./pages/Recruiter'));
+const Applicants = lazy(() => import('./pages/Applicants'));
+const Login = lazy(() => import('./pages/Login'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Admin = lazy(() => import('./pages/Admin'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const Browse = lazy(() => import('./pages/student/Browse'));
+const Applications = lazy(() => import('./pages/student/Applications'));
+const StudentProfile = lazy(() => import('./pages/student/StudentProfile'));
+
+const RouteFallback = () => (
+  <div style={{
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'var(--bg)',
+    color: 'var(--text2)',
+  }}>
+    Loading…
+  </div>
+);
+
+// Persona gates: keep students inside /student and recruiters inside /.
+function RecruiterGate({ children }) {
+  const { role } = useAuth();
+  if (role === 'applicant') return <Navigate to="/student" replace />;
+  return children;
+}
+function StudentGate({ children }) {
+  const { role } = useAuth();
+  if (role !== 'applicant') return <Navigate to="/" replace />;
+  return children;
+}
 
 function App() {
   return (
     <Router>
+      <Suspense fallback={<RouteFallback />}>
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
@@ -28,10 +61,12 @@ function App() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
 
-        {/* Protected routes */}
+        {/* Recruiter region */}
         <Route path="/" element={
           <ProtectedRoute>
-            <Layout />
+            <RecruiterGate>
+              <Layout />
+            </RecruiterGate>
           </ProtectedRoute>
         }>
           <Route index element={<Dashboard />} />
@@ -43,10 +78,25 @@ function App() {
           <Route path="finder" element={<Finder />} />
           <Route path="results" element={<Results />} />
           <Route path="recruiter" element={<Recruiter />} />
+          <Route path="applicants" element={<Applicants />} />
           <Route path="profile" element={<Profile />} />
           <Route path="admin" element={<Admin />} />
         </Route>
+
+        {/* Student region */}
+        <Route path="/student" element={
+          <ProtectedRoute>
+            <StudentGate>
+              <StudentLayout />
+            </StudentGate>
+          </ProtectedRoute>
+        }>
+          <Route index element={<Browse />} />
+          <Route path="applications" element={<Applications />} />
+          <Route path="profile" element={<StudentProfile />} />
+        </Route>
       </Routes>
+      </Suspense>
     </Router>
   );
 }

@@ -4,6 +4,25 @@ from config import settings
 
 _supabase_client = None
 _supabase_admin_client = None
+_supabase_auth_client = None
+
+
+def get_auth_db() -> Client:
+    """Dedicated client for verifying user JWTs.
+
+    Uses the anon (publishable) key when available so token verification runs
+    with least privilege, and is kept separate from the data/admin clients so
+    that auth.get_user(token) never taints their sessions.
+    """
+    global _supabase_auth_client
+    if _supabase_auth_client is None:
+        if not settings.SUPABASE_URL:
+            raise ValueError("SUPABASE_URL must be set in the .env file")
+        key = settings.SUPABASE_ANON_KEY or settings.SUPABASE_KEY
+        if not key:
+            raise ValueError("SUPABASE_ANON_KEY or SUPABASE_KEY must be set in the .env file")
+        _supabase_auth_client = create_client(settings.SUPABASE_URL, key)
+    return _supabase_auth_client
 
 def get_db() -> Client:
     """Get a Supabase client singleton (used for general DB queries and auth verification)."""

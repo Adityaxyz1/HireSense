@@ -115,11 +115,14 @@ async def upload_resume(
 
         return UploadResponse(resume_id=resume_id, status="processing")
 
+    except HTTPException:
+        # Preserve intended 400/413 validation responses instead of masking as 500.
+        raise
     except Exception as e:
         import traceback
         traceback.print_exc()
         print(f"Resume upload error: {e}")  # Log internally only
-        raise HTTPException(status_code=500, detail=f"An internal error occurred during upload: {str(e)}")
+        raise HTTPException(status_code=500, detail="An internal error occurred during upload.")
 
 
 @router.get("/resumes")

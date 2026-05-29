@@ -1,0 +1,143 @@
+"""
+Student Region — student profile router (Phase 2).
+
+Student identity lives in a dedicated `applicant_profiles` table (the persona
+`role` flag lives on `profiles.role`). The backend uses the service-role client,
+so these reads/writes bypass RLS while still being scoped by the verified JWT.
+"""
+import uuid
+from typing import Optional, List
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from pydantic import BaseModel
+
+from database import get_admin_db
+from routes.auth_dependency import require_user
+
+router = APIRouter()
+
+# Server-side avatar limits — the bypass-proof fallback behind client optimization
+AVATAR_MAX_BYTES = 200 * 1024  # 200 KB
+AVATAR_TYPES = {"image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png"}
+# Magic-byte signatures so a renamed file can't slip past the content-type check
+_JPEG_MAGIC = b"\xff\xd8\xff"
+_PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+
+
+class StudentProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    major: Optional[str] = None
+    graduation_year: Optional[str] = None
+    skills_json: Optional[List[str]] = None
+
+
+def _ensure_student_profile(db, user):
+    """Fetch the student's profile, auto-creating a stub on first access."""
+    res = db.table("applicant_profiles").select("*").eq("id", str(user.id)).execute()
+    if res.data:
+        return res.data[0]
+    stub = {
+        "id": str(user.id),
+        "full_name": (user.email or "").split("@")[0],
+        "email": user.email or "",
+        "skills_json": [],
+    }
+    try:
+        db.table("applicant_profiles").insert(stub).execute()
+    except Exception:
+        pass  # race — another request created it
+    # Make sure the persona flag is set
+    try:
+        db.table("profiles").upsert({"id": str(user.id), "role": "applicant"}).execute()
+    except Exception:
+        pass
+    return stub
+
+
+@router.get("/student/profile")
+def get_student_profile(user=Depends(require_user)):
+    """Get (or lazily create) the authenticated student's profile."""
+    db = get_admin_db()
+    profile = _ensure_student_profile(db, user)
+    return {"profile": profile}
+
+
+@router.put("/student/profile")
+def update_student_profile(payload: StudentProfileUpdate, user=Depends(require_user)):
+    """Update the student's editable profile fields."""
+    db = get_admin_db()
+    _ensure_student_profile(db, user)
+
+    updates = {}
+    if payload.full_name is not None:
+        updates["full_name"] = payload.full_name.strip()
+    if payload.major is not None:
+        updates["major"] = payload.major.strip()
+    if payload.graduation_year is not None:
+        updates["graduation_year"] = payload.graduation_year.strip()
+    if payload.skills_json is not None:
+        updates["skills_json"] = payload.skills_json
+
+    if not updates:
+        raise HTTPException(status_code=400, detail="No fields to update.")
+
+    res = db.table("applicant_profiles").update(updates).eq("id", str(user.id)).execute()
+    return {"message": "Profile updated", "profile": res.data[0] if res.data else updates}
+
+
+@router.post("/student/profile/avatar")
+async def upload_student_avatar(file: UploadFile = File(...), user=Depends(require_user)):
+    """Upload a student's profile picture.
+
+    Client-side optimization already squares + compresses the image below 200KB;
+    this is the authoritative server-side validation that prevents oversized or
+    spoofed uploads via direct API calls. The public URL is written to BOTH
+    applicant_profiles (recruiter/profile views) and profiles (the navbar avatar
+    surfaced through AuthContext) so the photo shows everywhere.
+    """
+    ext = AVATAR_TYPES.get((file.content_type or "").lower())
+    if not ext:
+        raise HTTPException(status_code=400, detail="Only JPG, JPEG, or PNG images are allowed.")
+
+    contents = await file.read()
+
+    # Hard size ceiling — fallback if a client bypasses optimization
+    if len(contents) > AVATAR_MAX_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Image exceeds the 200KB limit ({round(len(contents) / 1024)}KB). Please upload a smaller photo.",
+        )
+    # Verify real file signature (defeats renamed/spoofed extensions)
+    if not (contents.startswith(_JPEG_MAGIC) or contents.startswith(_PNG_MAGIC)):
+        raise HTTPException(status_code=400, detail="File is not a valid JPG or PNG image.")
+
+    db = get_admin_db()
+    _ensure_student_profile(db, user)
+
+    try:
+        filename = f"{user.id}/{uuid.uuid4()}.{ext}"
+        # Clean up old avatars for this user
+        try:
+            old = db.storage.from_("avatars").list(str(user.id))
+            if old:
+                db.storage.from_("avatars").remove([f"{user.id}/{f['name']}" for f in old])
+        except Exception:
+            pass
+
+        db.storage.from_("avatars").upload(
+            filename, contents,
+            file_options={"content-type": file.content_type, "upsert": "true"},
+        )
+        public_url = db.storage.from_("avatars").get_public_url(filename)
+
+        db.table("applicant_profiles").update({"avatar_url": public_url}).eq("id", str(user.id)).execute()
+        # Mirror to profiles so the shared navbar avatar (AuthContext) picks it up
+        try:
+            db.table("profiles").upsert({"id": str(user.id), "avatar_url": public_url}).execute()
+        except Exception:
+            pass
+
+        return {"message": "Profile picture updated", "avatar_url": public_url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload profile picture: {str(e)}")

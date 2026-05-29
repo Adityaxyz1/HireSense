@@ -1,45 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield } from 'lucide-react';
+import { Shield, GraduationCap, Briefcase } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { api } from '../lib/api';
+import { useBreakpoint } from '../hooks/useBreakpoint';
+import AvatarUpload from '../components/ui/AvatarUpload';
 import TwirlBackground from '../components/ui/TwirlBackground';
+
+// Role switcher config — Student is the primary, default flow.
+const ROLES = [
+    { key: 'applicant', label: 'Applicant', icon: GraduationCap },
+    { key: 'recruiter', label: 'Recruiter', icon: Briefcase },
+    { key: 'admin', label: 'Admin', icon: Shield },
+];
 
 export default function Login() {
     const navigate = useNavigate();
     const { login, signup, resetPassword } = useAuth();
+    const [loginRole, setLoginRole] = useState('applicant');   // student | recruiter | admin (Student default)
+    const isAdminMode = loginRole === 'admin';
     const [isSignup, setIsSignup] = useState(false);
-    const [isAdminMode, setIsAdminMode] = useState(false);
     const [isForgot, setIsForgot] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [avatarFile, setAvatarFile] = useState(null);      // optional student signup photo
     const [remember, setRemember] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    const [width, setWidth] = useState(window.innerWidth);
+    const { isMobile } = useBreakpoint();
 
-    useEffect(() => {
-        const handleResize = () => setWidth(window.innerWidth);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    const isMobile = width <= 640;
-
-    const toggleAdminMode = () => {
-        setIsAdminMode(!isAdminMode);
+    const selectRole = (role) => {
+        setLoginRole(role);
         setIsSignup(false);
         setIsForgot(false);
         setError('');
         setSuccess('');
-        if (!isAdminMode) {
-            setEmail('aditya.poddar3698@gmail.com');
-        } else {
-            setEmail('');
-        }
+        setAvatarFile(null);
+        // Prefill the known admin address; clear it otherwise.
+        setEmail(role === 'admin' ? 'aditya.poddar3698@gmail.com' : '');
     };
 
     const handleForgotPassword = async (e) => {
@@ -78,7 +80,12 @@ export default function Login() {
         setLoading(true);
         try {
             if (isSignup && !isAdminMode) {
-                await signup(email, password);
+                const data = await signup(email, password, loginRole);
+                // If signup returned a live session (email confirmation disabled),
+                // upload the student's optimized photo right away.
+                if (loginRole === 'applicant' && avatarFile && data?.session?.access_token) {
+                    try { await api.uploadStudentAvatar(avatarFile, data.session.access_token); } catch { /* set later in profile */ }
+                }
                 setSuccess('Account created! Check your email for verification, or log in now.');
                 setIsSignup(false);
             } else {
@@ -91,6 +98,8 @@ export default function Login() {
                         return;
                     }
                 } else {
+                    // Land on the recruiter home; the persona gate redirects
+                    // students to /student automatically once the role loads.
                     navigate('/');
                 }
             }
@@ -139,28 +148,6 @@ export default function Login() {
                     maxWidth: 420,
                 }}
             >
-                {/* Admin Toggle Button (Absolute Top Right) */}
-                <button
-                    type="button"
-                    onClick={toggleAdminMode}
-                    style={{
-                        position: 'absolute',
-                        top: isMobile ? 12 : 16,
-                        right: isMobile ? 12 : 16,
-                        zIndex: 20,
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: 8,
-                        borderRadius: '50%',
-                        color: isAdminMode ? '#f59e0b' : 'var(--text3)',
-                        transition: 'all 0.3s ease',
-                    }}
-                    title={isAdminMode ? "Switch to User Login" : "Admin Vault Access"}
-                >
-                    <Shield size={20} />
-                </button>
-
                 {/* Outer glow border */}
                 <div style={{
                     position: 'absolute',
@@ -237,9 +224,45 @@ export default function Login() {
                         </div>
                     </motion.div>
 
+                    {/* ── Role switcher (Student is primary & default) ── */}
+                    <div role="tablist" aria-label="Select login type" style={{
+                        display: 'flex', gap: 6, padding: 5, marginBottom: isMobile ? 20 : 26,
+                        background: 'var(--bg3)', border: '1.5px solid var(--border)', borderRadius: 12,
+                    }}>
+                        {ROLES.map(r => {
+                            const Icon = r.icon;
+                            const sel = loginRole === r.key;
+                            const isStudent = r.key === 'applicant';
+                            const accent = r.key === 'admin' ? '#f59e0b' : 'var(--btn)';
+                            return (
+                                <button
+                                    key={r.key}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={sel}
+                                    onClick={() => selectRole(r.key)}
+                                    style={{
+                                        flex: isStudent ? 1.25 : 1, position: 'relative', cursor: 'pointer',
+                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                                        padding: '10px 6px', borderRadius: 9, border: 'none',
+                                        background: sel ? (r.key === 'admin' ? '#f59e0b' : 'var(--btn)') : 'transparent',
+                                        color: sel ? (r.key === 'admin' ? '#fff' : 'var(--btn-fg)') : 'var(--text2)',
+                                        transition: 'all .25s cubic-bezier(.22,1,.36,1)', fontFamily: 'var(--font)',
+                                    }}
+                                >
+                                    <Icon size={isStudent ? 19 : 17} />
+                                    <span style={{ fontSize: isStudent ? 11.5 : 10.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase' }}>{r.label}</span>
+                                    {isStudent && !sel && (
+                                        <span style={{ position: 'absolute', top: 4, right: 6, fontSize: 7.5, letterSpacing: '.1em', color: 'var(--text3)', textTransform: 'uppercase' }}>Primary</span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+
                     {/* Title */}
                     <motion.div
-                        key={isAdminMode ? 'admin' : (isForgot ? 'forgot' : (isSignup ? 'signup' : 'login'))}
+                        key={loginRole + (isForgot ? 'forgot' : (isSignup ? 'signup' : 'login'))}
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.4 }}
@@ -253,19 +276,44 @@ export default function Login() {
                             letterSpacing: '.05em',
                             marginBottom: 6,
                         }}>
-                            {isAdminMode ? 'Admin Vault Access' : (isForgot ? 'Reset Password' : (isSignup ? 'Create Account' : 'Welcome Back'))}
+                            {isAdminMode ? 'Admin Vault Access' : (isForgot ? 'Reset Password' : (isSignup ? `Create ${loginRole === 'applicant' ? 'Applicant' : 'Recruiter'} Account` : (loginRole === 'applicant' ? 'Applicant Login' : 'Recruiter Login')))}
                         </h2>
                         <p style={{
                             fontSize: 12,
                             color: 'var(--text3)',
                             letterSpacing: '.08em',
                         }}>
-                            {isAdminMode 
+                            {isAdminMode
                                 ? 'Restricted area for system owner'
-                                : (isForgot ? 'Enter your email to receive a password reset link' : (isSignup ? 'Sign up to access the AI recruitment platform' : 'Sign in to your AI recruitment dashboard'))
+                                : (isForgot ? 'Enter your email to receive a password reset link'
+                                    : (isSignup
+                                        ? (loginRole === 'applicant' ? 'Sign up to browse jobs and apply with AI screening' : 'Sign up to post jobs and screen candidates')
+                                        : (loginRole === 'applicant' ? 'Sign in to find jobs and track your applications' : 'Sign in to your recruitment dashboard')))
                             }
                         </p>
                     </motion.div>
+
+                    {/* Optional student profile photo (signup only) */}
+                    {isSignup && loginRole === 'applicant' && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            style={{ marginBottom: 20, overflow: 'hidden' }}
+                        >
+                            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text2)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 10, fontFamily: 'var(--font)' }}>
+                                Profile Photo <span style={{ color: 'var(--text3)' }}>(optional)</span>
+                            </label>
+                            <AvatarUpload
+                                initial={(email || 'S')[0]?.toUpperCase()}
+                                size={84}
+                                compact
+                                onChange={(file) => setAvatarFile(file)}
+                            />
+                            <p style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, lineHeight: 1.5 }}>
+                                Auto-optimized to ≤200KB. You can also add or change it later in your profile.
+                            </p>
+                        </motion.div>
+                    )}
 
                     {/* Form */}
                     <form onSubmit={isForgot ? handleForgotPassword : handleSubmit}>
@@ -492,21 +540,20 @@ export default function Login() {
                                     </div>
                                     <span onClick={() => setRemember(!remember)}>Remember me</span>
                                 </label>
-                                {!isAdminMode && (
-                                    <span style={{
-                                        fontSize: 12,
-                                        color: 'var(--text3)',
-                                        cursor: 'pointer',
-                                        fontFamily: 'var(--font)',
-                                        transition: 'color .2s',
-                                    }}
-                                        onMouseEnter={(e) => e.target.style.color = 'var(--text)'}
-                                        onMouseLeave={(e) => e.target.style.color = 'var(--text3)'}
-                                        onClick={() => { setIsForgot(true); setError(''); setSuccess(''); }}
-                                    >
-                                        Forgot password?
-                                    </span>
-                                )}
+                                {/* Forgot password available for all roles */}
+                                <span style={{
+                                    fontSize: 12,
+                                    color: 'var(--text3)',
+                                    cursor: 'pointer',
+                                    fontFamily: 'var(--font)',
+                                    transition: 'color .2s',
+                                }}
+                                    onMouseEnter={(e) => e.target.style.color = 'var(--text)'}
+                                    onMouseLeave={(e) => e.target.style.color = 'var(--text3)'}
+                                    onClick={() => { setIsForgot(true); setError(''); setSuccess(''); }}
+                                >
+                                    Forgot password?
+                                </span>
                             </motion.div>
                         )}
 
@@ -599,8 +646,10 @@ export default function Login() {
                         </motion.button>
                     </form>
 
-                    {/* Divider & Toggle (Hidden in Admin Mode) */}
-                    {!isAdminMode && (
+                    {/* Divider & Toggle — registration is Student-only (recruiters
+                        are created by admins). The block also appears in forgot
+                        mode for any role so they can return to sign in. */}
+                    {(loginRole === 'applicant' || isForgot) && (
                         <>
                             <div style={{
                                 display: 'flex',

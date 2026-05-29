@@ -140,7 +140,7 @@ export default function Chatbot() {
                                                     <div className="flex justify-between items-center text-[9px] text-text-secondary tracking-wider uppercase mb-2">
                                                         <span>{candidate.job_title}</span>
                                                         {candidate.match_score !== null && (
-                                                            <span>Match: {(candidate.match_score * 100).toFixed(0)}%</span>
+                                                            <span>Match: {Math.round(candidate.match_score <= 1 ? candidate.match_score * 100 : candidate.match_score)}%</span>
                                                         )}
                                                     </div>
                                                     <p className="text-[10px] text-text-secondary/80 line-clamp-2 leading-relaxed lowercase">

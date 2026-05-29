@@ -1,20 +1,27 @@
 """
-Admin dependency to strictly verify the user identity and the Master Key.
+Admin dependency — verifies the caller is an admin via an env-driven email
+allowlist OR a server-side role claim (profiles.role == 'admin'). This replaces
+the previously hardcoded single-email check while staying backward compatible
+(the allowlist defaults to the legacy admin address).
 """
 from fastapi import HTTPException, Request, Depends
 from routes.auth_dependency import require_user
+from database import get_db
 from config import settings
 
-ADMIN_EMAIL = "aditya.poddar3698@gmail.com"
 
 def require_admin(request: Request, user=Depends(require_user)):
-    """
-    Verify the user is the designated admin.
-    """
-    if user.email != ADMIN_EMAIL:
-        raise HTTPException(
-            status_code=403, 
-            detail="Forbidden: Admin access only."
-        )
+    """Allow access only to configured admin emails or users with role='admin'."""
+    email = (getattr(user, "email", "") or "").lower()
+    if email in settings.ADMIN_EMAILS:
+        return user
 
-    return user
+    # Fall back to a server-verified role claim on the profile.
+    try:
+        res = get_db().table("profiles").select("role").eq("id", str(user.id)).execute()
+        if res.data and (res.data[0].get("role") or "").lower() == "admin":
+            return user
+    except Exception:
+        pass
+
+    raise HTTPException(status_code=403, detail="Forbidden: Admin access only.")

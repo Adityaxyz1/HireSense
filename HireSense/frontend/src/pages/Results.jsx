@@ -71,7 +71,7 @@ function SkillProficiencyGraph({ skills = [] }) {
     const maxMentions = Math.max(...skills.map(s => s.mentions), 1);
 
     return (
-        <GlassCard className="p-8">
+        <GlassCard className="card-modern p-8">
             <h3 className="text-[11px] tracking-[0.25em] font-medium uppercase mb-8"
                 style={{ color: isDark ? '#8E8E93' : '#6B7280' }}
             >
@@ -163,7 +163,9 @@ export default function Results() {
                 if (data && data.length > 0) {
                     const latest = data[0];
                     setResult({
-                        match_percentage: latest.final_score * 100,
+                        // final_score is canonically 0–100; tolerate legacy 0–1 rows.
+                        match_percentage: latest.final_score == null ? 0
+                            : (latest.final_score <= 1 ? latest.final_score * 100 : latest.final_score),
                         semantic_score: latest.semantic_score * 100,
                         skill_overlap: latest.skill_score * 100,
                         experience_score: latest.experience_score * 100,
@@ -212,6 +214,8 @@ export default function Results() {
                     style={{
                         border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
                         color: isDark ? '#F5F5F5' : '#000',
+                        borderRadius: 999,
+                        fontWeight: 600,
                     }}
                 >
                     Run Analysis <ArrowRight className="w-3 h-3 ml-2 inline" />
@@ -240,13 +244,13 @@ export default function Results() {
                 style={{ borderBottom: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.06)' }}
             >
                 <div>
-                    <h1 className="text-2xl font-light tracking-[0.1em] mb-3"
-                        style={{ color: isDark ? '#F5F5F5' : '#000' }}
+                    <h1 className="mb-3"
+                        style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.02em', color: 'var(--text)' }}
                     >
                         Analysis Results
                     </h1>
-                    <p className="text-[11px] tracking-[0.15em] uppercase flex items-center"
-                        style={{ color: isDark ? '#8E8E93' : '#6B7280' }}
+                    <p className="flex items-center"
+                        style={{ fontSize: 13, color: 'var(--text3)' }}
                     >
                         <CheckCircle className="w-3 h-3 mr-3" style={{ color: '#6366f1' }} />
                         Analysis complete — Risk Level: {riskLevel}
@@ -258,7 +262,7 @@ export default function Results() {
             <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                 {/* Ring Chart */}
-                <GlassCard className="p-8 flex flex-col items-center justify-center relative">
+                <GlassCard className="card-modern hover-lift sheen p-8 flex flex-col items-center justify-center relative">
                     <h3 className="text-[11px] tracking-[0.2em] font-medium uppercase absolute top-6 left-6"
                         style={{ color: isDark ? '#8E8E93' : '#6B7280' }}
                     >
@@ -293,7 +297,7 @@ export default function Results() {
                 </GlassCard>
 
                 {/* Score Breakdown */}
-                <GlassCard className="p-8 flex flex-col justify-center space-y-8">
+                <GlassCard className="card-modern hover-lift p-8 flex flex-col justify-center space-y-8">
                     <h3 className="text-[11px] tracking-[0.2em] font-medium uppercase"
                         style={{ color: isDark ? '#8E8E93' : '#6B7280' }}
                     >
@@ -342,7 +346,7 @@ export default function Results() {
 
             {/* AI Analysis Summary */}
             <motion.div variants={itemVariants}>
-                <GlassCard className="p-8 relative overflow-hidden">
+                <GlassCard className="card-modern sheen p-8 relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-8 opacity-[0.03]">
                         <AlertTriangle className="w-32 h-32" style={{ color: isDark ? '#fff' : '#000' }} />
                     </div>

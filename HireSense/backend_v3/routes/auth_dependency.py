@@ -2,7 +2,7 @@
 Shared authentication dependency for extracting the current user from JWT.
 """
 from fastapi import HTTPException, Request
-from database import get_db
+from database import get_auth_db
 
 
 def get_current_user(request: Request):
@@ -16,7 +16,7 @@ def get_current_user(request: Request):
         return None
     
     token = auth_header.replace("Bearer ", "")
-    db = get_db()
+    db = get_auth_db()
     try:
         # result.user will be None if the token is invalid or expired
         result = db.auth.get_user(token)

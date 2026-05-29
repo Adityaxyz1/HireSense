@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBreakpoint } from '../../hooks/useBreakpoint';
 
 const ICONS = {
     dashboard: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>,
@@ -15,6 +16,7 @@ const ICONS = {
     chevronLeft: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>,
     chevronRight: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
     profile: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>,
+    applicants: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>,
     logout: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>,
 };
 
@@ -23,6 +25,7 @@ const NAV = [
     { id: '/candidates', icon: ICONS.candidates, label: 'Candidates' },
     { id: '/jobs', icon: ICONS.jobs, label: 'Job Roles' },
     { id: '/pipeline', icon: ICONS.pipeline, label: 'Pipeline' },
+    { id: '/applicants', icon: ICONS.applicants, label: 'Applicants' },
     { id: '/ats-check', icon: ICONS.ats, label: 'ATS Checker' },
     { id: '/finder', icon: ICONS.finder, label: 'AI Finder' },
 ];
@@ -36,16 +39,7 @@ export default function Layout() {
     const [showUserMenu, setShowUserMenu] = useState(false);
     const menuRef = useRef(null);
 
-    const [width, setWidth] = useState(window.innerWidth);
-
-    useEffect(() => {
-        const handleResize = () => setWidth(window.innerWidth);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    const isMobile = width <= 640;
-    const isTablet = width > 640 && width <= 1024;
+    const { isMobile, isTablet } = useBreakpoint();
     const actualSbOpen = isMobile ? false : (isTablet ? false : sbOpen);
 
     const currentPage = location.pathname === '/profile'
@@ -88,6 +82,8 @@ export default function Layout() {
                     flexDirection: 'column',
                     transition: 'width .28s cubic-bezier(.22,1,.36,1), background .2s, border-color .2s',
                     overflow: 'hidden',
+                    position: 'relative', zIndex: 10,
+                    boxShadow: 'var(--shadow-sm)',
                 }}>
                     {/* Logo */}
                     <div style={{
@@ -143,19 +139,19 @@ export default function Layout() {
                         {NAV.map(n => {
                             const isActive = location.pathname === n.id;
                             return (
-                                <Link key={n.id} to={n.id} className="nb" style={{
+                                <Link key={n.id} to={n.id} className={`nb navlink ${isActive ? 'is-active' : ''}`} style={{
                                     display: 'flex', alignItems: 'center',
                                     justifyContent: actualSbOpen ? 'flex-start' : 'center',
                                     gap: actualSbOpen ? 10 : 0,
-                                    padding: actualSbOpen ? '9px 11px' : '9px 0',
-                                    borderRadius: 8, width: '100%',
+                                    padding: actualSbOpen ? '10px 12px' : '10px 0',
+                                    borderRadius: 10, width: '100%',
                                     textDecoration: 'none',
-                                    background: isActive ? 'var(--nav-on)' : 'transparent',
+                                    background: isActive ? 'var(--nav-on)' : undefined,
                                     color: isActive ? 'var(--nav-on-fg)' : 'var(--text2)',
-                                    transition: 'all .15s', fontFamily: 'var(--font)',
+                                    fontFamily: 'var(--font)',
                                 }}>
-                                    <span style={{
-                                        fontSize: 14, flexShrink: 0, opacity: 0.7,
+                                    <span className="navicon" style={{
+                                        fontSize: 14, flexShrink: 0, opacity: isActive ? 1 : 0.65,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center'
                                     }}>{n.icon}</span>
                                     {actualSbOpen && (
@@ -235,11 +231,11 @@ export default function Layout() {
                 <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
 
                     {/* Topbar */}
-                    <header style={{
+                    <header className="glass-soft" style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         padding: isMobile ? '0 14px' : '0 24px', height: 54,
                         borderBottom: '1.5px solid var(--border)',
-                        background: 'var(--surface)', flexShrink: 0,
+                        flexShrink: 0, position: 'relative', zIndex: 5,
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16 }}>
                             {/* Mini logo */}
@@ -290,6 +286,7 @@ export default function Layout() {
                             <div ref={menuRef} style={{ position: 'relative' }}>
                                 <div
                                     onClick={() => setShowUserMenu(!showUserMenu)}
+                                    className="rh"
                                     style={{
                                         display: 'flex', alignItems: 'center', gap: isMobile ? 0 : 10,
                                         cursor: 'pointer', padding: '4px 6px',
@@ -516,25 +513,25 @@ export default function Layout() {
 
             {/* ══════ MOBILE BOTTOM TAB BAR ══════ */}
             {isMobile && (
-                <nav style={{
+                <nav className="glass-soft" style={{
                     position: 'fixed',
                     bottom: 0,
                     left: 0,
                     right: 0,
                     height: 'calc(60px + env(safe-area-inset-bottom, 0px))',
-                    background: 'var(--surface)',
                     borderTop: '1.5px solid var(--border)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-around',
+                    padding: '0 6px',
                     paddingBottom: 'env(safe-area-inset-bottom, 0px)',
                     zIndex: 999,
-                    boxShadow: '0 -4px 20px rgba(0,0,0,0.15)',
+                    boxShadow: '0 -6px 24px rgba(0,0,0,0.12)',
                 }}>
                     {NAV.map(n => {
                         const isActive = location.pathname === n.id;
                         return (
-                            <Link key={n.id} to={n.id} className="nb" style={{
+                            <Link key={n.id} to={n.id} className={`nb navlink ${isActive ? 'is-active' : ''}`} style={{
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
@@ -542,10 +539,9 @@ export default function Layout() {
                                 gap: 4,
                                 textDecoration: 'none',
                                 color: isActive ? 'var(--nav-on-fg)' : 'var(--text2)',
-                                background: isActive ? 'var(--nav-on)' : 'transparent',
+                                background: isActive ? 'var(--nav-on)' : undefined,
                                 padding: '6px 4px',
-                                borderRadius: 8,
-                                transition: 'all .15s',
+                                borderRadius: 10,
                                 flex: 1,
                                 minWidth: 0,
                             }}>

@@ -74,7 +74,8 @@ def evaluate_resume(payload: EvaluateRequest, user=Depends(require_user)):
         "semantic_score": round(semantic_score, 4),
         "skill_score": round(skill_score, 4),
         "experience_score": round(exp_score, 4),
-        "final_score": round(final_score, 4),
+        # Canonical 0–100 scale (matches /match and what the UI expects).
+        "final_score": round(final_score * 100, 2),
         "resume_strength": strength,
         "risk_level": risk_level,
         "fair_mode_enabled": payload.fair_mode,

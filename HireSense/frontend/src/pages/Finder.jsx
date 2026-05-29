@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../lib/api';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 
 const scC = v => v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
 const AVC = ['#818cf8', '#c084fc', '#f472b6', '#34d399', '#fbbf24'];
@@ -14,20 +15,12 @@ const ICONS = {
 export default function Finder() {
     const { isDark } = useTheme();
     const navigate = useNavigate();
-    const [width, setWidth] = useState(window.innerWidth);
+    const { isMobile } = useBreakpoint();
     const [allResumes, setAllResumes] = useState([]);
     const [query, setQuery] = useState('');
     const [searched, setSearched] = useState(false);
     const [searching, setSearching] = useState(false);
     const [results, setResults] = useState([]);
-
-    useEffect(() => {
-        const handleResize = () => setWidth(window.innerWidth);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    const isMobile = width <= 640;
 
     useEffect(() => {
         api.getCandidates().then(r => setAllResumes(r || [])).catch(() => {});
@@ -62,6 +55,12 @@ export default function Finder() {
 
     return (
         <div style={{ maxWidth: 700 }}>
+            {/* Page header */}
+            <div style={{ marginBottom: 18 }}>
+                <h2 style={{ fontSize: 25, fontWeight: 700, letterSpacing: '-.02em', color: 'var(--text)' }}>Candidate Finder</h2>
+                <p style={{ fontSize: 13, color: 'var(--text3)', marginTop: 6 }}>Search your local talent pool by name, role, or skill</p>
+            </div>
+
             {/* Search bar */}
             <div style={{
                 display: 'flex',
@@ -74,33 +73,36 @@ export default function Finder() {
                         {ICONS.search}
                     </span>
                     <input value={query} onChange={e => setQuery(e.target.value)}
+                        className="focusable"
                         onKeyDown={e => e.key === 'Enter' && doSearch()}
                         placeholder="Search by name, role, or skill…"
                         style={{
                             width: '100%',
                             padding: isMobile ? '13px 16px 13px 40px' : '13px 120px 13px 40px',
                             background: 'var(--input)', border: '1.5px solid var(--border)',
-                            borderRadius: 10, color: 'var(--text)', fontSize: 13,
+                            borderRadius: 'var(--r-sm)', color: 'var(--text)', fontSize: 13,
                             outline: 'none', fontFamily: 'var(--font)', fontWeight: 400,
                         }} />
                     {!isMobile && (
                         <button onClick={() => doSearch()} style={{
                             position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                            padding: '7px 16px', borderRadius: 8, border: 'none',
+                            padding: '7px 18px', borderRadius: 999, border: 'none',
                             background: 'var(--btn)', color: 'var(--btn-fg)',
                             fontSize: 12, fontWeight: 600, cursor: 'pointer',
                             fontFamily: 'var(--font)', letterSpacing: '.04em',
+                            boxShadow: 'var(--shadow-sm)', transition: 'all .15s',
                         }}>Search</button>
                     )}
                 </div>
                 {isMobile && (
                     <button onClick={() => doSearch()} style={{
-                        padding: '12px 16px', borderRadius: 10, border: 'none',
+                        padding: '12px 16px', borderRadius: 999, border: 'none',
                         background: 'var(--btn)', color: 'var(--btn-fg)',
                         fontSize: 13, fontWeight: 600, cursor: 'pointer',
                         fontFamily: 'var(--font)', letterSpacing: '.04em',
                         width: '100%',
                         textAlign: 'center',
+                        boxShadow: 'var(--shadow-sm)', transition: 'all .15s',
                     }}>Search</button>
                 )}
             </div>
@@ -114,11 +116,13 @@ export default function Finder() {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
                         {SUGG.map(s => (
                             <button key={s} onClick={() => { setQuery(s); doSearch(s); }}
+                                className="hover-lift-sm"
                                 style={{
-                                    padding: '7px 14px', borderRadius: 8,
+                                    padding: '7px 14px', borderRadius: 999,
                                     border: '1.5px solid var(--border)', background: 'var(--card)',
                                     color: 'var(--text2)', fontSize: 12, cursor: 'pointer',
-                                    fontFamily: 'var(--font)', fontWeight: 400,
+                                    fontFamily: 'var(--font)', fontWeight: 600,
+                                    transition: 'all .15s',
                                 }}>{s}</button>
                         ))}
                     </div>
@@ -145,9 +149,8 @@ export default function Finder() {
                     </div>
 
                     {results.length === 0 && (
-                        <div style={{
+                        <div className="card-modern" style={{
                             padding: 36, textAlign: 'center',
-                            background: 'var(--card)', border: '1.5px solid var(--border)', borderRadius: 10,
                         }}>
                         <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
                             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.2 }}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -162,14 +165,15 @@ export default function Finder() {
                         const status = c.candidate_status || 'pending';
                         const m = stM(status);
                         const candId = c.resume_id || c.id;
+                        const hasScore = c.match_score != null || c.ats_score != null;
+                        const score = c.match_score != null ? c.match_score : (c.ats_score != null ? c.ats_score : 0);
                         return (
-                            <div key={c.id || i} className="up rh"
+                            <div key={c.id || i} className="up rh card-modern hover-lift"
                                 onClick={() => navigate(`/candidates?highlight=${candId}`)}
                                 title="Click to view in Candidates"
                                 style={{
-                                background: 'var(--card)', border: '1.5px solid var(--border)',
-                                borderRadius: 10, padding: '15px 18px',
-                                display: 'flex', alignItems: 'center', gap: 14, marginBottom: 9,
+                                padding: '16px 18px',
+                                display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10,
                                 animationDelay: `${i * 40}ms`, cursor: 'pointer',
                             }}>
                                 <div style={{
@@ -185,11 +189,13 @@ export default function Finder() {
                                             <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 2 }}>{c.match_score ? 'JD Matched' : c.ats_score ? 'ATS Scanned' : 'Uploaded'}</div>
                                         </div>
                                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                            <div style={{ fontSize: 24, fontWeight: 700, color: scC(c.match_score || c.ats_score || 0) }}>
-                                                {c.status === 'processing' ? (
+                                            <div style={{ fontSize: 24, fontWeight: 700, color: scC(score) }}>
+                                                {hasScore ? (
+                                                    Math.round(score)
+                                                ) : c.status === 'processing' ? (
                                                     <div style={{ width: 30, height: 22, background: 'var(--border)', borderRadius: 4, animation: 'pulse 1.5s infinite', marginLeft: 'auto' }} />
                                                 ) : (
-                                                    Math.round(c.match_score || c.ats_score || 0)
+                                                    0
                                                 )}
                                             </div>
                                             <div style={{ fontSize: 10, color: 'var(--text3)', letterSpacing: '.08em', marginTop: 2 }}>

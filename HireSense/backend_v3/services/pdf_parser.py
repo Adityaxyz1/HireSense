@@ -1,6 +1,15 @@
 import fitz  # PyMuPDF
 import re
 
+def compress_pdf(file_bytes: bytes) -> bytes:
+    """Compress PDF bytes using PyMuPDF (garbage collection and deflation)."""
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        compressed_bytes = doc.tobytes(garbage=4, deflate=True)
+        return compressed_bytes
+    except Exception as e:
+        raise ValueError(f"Failed to compress PDF: {str(e)}")
+
 def extract_text(file_bytes: bytes) -> str:
     """Extract and normalize text securely from PDF bytes."""
     text = ""

@@ -1,5 +1,25 @@
-node_modules/
+# Environment secrets
 .env
-.vscode/
+.env.*
+!.env.example
+
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
 *.log
+server.log
+
+# Data uploads
+data/uploads/
+
+# Node (if any)
+node_modules/

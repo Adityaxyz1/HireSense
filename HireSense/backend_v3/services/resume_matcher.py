@@ -29,16 +29,16 @@ Limit keyword arrays to 3-5 items each for brevity.'''
     # Direct await of the async engine
     response = await prompt_nim_async(system_prompt, user_prompt)
     
-    # Handle failures
+    # Handle failures — when the LLM is unavailable (all racers failed or no
+    # API keys), DO NOT return the fabricated random scores from the mock
+    # fallback. Return a zeroed, explicitly-degraded result so callers can
+    # surface "temporarily unavailable" instead of persisting fake numbers.
     if "error" in response or response.get("mocked"):
-        # If it's mocked or error, ensure schema
-        defaults = {
-            "semantic_score": 0.0, "keyword_coverage": 0.0, "final_score": 0,
+        return {
+            "semantic_score": 0, "keyword_coverage": 0, "final_score": 0,
             "matched_keywords": [], "missing_keywords": [], "extra_keywords": [],
-            "resume_keywords": [], "jd_keywords": []
+            "resume_keywords": [], "jd_keywords": [],
+            "degraded": True,
         }
-        for key, val in defaults.items():
-            if key not in response: response[key] = val
-        return response
 
     return response

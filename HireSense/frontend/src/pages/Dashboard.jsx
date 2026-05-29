@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../lib/api';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 import { CardSkeleton, ListSkeleton } from '../components/ui/Skeletons';
 
 const scC = v => v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
@@ -28,31 +29,32 @@ function CountUp({ target }) {
 function StatCard({ color, label, value, delta }) {
     const dc = delta > 0 ? '#4ade80' : '#f87171';
     return (
-        <div className="up" style={{
-            display: 'flex', alignItems: 'stretch',
-            border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden',
-            cursor: 'default', transition: 'border-color .15s',
+        <div className="card-modern hover-lift sheen" style={{
+            padding: '18px 20px', cursor: 'default', overflow: 'hidden',
         }}>
-            <div style={{ width: 5, background: color, flexShrink: 0 }} />
-            <div style={{ flex: 1, padding: '16px 18px', background: 'var(--card)' }}>
-                <div style={{
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <span style={{
                     fontSize: 11, color: 'var(--text3)', letterSpacing: '.07em',
-                    textTransform: 'uppercase', marginBottom: 10, fontWeight: 500,
-                }}>{label}</div>
-                <div style={{
-                    fontSize: 28, fontWeight: 700, color: 'var(--text)',
-                    lineHeight: 1, letterSpacing: '-.01em',
-                }}><CountUp target={value} /></div>
-                <div style={{ marginTop: 8, fontSize: 11, color: dc, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ display: 'flex', alignItems: 'center' }}>
-                        {delta > 0 ? (
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
-                        ) : (
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        )}
-                    </span>
-                    {Math.abs(delta)}% vs last week
-                </div>
+                    textTransform: 'uppercase', fontWeight: 600,
+                }}>{label}</span>
+                <span style={{
+                    width: 11, height: 11, borderRadius: 4, background: color,
+                    boxShadow: `0 0 14px ${color}66`, flexShrink: 0,
+                }} />
+            </div>
+            <div style={{
+                fontSize: 32, fontWeight: 700, color: 'var(--text)',
+                lineHeight: 1, letterSpacing: '-.02em',
+            }}><CountUp target={value} /></div>
+            <div style={{ marginTop: 10, fontSize: 11, color: dc, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ display: 'flex', alignItems: 'center' }}>
+                    {delta > 0 ? (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                    ) : (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    )}
+                </span>
+                {Math.abs(delta)}% vs last week
             </div>
         </div>
     );
@@ -164,20 +166,16 @@ function RingChart({ data, isDark }) {
     );
 }
 
-function Card({ children, style = {} }) {
+function Card({ children, style = {}, className = '' }) {
     return (
-        <div style={{
-            background: 'var(--card)', border: '1.5px solid var(--border)',
-            borderRadius: 10, padding: 18, transition: 'background .2s, border-color .2s',
-            ...style,
-        }}>{children}</div>
+        <div className={`card-modern ${className}`} style={{ padding: 20, ...style }}>{children}</div>
     );
 }
 
 function Sec({ title, sub }) {
     return (
         <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', letterSpacing: '.01em' }}>{title}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{title}</div>
             {sub && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>{sub}</div>}
         </div>
     );
@@ -191,16 +189,7 @@ export default function Dashboard() {
     const [filter, setFilter] = useState('all');
     const [loading, setLoading] = useState(true);
 
-    const [width, setWidth] = useState(window.innerWidth);
-
-    useEffect(() => {
-        const handleResize = () => setWidth(window.innerWidth);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    const isMobile = width <= 640;
-    const isTablet = width > 640 && width <= 1024;
+    const { isMobile } = useBreakpoint();
 
     useEffect(() => {
         setLoading(true);
@@ -239,38 +228,38 @@ export default function Dashboard() {
 
     return (
         <>
-            {/* Stat cards */}
-            <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: isMobile ? '1fr' : (isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)'), 
-                gap: 12, 
-                marginBottom: 16 
-            }}>
+            {/* Hero header */}
+            <div className="up" style={{ marginBottom: 20 }}>
+                <h2 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.02em', lineHeight: 1.1 }}>
+                    Dashboard
+                </h2>
+                <p style={{ fontSize: 13, color: 'var(--text3)', marginTop: 6 }}>
+                    Your hiring pipeline at a glance — uploads, matches and candidate flow.
+                </p>
+            </div>
+
+            {/* Stat cards — bento */}
+            <div className="bento stagger" style={{ marginBottom: 16 }}>
                 {loading ? (
                     <>
-                        <CardSkeleton />
-                        <CardSkeleton />
-                        <CardSkeleton />
-                        <CardSkeleton />
+                        <div className="col-3"><CardSkeleton /></div>
+                        <div className="col-3"><CardSkeleton /></div>
+                        <div className="col-3"><CardSkeleton /></div>
+                        <div className="col-3"><CardSkeleton /></div>
                     </>
                 ) : (
                     <>
-                        <StatCard color="#6366f1" label="Resumes Uploaded" value={totalResumes} delta={totalResumes > 0 ? totalResumes : 0} />
-                        <StatCard color="#8b5cf6" label="Matches Found" value={totalMatches} delta={totalMatches > 0 ? totalMatches : 0} />
-                        <StatCard color="#22c55e" label="Approved" value={selectedCount} delta={selectedCount > 0 ? selectedCount : 0} />
-                        <StatCard color="#f59e0b" label="Avg ATS Score" value={avgAts} delta={avgAts > 0 ? (avgAts > 70 ? 5 : 2) : 0} />
+                        <div className="col-3" style={{ '--i': 0 }}><StatCard color="#6366f1" label="Resumes Uploaded" value={totalResumes} delta={totalResumes > 0 ? totalResumes : 0} /></div>
+                        <div className="col-3" style={{ '--i': 1 }}><StatCard color="#8b5cf6" label="Matches Found" value={totalMatches} delta={totalMatches > 0 ? totalMatches : 0} /></div>
+                        <div className="col-3" style={{ '--i': 2 }}><StatCard color="#22c55e" label="Approved" value={selectedCount} delta={selectedCount > 0 ? selectedCount : 0} /></div>
+                        <div className="col-3" style={{ '--i': 3 }}><StatCard color="#f59e0b" label="Avg ATS Score" value={avgAts} delta={avgAts > 0 ? (avgAts > 70 ? 5 : 2) : 0} /></div>
                     </>
                 )}
             </div>
 
-            {/* Charts row */}
-            <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: isMobile || isTablet ? '1fr' : '1fr 1fr', 
-                gap: 12, 
-                marginBottom: 16 
-            }}>
-                <Card>
+            {/* Charts row — asymmetric bento */}
+            <div className="bento" style={{ marginBottom: 16 }}>
+                <Card className="col-8 hover-lift sheen">
                     <Sec title="Weekly Activity" sub="Uploads vs matches" />
                     <BarChart isDark={isDark} data={stats?.weekly_activity} />
                     <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
@@ -284,9 +273,7 @@ export default function Dashboard() {
                         </div>
                     </div>
                 </Card>
-                <Card style={{ 
-                    marginTop: isMobile || isTablet ? 8 : 0 
-                }}>
+                <Card className="col-4 hover-lift sheen">
                     <Sec title="Pipeline Funnel" sub="Candidate flow breakdown" />
                     <RingChart data={PIPE} isDark={isDark} />
                     <div style={{ display: 'flex', gap: 16, marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
@@ -315,13 +302,13 @@ export default function Dashboard() {
                     <div style={{ display: 'flex', gap: 6, width: isMobile ? '100%' : 'auto', overflowX: 'auto', paddingBottom: isMobile ? 4 : 0 }}>
                         {filters.map(f => (
                             <button key={f} onClick={() => setFilter(f)} style={{
-                                padding: '5px 12px', borderRadius: 7,
+                                padding: '6px 14px', borderRadius: 999,
                                 border: `1.5px solid ${f === filter ? 'var(--border2)' : 'var(--border)'}`,
                                 background: f === filter ? 'var(--btn)' : 'transparent',
                                 color: f === filter ? 'var(--btn-fg)' : 'var(--text2)',
-                                fontSize: 11, fontWeight: 500, cursor: 'pointer',
+                                fontSize: 11, fontWeight: 600, cursor: 'pointer',
                                 letterSpacing: '.04em', textTransform: 'capitalize',
-                                fontFamily: 'var(--font)',
+                                fontFamily: 'var(--font)', transition: 'all .15s',
                                 flexShrink: 0,
                             }}>{f}</button>
                         ))}
@@ -356,7 +343,8 @@ export default function Dashboard() {
                         {vis.slice(0, 10).map((c, i) => {
                             const name = c.candidate_name || (c.file_url ? c.file_url.split('/').pop()?.replace('.pdf','') : 'Candidate');
                             const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-                            const score = c.match_score || c.ats_score || 0;
+                            const hasScore = c.match_score != null || c.ats_score != null;
+                            const score = c.match_score != null ? c.match_score : (c.ats_score != null ? c.ats_score : 0);
                             return (
                                 <div key={c.id || i} className="up rh" style={{
                                     display: 'grid', 
@@ -378,10 +366,12 @@ export default function Dashboard() {
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                         <span style={{ fontSize: 15, fontWeight: 700, color: scC(score) }}>
-                                            {c.status === 'processing' ? (
+                                            {hasScore ? (
+                                                Math.round(score)
+                                            ) : c.status === 'processing' ? (
                                                 <div style={{ width: 24, height: 18, background: 'var(--border)', borderRadius: 4, animation: 'pulse 1.5s infinite' }} />
                                             ) : (
-                                                Math.round(score)
+                                                0
                                             )}
                                         </span>
                                     </div>

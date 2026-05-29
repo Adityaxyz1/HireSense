@@ -8,11 +8,15 @@ from routes.match import router as match_router
 from routes.auth import router as auth_router
 from routes.profile import router as profile_router
 from routes.admin import router as admin_router
+from routes.applications import router as applications_router
+from routes.student import router as student_router
 
 api_router = APIRouter()
 
 api_router.include_router(auth_router, tags=["Auth"])
 api_router.include_router(profile_router, tags=["Profile"])
+api_router.include_router(student_router, tags=["Student"])
+api_router.include_router(applications_router, tags=["Applications"])
 api_router.include_router(resume_router, tags=["Resume"])
 api_router.include_router(job_router, tags=["Job"])
 api_router.include_router(evaluate_router, tags=["Evaluation"])

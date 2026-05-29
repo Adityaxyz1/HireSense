@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from services.rewrite_engine import rewrite_text
+from routes.auth_dependency import require_user
 
 router = APIRouter()
 
@@ -20,7 +21,7 @@ class RewriteResponse(BaseModel):
 
 
 @router.post("/rewrite", response_model=RewriteResponse)
-async def rewrite_resume(payload: RewriteRequest):
+async def rewrite_resume(payload: RewriteRequest, user=Depends(require_user)):
     """Rewrite resume text using local heuristics only."""
     if not payload.text.strip():
         raise HTTPException(status_code=400, detail="Text cannot be empty.")

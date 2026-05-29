@@ -25,6 +25,9 @@ ALTER TABLE public.resumes ADD COLUMN IF NOT EXISTS file_url TEXT;
 ALTER TABLE public.resumes ADD COLUMN IF NOT EXISTS ats_score FLOAT DEFAULT 0;
 ALTER TABLE public.resumes ADD COLUMN IF NOT EXISTS ats_breakdown JSONB;
 ALTER TABLE public.resumes ADD COLUMN IF NOT EXISTS magical_data JSONB;
+ALTER TABLE public.resumes ADD COLUMN IF NOT EXISTS candidate_status TEXT DEFAULT 'pending';
+ALTER TABLE public.resumes ADD COLUMN IF NOT EXISTS match_score FLOAT;
+ALTER TABLE public.resumes ADD COLUMN IF NOT EXISTS match_breakdown JSONB;
 
 -- Force type cast if user_id was previously a UUID
 -- We must drop any dependent policies first
