@@ -690,8 +690,11 @@ export default function Login() {
                         </motion.button>
                     </form>
 
-                    {/* ── Social / OAuth sign-in (available to every persona) ── */}
-                    {!isForgot && (
+                    {/* ── Social / OAuth sign-in (Applicant only) ──
+                        Recruiters are admin-provisioned and admins are a fixed
+                        allowlist, so both personas sign in by email/password
+                        only — social login is never offered to them. */}
+                    {loginRole === 'applicant' && !isForgot && (
                         <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '22px 0 18px' }}>
                                 <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
