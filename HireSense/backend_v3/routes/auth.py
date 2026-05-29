@@ -54,9 +54,11 @@ async def log_signup(payload: AuthEventPayload, request: Request):
     """
     _log_auth_event("signup", payload.user_id, payload.email, request)
 
-    role = (payload.role or "recruiter").lower()
-    if role not in ("recruiter", "applicant"):
-        role = "recruiter"
+    # Recruiters are provisioned by an admin only — a self-service signup can
+    # never create one, regardless of what the client requests. Admin-allowlisted
+    # emails land in the recruiter region (so they can reach /admin); everyone
+    # else is an applicant.
+    role = "recruiter" if (payload.email or "").lower() in settings.ADMIN_EMAILS else "applicant"
 
     try:
         admin = get_admin_db()
@@ -104,12 +106,11 @@ async def oauth_sync(payload: AuthEventPayload, request: Request, user=Depends(r
         _log_auth_event("login", user_id, email, request)
         return {"role": current_role, "is_new": False}
 
-    # Brand-new account: decide the persona. Admins live in the recruiter region
-    # (so they can reach /admin); otherwise honor the tab the user picked.
-    requested = (payload.role or "applicant").lower()
+    # Brand-new account: decide the persona. Recruiters are admin-provisioned
+    # only, so a self-service social sign-in can never become one — we ignore a
+    # requested 'recruiter' role here. Admin-allowlisted emails land in the
+    # recruiter region (so they can reach /admin); everyone else is an applicant.
     if email in settings.ADMIN_EMAILS:
-        final_role = "recruiter"
-    elif requested == "recruiter":
         final_role = "recruiter"
     else:
         final_role = "applicant"
