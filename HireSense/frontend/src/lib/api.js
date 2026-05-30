@@ -102,6 +102,7 @@ async function _attempt(path, {
     fallbackError,
     timeoutMessage = 'Request timed out. Please try again.',
     authHeaders,
+    skipAuthRedirect = false,
 } = {}) {
     const headers = {};
     if (json !== false && !(body instanceof FormData)) {
@@ -131,7 +132,9 @@ async function _attempt(path, {
         if (!res.ok) {
             // Session expired / invalid token on an authenticated call:
             // clear the stale session and bounce to login once (no loop).
-            if (res.status === 401 && auth !== false && typeof window !== 'undefined') {
+            // `skipAuthRedirect` opts out — used by the profile probe, whose 401
+            // is owned by Supabase's refresh cycle and must not force a logout.
+            if (res.status === 401 && auth !== false && !skipAuthRedirect && typeof window !== 'undefined') {
                 try { await supabase.auth.signOut(); } catch { /* ignore */ }
                 if (!window.location.pathname.startsWith('/login')) {
                     window.location.assign('/login');
@@ -167,20 +170,17 @@ async function _doRequest(path, opts = {}) {
     const retry = opts.retry !== undefined ? opts.retry : method === 'GET';
     const maxAttempts = retry ? MAX_RETRIES + 1 : 1;
 
-    let lastErr;
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    for (let attempt = 0; ; attempt++) {
         try {
             return await _attempt(path, opts);
         } catch (e) {
-            lastErr = e;
-            if (attempt < maxAttempts - 1 && e.__retryable) {
-                await _sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
-                continue;
-            }
-            throw e;
+            const canRetry = attempt < maxAttempts - 1 && e.__retryable;
+            if (!canRetry) throw e;
+            // Linear backoff + jitter so a burst of parallel GETs (e.g. the
+            // dashboard load) doesn't retry in lockstep and hammer the waking dyno.
+            await _sleep(RETRY_BASE_DELAY_MS * (attempt + 1) + Math.random() * 500);
         }
     }
-    throw lastErr;
 }
 
 export const api = {
@@ -199,6 +199,10 @@ export const api = {
     async getProfile(token = null) {
         return request('/profile', {
             fallbackError: 'Failed to load profile',
+            // A 401 here is owned by Supabase's session/refresh cycle — don't let
+            // it force a global sign-out + redirect (avoids spurious logout on a
+            // token-refresh race during restore).
+            skipAuthRedirect: true,
             ...(token ? { authHeaders: { Authorization: `Bearer ${token}` } } : {}),
         });
     },
