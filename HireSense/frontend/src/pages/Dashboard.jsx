@@ -6,8 +6,6 @@ import { CardSkeleton, ListSkeleton } from '../components/ui/Skeletons';
 
 const scC = v => v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
 const AVC = ['#818cf8', '#c084fc', '#f472b6', '#34d399', '#fbbf24'];
-// Recent Candidates: rows shown before the "Show more" toggle expands the list.
-const RECENT_COLLAPSED = 5;
 const stM = (s, isDark) => ({
     approved: { bg: isDark ? '#052e16' : '#f0fdf4', c: isDark ? '#4ade80' : '#15803d' },
     pending:  { bg: isDark ? '#1c1400' : '#fffbeb', c: isDark ? '#fbbf24' : '#b45309' },
@@ -189,7 +187,6 @@ export default function Dashboard() {
     const [resumes, setResumes] = useState([]);
     const [stats, setStats] = useState(null);
     const [filter, setFilter] = useState('all');
-    const [showAll, setShowAll] = useState(false);
     const [loading, setLoading] = useState(true);
 
     const { isMobile } = useBreakpoint();
@@ -213,10 +210,6 @@ export default function Dashboard() {
     const avgAts = stats?.avg_ats_score || 0;
 
     const vis = filter === 'all' ? resumes : resumes.filter(c => (c.candidate_status || 'pending') === filter);
-
-    // Recent Candidates is concise by default (RECENT_COLLAPSED rows) and
-    // expands to the full filtered list via the Show more / Show less toggle.
-    const visibleList = showAll ? vis : vis.slice(0, RECENT_COLLAPSED);
 
     // Only mutually exclusive statuses in the ring (they sum to totalResumes)
     const PIPE = [
@@ -308,7 +301,7 @@ export default function Dashboard() {
                     <Sec title="Recent Candidates" />
                     <div style={{ display: 'flex', gap: 6, width: isMobile ? '100%' : 'auto', overflowX: 'auto', paddingBottom: isMobile ? 4 : 0 }}>
                         {filters.map(f => (
-                            <button key={f} onClick={() => { setFilter(f); setShowAll(false); }} style={{
+                            <button key={f} onClick={() => setFilter(f)} style={{
                                 padding: '6px 14px', borderRadius: 999,
                                 border: `1.5px solid ${f === filter ? 'var(--border2)' : 'var(--border)'}`,
                                 background: f === filter ? 'var(--btn)' : 'transparent',
@@ -347,7 +340,7 @@ export default function Dashboard() {
                             </div>
                         )}
 
-                        {visibleList.map((c, i) => {
+                        {vis.slice(0, 10).map((c, i) => {
                             const name = c.candidate_name || (c.file_url ? c.file_url.split('/').pop()?.replace('.pdf','') : 'Candidate');
                             const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
                             const hasScore = c.match_score != null || c.ats_score != null;
@@ -391,28 +384,6 @@ export default function Dashboard() {
                                 </div>
                             );
                         })}
-
-                        {/* Show more / less — concise by default, expands to the full filtered list */}
-                        {vis.length > RECENT_COLLAPSED && (
-                            <div style={{
-                                display: 'flex', justifyContent: 'center',
-                                marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)',
-                            }}>
-                                <button onClick={() => setShowAll(v => !v)} className="rh" style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 7,
-                                    padding: '8px 18px', borderRadius: 999,
-                                    border: '1.5px solid var(--border)', background: 'transparent',
-                                    color: 'var(--text2)', fontSize: 12, fontWeight: 600,
-                                    letterSpacing: '.03em', cursor: 'pointer', fontFamily: 'var(--font)',
-                                    transition: 'all .15s',
-                                }}>
-                                    {showAll ? 'Show less' : `Show ${vis.length - RECENT_COLLAPSED} more`}
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: showAll ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>
-                                        <polyline points="6 9 12 15 18 9"></polyline>
-                                    </svg>
-                                </button>
-                            </div>
-                        )}
                     </>
                 )}
             </Card>
