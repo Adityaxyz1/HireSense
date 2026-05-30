@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, FileText, FileSearch, User, Sun, Moon, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, FileText, User, Sun, Moon, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
@@ -8,7 +8,6 @@ import { useBreakpoint } from '../../hooks/useBreakpoint';
 const NAV = [
     { id: '/student', icon: <Search size={18} />, label: 'Browse Jobs' },
     { id: '/student/applications', icon: <FileText size={18} />, label: 'My Applications' },
-    { id: '/student/ats-check', icon: <FileSearch size={18} />, label: 'ATS Check' },
     { id: '/student/profile', icon: <User size={18} />, label: 'Profile' },
 ];
 

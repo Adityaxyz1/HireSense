@@ -26,8 +26,6 @@ const NAV = [
     { id: '/jobs', icon: ICONS.jobs, label: 'Job Roles' },
     { id: '/pipeline', icon: ICONS.pipeline, label: 'Pipeline' },
     { id: '/applicants', icon: ICONS.applicants, label: 'Applicants' },
-    { id: '/ats-check', icon: ICONS.ats, label: 'ATS Checker' },
-    { id: '/finder', icon: ICONS.finder, label: 'AI Finder' },
 ];
 
 export default function Layout() {
