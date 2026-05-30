@@ -22,6 +22,58 @@ async function parseError(res, fallback) {
     return (body && body.detail) || fallback || res.statusText || 'Request failed';
 }
 
+// ── Lightweight client cache ───────────────────────────────────────────────
+// Cuts redundant API + DB hits two ways: (1) de-duplicates concurrent identical
+// GETs (coalesce into one network call), and (2) briefly caches a small allowlist
+// of stable read endpoints. Any write clears the cache. Realtime-driven endpoints
+// (/candidates, /applications/mine, /jobs/{id}/applications, /student/resumes, …)
+// are intentionally NOT cached so live updates stay fresh.
+const CACHE_TTL_MS = 4000;
+const CACHEABLE_GETS = ['/feed/jobs', '/jobs', '/stats', '/student/profile'];
+const _getCache = new Map();   // key -> { ts, data }
+const _inflight = new Map();   // key -> Promise
+
+function _isCacheableGet(path) {
+    const p = path.split('?')[0];
+    return CACHEABLE_GETS.includes(p);
+}
+
+/**
+ * Caching wrapper around the raw fetch (_doRequest):
+ * serves fresh cache for allowlisted GETs, coalesces in-flight GETs, and
+ * invalidates the cache after any mutating request.
+ */
+async function request(path, opts = {}) {
+    const method = opts.method || 'GET';
+    const key = `${method} ${path}`;
+
+    if (method === 'GET') {
+        if (_isCacheableGet(path)) {
+            const hit = _getCache.get(key);
+            if (hit && (Date.now() - hit.ts) < CACHE_TTL_MS) return hit.data;
+        }
+        const pending = _inflight.get(key);
+        if (pending) return pending;
+
+        const p = _doRequest(path, opts);
+        _inflight.set(key, p);
+        try {
+            const data = await p;
+            if (_isCacheableGet(path)) _getCache.set(key, { ts: Date.now(), data });
+            return data;
+        } finally {
+            _inflight.delete(key);
+        }
+    }
+
+    // Mutating request: run it, then drop cached reads so the next read is fresh.
+    try {
+        return await _doRequest(path, opts);
+    } finally {
+        _getCache.clear();
+    }
+}
+
 /**
  * Centralized fetch wrapper.
  *
@@ -30,7 +82,7 @@ async function parseError(res, fallback) {
  * - Throws `Error(parseError(...))` on non-2xx responses.
  * - Optional `timeoutMs` aborts the request and surfaces `timeoutMessage`.
  */
-async function request(path, {
+async function _doRequest(path, {
     method = 'GET',
     body,
     auth = true,

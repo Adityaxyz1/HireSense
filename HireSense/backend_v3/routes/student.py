@@ -95,7 +95,7 @@ def update_applicant_profile(payload: ApplicantProfileUpdate, background_tasks: 
     """Update the applicant's editable profile fields. When a GitHub URL is set
     or changed, kick a background fetch of their public GitHub profile."""
     db = get_admin_db()
-    _ensure_applicant_profile(db, user)
+    existing = _ensure_applicant_profile(db, user)
 
     updates = {}
     if payload.full_name is not None:
@@ -111,7 +111,13 @@ def update_applicant_profile(payload: ApplicantProfileUpdate, background_tasks: 
     if payload.github_url is not None:
         gh = payload.github_url.strip()
         updates["github_url"] = gh or None
-        github_action = "fetch" if gh else "clear"
+        if not gh:
+            github_action = "clear"
+        else:
+            # Only re-hit the GitHub API when the URL actually changed or we have
+            # no cached data yet — avoids a redundant fetch on every profile save.
+            prev = (existing.get("github_url") or "").strip()
+            github_action = "fetch" if (gh != prev or not existing.get("github_data")) else None
 
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update.")

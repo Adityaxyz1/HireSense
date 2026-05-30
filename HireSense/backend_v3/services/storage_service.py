@@ -24,12 +24,19 @@ def upload_resume_pdf(file_bytes: bytes, filename: str) -> str:
     return f"/uploads/{unique_filename}"
 
 
+_ENSURED_BUCKETS = set()  # memo: don't re-hit the storage API on every upload
+
+
 def _ensure_bucket(db, bucket: str):
-    """Best-effort create of a private bucket; ignores 'already exists'."""
+    """Best-effort create of a private bucket; ignores 'already exists'.
+    Memoized per-process so create_bucket runs at most once per bucket."""
+    if bucket in _ENSURED_BUCKETS:
+        return
     try:
         db.storage.create_bucket(bucket)
     except Exception:
         pass  # already exists, or perms — a real upload error surfaces below
+    _ENSURED_BUCKETS.add(bucket)
 
 
 def upload_applicant_resume_pdf(file_bytes: bytes, filename: str, user_id: str) -> str:

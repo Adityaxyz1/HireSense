@@ -77,10 +77,14 @@ async def lifespan(app: FastAPI):
     print(f"Backend started: {settings.PROJECT_NAME}")
     # Warm the embedding model off the event loop so the first job/resume
     # upload doesn't pay the torch + SentenceTransformer cold-start. Boot
-    # stays fast — we don't await this.
-    import asyncio
-    from services.embedding_engine import warm_model
-    asyncio.create_task(asyncio.to_thread(warm_model))
+    # stays fast — we don't await this. Skippable on memory-constrained hosts
+    # (WARM_EMBEDDING_MODEL=false) where it would otherwise slow all requests.
+    if settings.WARM_EMBEDDING_MODEL:
+        import asyncio
+        from services.embedding_engine import warm_model
+        asyncio.create_task(asyncio.to_thread(warm_model))
+    else:
+        print("Embedding model warmup disabled (WARM_EMBEDDING_MODEL=false) — lazy-loading on first use.")
     # Security: warn if critical keys are missing
     if not (settings.NVIDIA_NIM_API_KEY_DEEPSEEK or settings.NVIDIA_NIM_API_KEY_META or settings.NVIDIA_NIM_API_KEY_GEMMA):
         print("WARNING: No NVIDIA_NIM_API_KEY set in .env — AI features will fail.")
