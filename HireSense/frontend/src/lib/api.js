@@ -316,11 +316,11 @@ export const api = {
         return request(`/jobs/${jobId}/applications`, { fallbackError: 'Failed to load applicants' });
     },
 
-    async getStudentProfile() {
-        return request('/student/profile', { fallbackError: 'Failed to load student profile' });
+    async getApplicantProfile() {
+        return request('/student/profile', { fallbackError: 'Failed to load applicant profile' });
     },
 
-    async updateStudentProfile(updates) {
+    async updateApplicantProfile(updates) {
         return request('/student/profile', {
             method: 'PUT',
             body: JSON.stringify(updates),
@@ -328,9 +328,9 @@ export const api = {
         });
     },
 
-    // Upload an (already client-optimized) student avatar. `token` lets the
+    // Upload an (already client-optimized) applicant avatar. `token` lets the
     // signup flow upload before AuthContext has a session cached.
-    async uploadStudentAvatar(file, token = null) {
+    async uploadApplicantAvatar(file, token = null) {
         const formData = new FormData();
         formData.append('file', file);
         return request('/student/profile/avatar', {
@@ -340,6 +340,41 @@ export const api = {
             fallbackError: 'Failed to upload profile picture',
             // When a token is passed, use it directly instead of the session.
             ...(token ? { authHeaders: { Authorization: `Bearer ${token}` } } : {}),
+        });
+    },
+
+    // ── Applicant ATS checker ───────────────────────────────────
+    async applicantAtsCheck(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        return request('/student/ats-check', {
+            method: 'POST',
+            body: formData,
+            json: false,
+            fallbackError: 'ATS check failed',
+            timeoutMs: 45000, // racing engine returns faster
+            timeoutMessage: 'ATS analysis timed out. Please try again.',
+        });
+    },
+
+    async getApplicantResumes() {
+        return request('/student/resumes', { fallbackError: 'Failed to load your resumes' });
+    },
+
+    async deleteApplicantResume(resumeId) {
+        return request(`/student/resumes/${resumeId}`, { method: 'DELETE', fallbackError: 'Failed to remove resume' });
+    },
+
+    async replaceApplicantResume(resumeId, file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        return request(`/student/resumes/${resumeId}`, {
+            method: 'PUT',
+            body: formData,
+            json: false,
+            fallbackError: 'Failed to replace resume',
+            timeoutMs: 45000,
+            timeoutMessage: 'ATS analysis timed out. Please try again.',
         });
     }
 };

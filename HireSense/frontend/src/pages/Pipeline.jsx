@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../lib/api';
+import { supabase } from '../lib/supabase';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { BoardSkeleton } from '../components/ui/Skeletons';
 
@@ -20,6 +21,16 @@ export default function Pipeline() {
     const [candidates, setCandidates] = useState([]);
     const [draggingId, setDraggingId] = useState(null);
     const [loading, setLoading] = useState(true);
+    const debounce = useRef(null);
+
+    // Debounced refetch — fired by realtime events so applied candidates and
+    // their scores stream in live without a manual refresh.
+    const refetch = useCallback(() => {
+        clearTimeout(debounce.current);
+        debounce.current = setTimeout(() => {
+            api.getCandidates().then(r => setCandidates(r || [])).catch(() => {});
+        }, 250);
+    }, []);
 
     useEffect(() => {
         setLoading(true);
@@ -27,13 +38,28 @@ export default function Pipeline() {
             .then(r => setCandidates(r || []))
             .catch(() => {})
             .finally(() => setLoading(false));
-    }, []);
+
+        const channel = supabase
+            .channel('pipeline-candidates')
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'resumes' }, refetch)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'match_results' }, refetch)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, refetch)
+            .subscribe();
+        return () => { supabase.removeChannel(channel); clearTimeout(debounce.current); };
+    }, [refetch]);
 
     const moveCard = async (id, newStatus) => {
         if (!id) return;
+        const cand = candidates.find(c => c.id === id);
         setCandidates(prev => prev.map(c => c.id === id ? { ...c, candidate_status: newStatus } : c));
         try {
-            await api.updateResumeStatus(id, newStatus);
+            // Applied candidates' status lives on their match_result; uploaded
+            // resumes' status lives on the resume row.
+            if (cand?.source === 'application' && cand.match_id) {
+                await api.updateCandidateStatus(cand.match_id, newStatus);
+            } else {
+                await api.updateResumeStatus(id, newStatus);
+            }
         } catch (e) { console.error(e); }
     };
 

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../lib/api';
+import { supabase } from '../lib/supabase';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { ListSkeleton } from '../components/ui/Skeletons';
 
@@ -48,6 +49,8 @@ export default function Candidates() {
     const [expandedId, setExpandedId] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const debounce = useRef(null);
+
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
@@ -60,7 +63,26 @@ export default function Candidates() {
         }
     }, []);
 
-    useEffect(() => { loadData(); }, [loadData]);
+    // Debounced silent refetch driven by realtime (no loading flash).
+    const refetch = useCallback(() => {
+        clearTimeout(debounce.current);
+        debounce.current = setTimeout(() => {
+            api.getCandidates().then(r => setCandidates(r || [])).catch(() => {});
+        }, 250);
+    }, []);
+
+    useEffect(() => {
+        loadData();
+        // Live: applied candidates + their scores stream in as the screening
+        // engine writes resumes / match_results / applications.
+        const channel = supabase
+            .channel('candidates-live')
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'resumes' }, refetch)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'match_results' }, refetch)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, refetch)
+            .subscribe();
+        return () => { supabase.removeChannel(channel); clearTimeout(debounce.current); };
+    }, [loadData, refetch]);
 
     // Auto-expand highlighted candidate from Finder
     useEffect(() => {
@@ -68,12 +90,18 @@ export default function Candidates() {
         if (hl) setExpandedId(hl);
     }, [searchParams]);
 
-    const updateStatus = async (resumeId, status) => {
-        setUpdatingId(resumeId);
+    const updateStatus = async (cand, status) => {
+        setUpdatingId(cand.id);
         try {
-            await api.updateResumeStatus(resumeId, status);
+            // Applied candidates: status lives on the match_result. Uploaded
+            // resumes: status lives on the resume row.
+            if (cand.source === 'application' && cand.match_id) {
+                await api.updateCandidateStatus(cand.match_id, status);
+            } else {
+                await api.updateResumeStatus(cand.id, status);
+            }
             setCandidates(prev => prev.map(c =>
-                c.id === resumeId ? { ...c, candidate_status: status } : c
+                c.id === cand.id ? { ...c, candidate_status: status } : c
             ));
         } catch (e) {
             console.error('Status update failed:', e);
@@ -226,6 +254,9 @@ export default function Candidates() {
                     const isHighlighted = searchParams.get('highlight') === c.id;
                     const hasScore = c.match_score != null || c.ats_score != null;
                     const score = c.match_score != null ? c.match_score : (c.ats_score != null ? c.ats_score : 0);
+                    // Applied candidates' resumes are owned by the applicant — the
+                    // recruiter can triage but must not delete them.
+                    const isApplied = c.source === 'application';
 
                     // Parse stored breakdown data
                     let atsBreakdown = [];
@@ -336,9 +367,9 @@ export default function Candidates() {
                                             {STATUS_META[candStatus]?.label || 'Pending'}
                                         </span>
                                         <button
-                                            onClick={() => !uploading && handleDelete(c.id)}
-                                            title="Delete Candidate"
-                                            disabled={uploading}
+                                            onClick={() => !uploading && !isApplied && handleDelete(c.id)}
+                                            title={isApplied ? "Applicant resumes can't be deleted here" : "Delete Candidate"}
+                                            disabled={uploading || isApplied}
                                             style={{
                                                 width: 22, height: 22, borderRadius: 6, border: 'none',
                                                 cursor: uploading ? 'default' : 'pointer',
@@ -363,7 +394,7 @@ export default function Candidates() {
                                                 return (
                                                     <button
                                                         key={v}
-                                                        onClick={() => !uploading && updateStatus(c.id, v)}
+                                                        onClick={() => !uploading && updateStatus(c, v)}
                                                         title={title}
                                                         disabled={uploading}
                                                         style={{
@@ -418,7 +449,7 @@ export default function Candidates() {
                                                 return (
                                                     <button
                                                         key={v}
-                                                        onClick={() => !uploading && updateStatus(c.id, v)}
+                                                        onClick={() => !uploading && updateStatus(c, v)}
                                                         title={title}
                                                         disabled={uploading}
                                                         style={{

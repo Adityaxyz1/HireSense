@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../lib/api';
+import { supabase } from '../lib/supabase';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 
 const scC = v => v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
@@ -22,9 +23,25 @@ export default function Finder() {
     const [searching, setSearching] = useState(false);
     const [results, setResults] = useState([]);
 
+    const debounce = useRef(null);
+    const refetch = useCallback(() => {
+        clearTimeout(debounce.current);
+        debounce.current = setTimeout(() => {
+            api.getCandidates().then(r => setAllResumes(r || [])).catch(() => {});
+        }, 250);
+    }, []);
+
     useEffect(() => {
         api.getCandidates().then(r => setAllResumes(r || [])).catch(() => {});
-    }, []);
+        // Keep the searchable talent pool live as applicants are screened.
+        const channel = supabase
+            .channel('finder-candidates')
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'resumes' }, refetch)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'match_results' }, refetch)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, refetch)
+            .subscribe();
+        return () => { supabase.removeChannel(channel); clearTimeout(debounce.current); };
+    }, [refetch]);
 
     const doSearch = (q) => {
         const raw = (q || query).trim();

@@ -39,7 +39,7 @@ export default function Layout() {
     const [showUserMenu, setShowUserMenu] = useState(false);
     const menuRef = useRef(null);
 
-    // Shared, rAF-debounced breakpoint hook (same one StudentLayout uses).
+    // Shared, rAF-debounced breakpoint hook (same one ApplicantLayout uses).
     const { isMobile, isTablet } = useBreakpoint();
     const actualSbOpen = isMobile ? false : (isTablet ? false : sbOpen);
 

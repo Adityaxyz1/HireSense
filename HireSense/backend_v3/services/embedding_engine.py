@@ -22,3 +22,16 @@ def generate_embedding(text: str) -> list[float]:
     embedding = model.encode(text)
     return embedding.tolist()
 
+
+def warm_model() -> None:
+    """Eagerly load + initialize the SentenceTransformer so the first real
+    request doesn't pay the torch/model cold-start. Safe to call at startup
+    in a background thread; failures are non-fatal (lazy load still works)."""
+    try:
+        model = get_model()
+        # A tiny encode finishes torch's lazy CUDA/CPU kernel init.
+        model.encode("warmup")
+        print("SentenceTransformer model warmed up.")
+    except Exception as e:
+        print(f"Model warmup skipped (non-fatal): {e}")
+

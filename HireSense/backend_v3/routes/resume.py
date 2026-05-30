@@ -3,7 +3,7 @@ from fastapi import APIRouter, File, UploadFile, BackgroundTasks, Form, HTTPExce
 from pydantic import BaseModel
 import json as _json
 
-from database import get_db, row_to_dict
+from database import get_db, get_admin_db, row_to_dict
 from services.pdf_parser import extract_text
 from services.storage_service import upload_resume_pdf
 from services.embedding_engine import generate_embedding
@@ -136,16 +136,79 @@ def list_resumes(user=Depends(require_user)):
 
 @router.get("/candidates")
 def list_candidates(user=Depends(require_user)):
-    """List uploaded resumes as candidates — scoped to authenticated user."""
+    """List candidates for the recruiter — a merged, de-duplicated view of:
+
+    1. `source="upload"`  — resumes the recruiter uploaded themselves.
+    2. `source="application"` — applicants to the recruiter's jobs (the resume
+       is owned by the applicant, so it's fetched via the service-role client
+       and joined through `applications` → `match_results`).
+
+    Frontend uses `source` to route status writes to the correct endpoint
+    (`/resumes/{id}/status` for uploads, `/results/{match_id}/status` for
+    applications).
+    """
     db = get_db()
-    # Enforce strict user_id filtering
-    response = db.table("resumes").select("*").eq("user_id", str(user.id)).order("created_at", desc=True).execute()
+    uid = str(user.id)
     result = []
+
+    # ── Source 1: recruiter-owned uploaded resumes ──
+    response = db.table("resumes").select("*").eq("user_id", uid).order("created_at", desc=True).execute()
     for r in response.data:
         row = row_to_dict(r)
         if not row.get("candidate_status"):
             row["candidate_status"] = "pending"
+        row["source"] = "upload"
         result.append(row)
+
+    # ── Source 2: applicants to this recruiter's jobs ──
+    try:
+        job_ids = [j["id"] for j in (
+            db.table("job_descriptions").select("id").eq("user_id", uid).execute().data or []
+        )]
+        if job_ids:
+            admin = get_admin_db()
+            apps = (admin.table("applications")
+                    .select(
+                        "id, status, created_at, resume_id, match_result_id, job_id, "
+                        "job_descriptions (title), "
+                        "applicant_profiles (full_name), "
+                        "resumes (candidate_name, file_url, ats_score, ats_breakdown, "
+                        "match_breakdown, status, raw_text), "
+                        "match_results (id, final_score, candidate_status, risk_level, "
+                        "skill_score, semantic_score)"
+                    )
+                    .in_("job_id", job_ids)
+                    .order("created_at", desc=True)
+                    .execute()).data or []
+            for a in apps:
+                job = a.get("job_descriptions") or {}
+                prof = a.get("applicant_profiles") or {}
+                resume = a.get("resumes") or {}
+                match = a.get("match_results") or {}
+                result.append({
+                    "id": a.get("resume_id"),
+                    "resume_id": a.get("resume_id"),
+                    "source": "application",
+                    "application_id": a.get("id"),
+                    "match_id": match.get("id") or a.get("match_result_id"),
+                    "candidate_status": match.get("candidate_status") or "pending",
+                    "candidate_name": prof.get("full_name") or resume.get("candidate_name"),
+                    "file_url": resume.get("file_url"),
+                    "ats_score": resume.get("ats_score"),
+                    "ats_breakdown": resume.get("ats_breakdown"),
+                    "match_breakdown": resume.get("match_breakdown"),
+                    "match_score": match.get("final_score"),
+                    "risk_level": match.get("risk_level"),
+                    "skill_score": match.get("skill_score"),
+                    "semantic_score": match.get("semantic_score"),
+                    "status": resume.get("status"),
+                    "raw_text": resume.get("raw_text"),
+                    "created_at": a.get("created_at"),
+                    "job_title": job.get("title"),
+                })
+    except Exception as e:
+        print(f"Applied-candidates merge skipped (non-fatal): {e}")
+
     return result
 
 

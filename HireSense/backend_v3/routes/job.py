@@ -2,22 +2,33 @@ from fastapi import APIRouter, HTTPException, Request, Depends, UploadFile, File
 import json
 import uuid
 
-from database import get_db, new_id
+from database import get_db, get_admin_db, new_id
 from services.embedding_engine import generate_embedding
 from services.pdf_parser import compress_pdf, extract_text
-from routes.schemas import JobUploadRequest, JobUploadResponse, JobUpdateRequest, EvaluateRequest
+from routes.schemas import JobUploadRequest, JobUploadResponse, JobUpdateRequest
 from routes.auth_dependency import require_user
-from routes.evaluate import evaluate_resume
+from routes.applications import rescore_application
 
 router = APIRouter()
 
-# Allowed job lifecycle states (kept permissive to match the UI + student feed).
+# Allowed job lifecycle states (kept permissive to match the UI + applicant feed).
 ALLOWED_JOB_STATUSES = {"draft", "active", "published", "closed", "archived", "paused"}
 
 
+def _embed_job_background(job_id: str, text: str):
+    """Compute the JD embedding off the request path and store it. Matching
+    regenerates embeddings on the fly, so a briefly-null vector is harmless."""
+    try:
+        vector = generate_embedding(text)
+        get_db().table("job_descriptions").update({"embedding": vector}).eq("id", job_id).execute()
+    except Exception as e:
+        print(f"Background JD embedding failed for {job_id} (non-fatal): {e}")
+
+
 @router.post("/upload-job", response_model=JobUploadResponse)
-def upload_job(payload: JobUploadRequest, user=Depends(require_user)):
-    """Save a job description and compute its embedding — scoped to authenticated user."""
+def upload_job(payload: JobUploadRequest, background_tasks: BackgroundTasks, user=Depends(require_user)):
+    """Save a job description and return immediately — the embedding is computed
+    in the background so job creation feels instant for the recruiter."""
     text = payload.job_text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="Job text cannot be empty.")
@@ -26,8 +37,6 @@ def upload_job(payload: JobUploadRequest, user=Depends(require_user)):
     user_id = str(user.id)
 
     try:
-        vector = generate_embedding(text)
-
         job_id = new_id()
         db = get_db()
         data = {
@@ -35,9 +44,11 @@ def upload_job(payload: JobUploadRequest, user=Depends(require_user)):
             "user_id": user_id,
             "job_text": text,
             "title": payload.title or f"Job Description {job_id[:8]}",
-            "embedding": vector
         }
         db.table("job_descriptions").insert(data).execute()
+
+        # Embedding is deferred — return the job_id without waiting on the model.
+        background_tasks.add_task(_embed_job_background, job_id, text)
 
         return JobUploadResponse(job_id=job_id)
     except Exception as e:
@@ -146,24 +157,27 @@ async def upload_job_document(job_id: str, file: UploadFile = File(...), user=De
         raise HTTPException(status_code=500, detail="Failed to upload document.")
 
 
-def run_matches_background(job_id: str, user):
-    """Background task to run matches for all resumes against a job."""
+async def run_matches_background(job_id: str, user):
+    """Re-screen ONLY the candidates who applied to this job — not every resume
+    the recruiter owns. Reuses the shared screening engine (rescore_application),
+    which upserts each applicant's match_result and preserves recruiter triage."""
     try:
-        db = get_db()
-        # Fetch all resumes for the user
-        resumes_res = db.table("resumes").select("id").eq("user_id", str(user.id)).execute()
-        if not resumes_res.data:
-            return
-            
-        for resume in resumes_res.data:
-            resume_id = resume["id"]
-            # We call the synchronous evaluate_resume from routes.evaluate
-            # But wait, evaluate_resume takes a payload and user.
-            req = EvaluateRequest(resume_id=resume_id, job_id=job_id, fair_mode=False)
+        db = get_admin_db()  # service-role: applied resumes are applicant-owned
+        recruiter_id = str(user.id)  # job ownership verified by the caller
+
+        apps = (db.table("applications")
+                .select("id, resume_id, resumes(raw_text)")
+                .eq("job_id", job_id).execute()).data or []
+
+        for app in apps:
+            resume = app.get("resumes") or {}
+            raw_text = (resume.get("raw_text") or "").strip()
+            if not raw_text:
+                continue
             try:
-                evaluate_resume(req, user=user)
+                await rescore_application(app["id"], app["resume_id"], job_id, recruiter_id, raw_text)
             except Exception as e:
-                print(f"Match background error for resume {resume_id}: {e}")
+                print(f"Re-match error for application {app.get('id')}: {e}")
     except Exception as e:
         print(f"Match background task error: {e}")
 

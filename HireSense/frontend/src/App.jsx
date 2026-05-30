@@ -1,7 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/ui/Layout';
-import StudentLayout from './components/ui/StudentLayout';
+import ApplicantLayout from './components/ui/ApplicantLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 
@@ -21,9 +21,10 @@ const Profile = lazy(() => import('./pages/Profile'));
 const Admin = lazy(() => import('./pages/Admin'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
-const Browse = lazy(() => import('./pages/student/Browse'));
-const Applications = lazy(() => import('./pages/student/Applications'));
-const StudentProfile = lazy(() => import('./pages/student/StudentProfile'));
+const Browse = lazy(() => import('./pages/applicant/Browse'));
+const Applications = lazy(() => import('./pages/applicant/Applications'));
+const ApplicantProfile = lazy(() => import('./pages/applicant/ApplicantProfile'));
+const ApplicantAtsCheck = lazy(() => import('./pages/applicant/ApplicantAtsCheck'));
 
 const RouteFallback = () => (
   <div style={{
@@ -38,13 +39,13 @@ const RouteFallback = () => (
   </div>
 );
 
-// Persona gates: keep students inside /student and recruiters inside /.
+// Persona gates: keep applicants inside /student and recruiters inside /.
 function RecruiterGate({ children }) {
   const { role } = useAuth();
   if (role === 'applicant') return <Navigate to="/student" replace />;
   return children;
 }
-function StudentGate({ children }) {
+function ApplicantGate({ children }) {
   const { role } = useAuth();
   if (role !== 'applicant') return <Navigate to="/" replace />;
   return children;
@@ -83,17 +84,18 @@ function App() {
           <Route path="admin" element={<Admin />} />
         </Route>
 
-        {/* Student region */}
+        {/* Applicant region */}
         <Route path="/student" element={
           <ProtectedRoute>
-            <StudentGate>
-              <StudentLayout />
-            </StudentGate>
+            <ApplicantGate>
+              <ApplicantLayout />
+            </ApplicantGate>
           </ProtectedRoute>
         }>
           <Route index element={<Browse />} />
           <Route path="applications" element={<Applications />} />
-          <Route path="profile" element={<StudentProfile />} />
+          <Route path="ats-check" element={<ApplicantAtsCheck />} />
+          <Route path="profile" element={<ApplicantProfile />} />
         </Route>
       </Routes>
       </Suspense>
