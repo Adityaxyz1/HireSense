@@ -104,7 +104,7 @@ export default function ApplicantLayout() {
                             alignItems: 'center', justifyContent: actualSbOpen ? 'flex-start' : 'center', gap: 9, width: '100%',
                             color: 'var(--text2)', background: isDark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.02)',
                         }}>
-                            {isDark ? <Sun size={16} color="#fbbf24" /> : <Moon size={16} color="#6366f1" />}
+                            {isDark ? <Sun size={16} color="#d4a94f" /> : <Moon size={16} color="#a87f4c" />}
                             {actualSbOpen && <span style={{ fontSize: 11, letterSpacing: '.06em', fontWeight: 500 }}>{isDark ? 'Light Mode' : 'Dark Mode'}</span>}
                         </button>
                         <button onClick={() => setSbOpen(!sbOpen)} className="nb" style={{
@@ -136,7 +136,7 @@ export default function ApplicantLayout() {
                                 borderRadius: 8, color: 'var(--text2)', fontSize: 11,
                                 fontWeight: 500, letterSpacing: '.05em', fontFamily: 'var(--font)', cursor: 'pointer',
                             }}>
-                                {isDark ? <Sun size={16} color="#fbbf24" /> : <Moon size={16} color="#6366f1" />}
+                                {isDark ? <Sun size={16} color="#d4a94f" /> : <Moon size={16} color="#a87f4c" />}
                                 {!isMobile && <span>{isDark ? 'Light mode' : 'Dark mode'}</span>}
                             </button>
 
@@ -154,7 +154,7 @@ export default function ApplicantLayout() {
                                             <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font)' }}>{user?.email}</div>
                                         </div>
                                         <div style={{ padding: '6px' }}>
-                                            <button onClick={handleLogout} className="nb rh" style={{ width: '100%', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 8, color: '#ef4444', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font)', textAlign: 'left' }}>
+                                            <button onClick={handleLogout} className="nb rh" style={{ width: '100%', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 8, color: '#c0563a', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font)', textAlign: 'left' }}>
                                                 <LogOut size={18} /><span>Sign Out</span>
                                             </button>
                                         </div>

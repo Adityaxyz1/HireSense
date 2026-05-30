@@ -5,13 +5,13 @@ import { supabase } from '../lib/supabase';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { BoardSkeleton } from '../components/ui/Skeletons';
 
-const scC = v => v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
-const AVC = ['#818cf8', '#c084fc', '#f472b6', '#34d399', '#fbbf24'];
+const scC = v => v >= 85 ? '#7f9153' : v >= 70 ? '#c08a35' : '#c0563a';
+const AVC = ['#b08a5a', '#c0905a', '#bb7a6a', '#88a05f', '#d4a94f'];
 
 const COLS = [
-    { k: 'pending',  l: 'Pending',      c: '#f59e0b' },
-    { k: 'approved', l: 'Interviewing', c: '#22c55e' },
-    { k: 'rejected', l: 'Rejected',     c: '#ef4444' },
+    { k: 'pending',  l: 'Pending',      c: '#c08a35' },
+    { k: 'approved', l: 'Interviewing', c: '#7f9153' },
+    { k: 'rejected', l: 'Rejected',     c: '#c0563a' },
 ];
 
 export default function Pipeline() {

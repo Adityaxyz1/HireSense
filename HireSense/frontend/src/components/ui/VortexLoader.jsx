@@ -30,7 +30,7 @@ export default function VortexLoader({ isExitTriggered = false }) {
             justifyContent: 'center',
             overflow: 'hidden',
             fontFamily: 'var(--font), sans-serif',
-            color: '#f0f0f4',
+            color: '#e1dcc9',
             transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1), filter 0.6s ease',
             opacity: isExitTriggered ? 0 : 1,
             transform: isExitTriggered ? 'scale(3.5)' : 'scale(1)',
@@ -52,8 +52,8 @@ export default function VortexLoader({ isExitTriggered = false }) {
                     100% { transform: rotateX(55deg) rotateY(55deg) rotateZ(360deg); }
                 }
                 @keyframes vl-pulse-core {
-                    0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 40px rgba(240,240,244,0.12), 0 0 80px rgba(240,240,244,0.06); }
-                    50%      { transform: scale(1.08); opacity: 0.85; box-shadow: 0 0 60px rgba(240,240,244,0.2), 0 0 120px rgba(240,240,244,0.1); }
+                    0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 40px rgba(225,220,201,0.12), 0 0 80px rgba(225,220,201,0.06); }
+                    50%      { transform: scale(1.08); opacity: 0.85; box-shadow: 0 0 60px rgba(225,220,201,0.2), 0 0 120px rgba(225,220,201,0.1); }
                 }
                 @keyframes vl-glow-breathe {
                     0%, 100% { opacity: 0.15; transform: scale(1); }
@@ -83,7 +83,7 @@ export default function VortexLoader({ isExitTriggered = false }) {
                 position: 'absolute',
                 width: 300, height: 300,
                 borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(240,240,244,0.06) 0%, rgba(240,240,244,0.02) 40%, transparent 70%)',
+                background: 'radial-gradient(circle, rgba(225,220,201,0.06) 0%, rgba(225,220,201,0.02) 40%, transparent 70%)',
                 animation: 'vl-glow-breathe 4s ease-in-out infinite',
             }} />
 
@@ -152,8 +152,8 @@ export default function VortexLoader({ isExitTriggered = false }) {
                         top: -3, left: '50%', marginLeft: -3,
                         width: 6, height: 6,
                         borderRadius: '50%',
-                        background: '#f0f0f4',
-                        boxShadow: '0 0 12px rgba(240,240,244,0.5)',
+                        background: '#e1dcc9',
+                        boxShadow: '0 0 12px rgba(225,220,201,0.5)',
                         animation: 'vl-dot-pulse 2s ease-in-out infinite',
                     }} />
                 </div>
@@ -198,7 +198,7 @@ export default function VortexLoader({ isExitTriggered = false }) {
                 <div style={{
                     width: 56,
                     height: 56,
-                    background: '#f0f0f4',
+                    background: '#e1dcc9',
                     borderRadius: 14,
                     zIndex: 10,
                     display: 'flex',
@@ -252,7 +252,7 @@ export default function VortexLoader({ isExitTriggered = false }) {
                         position: 'absolute',
                         top: 0, left: 0, bottom: 0,
                         width: '40%',
-                        background: 'linear-gradient(90deg, transparent, #f0f0f4, transparent)',
+                        background: 'linear-gradient(90deg, transparent, #e1dcc9, transparent)',
                         borderRadius: 1,
                         animation: 'shimmer-slide 1.6s infinite ease-in-out',
                     }} />

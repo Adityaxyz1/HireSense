@@ -11,8 +11,8 @@ const ICONS = {
     pipeline: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path></svg>,
     ats: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 14l2 2 4-4"></path></svg>,
     finder: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
-    sun: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: '#fbbf24' }}><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>,
-    moon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none" style={{ flexShrink: 0, color: '#6366f1' }}><circle cx="12" cy="12" r="8" /></svg>,
+    sun: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: '#d4a94f' }}><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>,
+    moon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none" style={{ flexShrink: 0, color: '#a87f4c' }}><circle cx="12" cy="12" r="8" /></svg>,
     chevronLeft: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>,
     chevronRight: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
     profile: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>,
@@ -200,9 +200,9 @@ export default function Layout() {
                             background: isDark ? 'rgba(34,197,94,.04)' : 'rgba(34,197,94,.03)',
                         }}>
                             <span style={{
-                                width: 7, height: 7, borderRadius: '50%', background: '#22c55e',
+                                width: 7, height: 7, borderRadius: '50%', background: '#7f9153',
                                 flexShrink: 0, animation: 'pulse-dot 2.5s infinite',
-                                boxShadow: '0 0 6px #22c55e55',
+                                boxShadow: '0 0 6px #7f915355',
                             }} />
                             {actualSbOpen && (
                                 <span style={{
@@ -401,7 +401,7 @@ export default function Layout() {
                                                 style={{
                                                     width: '100%', padding: '10px 12px',
                                                     display: 'flex', alignItems: 'center', gap: 10,
-                                                    borderRadius: 8, color: '#ef4444',
+                                                    borderRadius: 8, color: '#c0563a',
                                                     fontSize: 13, fontWeight: 500,
                                                     fontFamily: 'var(--font)',
                                                     textAlign: 'left',

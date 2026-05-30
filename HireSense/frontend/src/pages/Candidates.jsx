@@ -6,13 +6,13 @@ import { supabase } from '../lib/supabase';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { ListSkeleton } from '../components/ui/Skeletons';
 
-const scC = v => v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
-const AVC = ['#818cf8', '#c084fc', '#f472b6', '#34d399', '#fbbf24'];
+const scC = v => v >= 85 ? '#7f9153' : v >= 70 ? '#c08a35' : '#c0563a';
+const AVC = ['#b08a5a', '#c0905a', '#bb7a6a', '#88a05f', '#d4a94f'];
 
 const STATUS_META = {
-    approved: { label: 'Approved', color: '#22c55e', bg_dark: '#052e16', bg_light: '#f0fdf4' },
-    pending: { label: 'Pending', color: '#f59e0b', bg_dark: '#1c1400', bg_light: '#fffbeb' },
-    rejected: { label: 'Rejected', color: '#ef4444', bg_dark: '#2d0a0a', bg_light: '#fff1f2' },
+    approved: { label: 'Approved', color: '#7f9153', bg_dark: '#1f2410', bg_light: '#eef0e1' },
+    pending: { label: 'Pending', color: '#c08a35', bg_dark: '#241a0b', bg_light: '#f5efe0' },
+    rejected: { label: 'Rejected', color: '#c0563a', bg_dark: '#2a1510', bg_light: '#f6ece5' },
 };
 
 const ICONS = {
@@ -280,8 +280,8 @@ export default function Candidates() {
                             borderRadius: 8, animationDelay: `${i * 28}ms`,
                             opacity: uploading ? 0.6 : 1, transition: 'all .2s',
                             cursor: 'pointer',
-                            outline: isHighlighted ? '2px solid #6366f1' : 'none',
-                            background: isHighlighted ? (isDark ? '#6366f110' : '#6366f108') : 'transparent',
+                            outline: isHighlighted ? '2px solid #a87f4c' : 'none',
+                            background: isHighlighted ? (isDark ? '#a87f4c10' : '#a87f4c08') : 'transparent',
                         }}>
                             {/* Name + avatar */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10, minWidth: 0 }}>
@@ -344,9 +344,9 @@ export default function Candidates() {
                                 <span style={{
                                     fontSize: 11, fontWeight: 600,
                                     display: 'flex', alignItems: 'center', gap: 6,
-                                    color: procStatus === 'completed' ? '#22c55e'
-                                        : procStatus === 'failed' ? '#ef4444'
-                                            : '#f59e0b',
+                                    color: procStatus === 'completed' ? '#7f9153'
+                                        : procStatus === 'failed' ? '#c0563a'
+                                            : '#c08a35',
                                     textTransform: 'uppercase', letterSpacing: '.05em',
                                 }}>
                                     {hasScore ? 'Completed' : (procStatus === 'completed' ? 'Active' : procStatus === 'failed' ? 'Error' : 'Scanning')}
@@ -376,7 +376,7 @@ export default function Candidates() {
                                                 background: 'var(--bg3)',
                                                 outline: '1.5px solid var(--border)',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                fontSize: 10, color: '#ef4444',
+                                                fontSize: 10, color: '#c0563a',
                                                 fontWeight: 700, transition: 'all .15s',
                                             }}
                                         >{ICONS.trash}</button>
@@ -419,7 +419,7 @@ export default function Candidates() {
                                                     background: 'var(--bg3)',
                                                     outline: '1.5px solid var(--border)',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    fontSize: 10, color: '#ef4444',
+                                                    fontSize: 10, color: '#c0563a',
                                                     fontWeight: 700, transition: 'all .15s',
                                                 }}
                                             >{ICONS.trash}</button>
@@ -475,7 +475,7 @@ export default function Candidates() {
                                                     marginLeft: 4, background: 'var(--bg3)',
                                                     outline: '1.5px solid var(--border)',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    fontSize: 10, color: '#ef4444',
+                                                    fontSize: 10, color: '#c0563a',
                                                     fontWeight: 700, transition: 'all .15s', opacity: 0.7
                                                 }}
                                                 onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
@@ -514,10 +514,10 @@ export default function Candidates() {
                                                         {atsBreakdown.slice(0, 8).map((b, bi) => (
                                                             <div key={bi} style={{
                                                                 padding: '5px 8px', borderRadius: 6, fontSize: 11,
-                                                                background: b.type === 'success' ? (isDark ? '#052e1666' : '#f0fdf4')
-                                                                    : b.type === 'critical' ? (isDark ? '#2d0a0a66' : '#fff1f2')
-                                                                        : (isDark ? '#1c140066' : '#fffbeb'),
-                                                                color: b.type === 'success' ? '#22c55e' : b.type === 'critical' ? '#ef4444' : '#f59e0b',
+                                                                background: b.type === 'success' ? (isDark ? '#1f241066' : '#eef0e1')
+                                                                    : b.type === 'critical' ? (isDark ? '#2a151066' : '#f6ece5')
+                                                                        : (isDark ? '#241a0b66' : '#f5efe0'),
+                                                                color: b.type === 'success' ? '#7f9153' : b.type === 'critical' ? '#c0563a' : '#c08a35',
                                                                 display: 'flex', alignItems: 'center', gap: 6,
                                                             }}>
                                                                 {b.type === 'success' ? ICONS.check : b.type === 'critical' ? ICONS.x : ICONS.alert} {b.message}
@@ -547,7 +547,7 @@ export default function Candidates() {
                                                         <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 4, fontWeight: 600, letterSpacing: '.06em' }}>MATCHED KEYWORDS</div>
                                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                                                             {matchBreakdown.matched_keywords.slice(0, 10).map((kw, ki) => (
-                                                                <span key={ki} style={{ padding: '2px 7px', borderRadius: 4, fontSize: 10, background: isDark ? '#052e16' : '#f0fdf4', color: '#22c55e', fontWeight: 500 }}>{kw}</span>
+                                                                <span key={ki} style={{ padding: '2px 7px', borderRadius: 4, fontSize: 10, background: isDark ? '#1f2410' : '#eef0e1', color: '#7f9153', fontWeight: 500 }}>{kw}</span>
                                                             ))}
                                                         </div>
                                                     </div>
@@ -557,7 +557,7 @@ export default function Candidates() {
                                                         <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 4, fontWeight: 600, letterSpacing: '.06em' }}>MISSING KEYWORDS</div>
                                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                                                             {matchBreakdown.missing_keywords.slice(0, 10).map((kw, ki) => (
-                                                                <span key={ki} style={{ padding: '2px 7px', borderRadius: 4, fontSize: 10, background: isDark ? '#2d0a0a' : '#fff1f2', color: '#ef4444', fontWeight: 500 }}>{kw}</span>
+                                                                <span key={ki} style={{ padding: '2px 7px', borderRadius: 4, fontSize: 10, background: isDark ? '#2a1510' : '#f6ece5', color: '#c0563a', fontWeight: 500 }}>{kw}</span>
                                                             ))}
                                                         </div>
                                                     </div>

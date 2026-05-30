@@ -50,14 +50,14 @@ function SkillProficiencyGraph({ skills = [] }) {
     const tierConfig = {
         high: {
             label: 'High Experience',
-            color: 'linear-gradient(90deg, #6366f1, #8b5cf6)',
-            dotColor: '#6366f1',
+            color: 'linear-gradient(90deg, #a87f4c, #9c6f4a)',
+            dotColor: '#a87f4c',
             items: high,
         },
         mid: {
             label: 'Mid Experience',
-            color: 'linear-gradient(90deg, #f59e0b, #f97316)',
-            dotColor: '#f59e0b',
+            color: 'linear-gradient(90deg, #c08a35, #c0762e)',
+            dotColor: '#c08a35',
             items: mid,
         },
         low: {
@@ -252,7 +252,7 @@ export default function Results() {
                     <p className="flex items-center"
                         style={{ fontSize: 13, color: 'var(--text3)' }}
                     >
-                        <CheckCircle className="w-3 h-3 mr-3" style={{ color: '#6366f1' }} />
+                        <CheckCircle className="w-3 h-3 mr-3" style={{ color: '#a87f4c' }} />
                         Analysis complete — Risk Level: {riskLevel}
                     </p>
                 </div>
@@ -277,7 +277,7 @@ export default function Results() {
                             />
                             <motion.circle
                                 cx="104" cy="104" r="95" strokeWidth="3" fill="transparent"
-                                stroke="#6366f1"
+                                stroke="#a87f4c"
                                 strokeDasharray={2 * Math.PI * 95}
                                 initial={{ strokeDashoffset: 2 * Math.PI * 95 }}
                                 animate={{ strokeDashoffset: (2 * Math.PI * 95) - (2 * Math.PI * 95 * atsScore / 100) }}
@@ -324,10 +324,10 @@ export default function Results() {
                                     className="h-full rounded-full"
                                     style={{
                                         background: item.value >= 70
-                                            ? 'linear-gradient(90deg, #6366f1, #8b5cf6)'
+                                            ? 'linear-gradient(90deg, #a87f4c, #9c6f4a)'
                                             : item.value >= 40
-                                                ? 'linear-gradient(90deg, #f59e0b, #f97316)'
-                                                : 'linear-gradient(90deg, #ef4444, #f87171)',
+                                                ? 'linear-gradient(90deg, #c08a35, #c0762e)'
+                                                : 'linear-gradient(90deg, #c0563a, #d2806a)',
                                     }}
                                     initial={{ width: 0 }}
                                     animate={{ width: `${item.value}%` }}
@@ -364,7 +364,7 @@ export default function Results() {
                         style={{ color: isDark ? 'rgba(245,245,245,0.7)' : 'rgba(0,0,0,0.6)' }}
                     >
                         The candidate achieved a{' '}
-                        <span className="font-medium" style={{ color: '#6366f1' }}>{atsScore}% overall match</span> score.
+                        <span className="font-medium" style={{ color: '#a87f4c' }}>{atsScore}% overall match</span> score.
                         Semantic analysis scored{' '}
                         <span className="font-medium" style={{ color: isDark ? '#F5F5F5' : '#000' }}>{semanticScore}%</span>,
                         with{' '}
@@ -372,11 +372,11 @@ export default function Results() {
                         <span className="font-medium" style={{ color: isDark ? '#F5F5F5' : '#000' }}>{expScore}% experience match</span>.
                         {skillsFound.length > 0 && (
                             <> The resume contains{' '}
-                                <span className="font-medium" style={{ color: '#6366f1' }}>
+                                <span className="font-medium" style={{ color: '#a87f4c' }}>
                                     {skillsFound.filter(s => s.tier === 'high').length} high-proficiency
                                 </span>{' '}
                                 and{' '}
-                                <span className="font-medium" style={{ color: '#f59e0b' }}>
+                                <span className="font-medium" style={{ color: '#c08a35' }}>
                                     {skillsFound.filter(s => s.tier === 'mid').length} mid-proficiency
                                 </span>{' '}
                                 skills detected across the candidate's experience.

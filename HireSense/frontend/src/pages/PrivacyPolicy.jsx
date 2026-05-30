@@ -127,7 +127,7 @@ export default function PrivacyPolicy() {
                         borderRadius: 14,
                         background: 'rgba(99, 102, 241, 0.08)',
                         border: '1.5px solid rgba(99, 102, 241, 0.2)',
-                        color: '#6366f1',
+                        color: '#a87f4c',
                         marginBottom: 20,
                     }}>
                         <Shield size={26} />
@@ -212,7 +212,7 @@ export default function PrivacyPolicy() {
                     {/* AI Processing and Algorithms */}
                     <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <Brain size={18} style={{ color: '#818cf8' }} />
+                            <Brain size={18} style={{ color: '#b08a5a' }} />
                             <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--text)' }}>3. AI Processing & Recommendation Systems</h2>
                         </div>
                         <p style={{ color: 'var(--text2)', lineHeight: '1.6', fontSize: 13.5 }}>
@@ -232,7 +232,7 @@ export default function PrivacyPolicy() {
                                 borderRadius: 12,
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                                    <Cpu size={14} style={{ color: '#6366f1' }} />
+                                    <Cpu size={14} style={{ color: '#a87f4c' }} />
                                     <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>ATS Check & Scoring</span>
                                 </div>
                                 <p style={{ fontSize: 11.5, color: 'var(--text2)', lineHeight: '1.5' }}>
@@ -246,7 +246,7 @@ export default function PrivacyPolicy() {
                                 borderRadius: 12,
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                                    <Eye size={14} style={{ color: '#22c55e' }} />
+                                    <Eye size={14} style={{ color: '#7f9153' }} />
                                     <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>AI Finder & Sourcing</span>
                                 </div>
                                 <p style={{ fontSize: 11.5, color: 'var(--text2)', lineHeight: '1.5' }}>
@@ -264,7 +264,7 @@ export default function PrivacyPolicy() {
                     {/* Data Security and Supabase */}
                     <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <CheckCircle size={18} style={{ color: '#22c55e' }} />
+                            <CheckCircle size={18} style={{ color: '#7f9153' }} />
                             <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--text)' }}>4. Security, Infrastructure & Partners</h2>
                         </div>
                         <p style={{ color: 'var(--text2)', lineHeight: '1.6', fontSize: 13.5 }}>

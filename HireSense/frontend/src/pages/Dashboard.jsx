@@ -4,14 +4,14 @@ import { api } from '../lib/api';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { CardSkeleton, ListSkeleton } from '../components/ui/Skeletons';
 
-const scC = v => v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
-const AVC = ['#818cf8', '#c084fc', '#f472b6', '#34d399', '#fbbf24'];
+const scC = v => v >= 85 ? '#7f9153' : v >= 70 ? '#c08a35' : '#c0563a';
+const AVC = ['#b08a5a', '#c0905a', '#bb7a6a', '#88a05f', '#d4a94f'];
 // Recent Candidates: rows shown before the "Show more" toggle expands the list.
 const RECENT_COLLAPSED = 5;
 const stM = (s, isDark) => ({
-    approved: { bg: isDark ? '#052e16' : '#f0fdf4', c: isDark ? '#4ade80' : '#15803d' },
-    pending:  { bg: isDark ? '#1c1400' : '#fffbeb', c: isDark ? '#fbbf24' : '#b45309' },
-    rejected: { bg: isDark ? '#2d0a0a' : '#fff1f2', c: isDark ? '#f87171' : '#be123c' },
+    approved: { bg: isDark ? '#1f2410' : '#eef0e1', c: isDark ? '#9fb06d' : '#5c6b38' },
+    pending:  { bg: isDark ? '#241a0b' : '#f5efe0', c: isDark ? '#d4a94f' : '#8a5a1f' },
+    rejected: { bg: isDark ? '#2a1510' : '#f6ece5', c: isDark ? '#d2806a' : '#9e3b2a' },
 }[s] || { bg: isDark ? '#1a1a1a' : '#f8fafc', c: isDark ? '#94a3b8' : '#64748b' });
 
 function CountUp({ target }) {
@@ -29,7 +29,7 @@ function CountUp({ target }) {
 }
 
 function StatCard({ color, label, value, delta }) {
-    const dc = delta > 0 ? '#4ade80' : '#f87171';
+    const dc = delta > 0 ? '#9fb06d' : '#d2806a';
     return (
         <div className="card-modern hover-lift sheen" style={{
             padding: '18px 20px', cursor: 'default', overflow: 'hidden',
@@ -115,7 +115,7 @@ function BarChart({ isDark, data }) {
         { d: 'Th', u: 0, m: 0 }, { d: 'Fr', u: 0, m: 0 }, { d: 'Sa', u: 0, m: 0 }, { d: 'Su', u: 0, m: 0 },
     ];
     const max = Math.max(...WEEKLY.map(d => Math.max(d.u, d.m)), 1);
-    const ca = isDark ? 'rgba(240,240,244,.8)' : '#1a1a1e';
+    const ca = isDark ? 'rgba(225,220,201,.8)' : '#1a1a1e';
     const cb = isDark ? '#2a2a34' : '#d8d5ce';
     return (
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 76, padding: '0 2px' }}>
@@ -220,15 +220,15 @@ export default function Dashboard() {
 
     // Only mutually exclusive statuses in the ring (they sum to totalResumes)
     const PIPE = [
-        { l: 'Pending', v: pendingCount, c: '#a78bfa' },
-        { l: 'Approved', v: selectedCount, c: '#22c55e' },
-        { l: 'Rejected', v: rejectedCount, c: '#ef4444' },
+        { l: 'Pending', v: pendingCount, c: '#b8966a' },
+        { l: 'Approved', v: selectedCount, c: '#7f9153' },
+        { l: 'Rejected', v: rejectedCount, c: '#c0563a' },
     ];
 
     // Info stats shown below the ring (not in the donut)
     const PIPE_INFO = [
-        { l: 'Uploaded', v: totalResumes, c: '#6366f1' },
-        { l: 'Matched', v: totalMatches, c: '#8b5cf6' },
+        { l: 'Uploaded', v: totalResumes, c: '#a87f4c' },
+        { l: 'Matched', v: totalMatches, c: '#9c6f4a' },
     ];
 
     const filters = ['all', 'pending', 'approved', 'rejected'];
@@ -256,10 +256,10 @@ export default function Dashboard() {
                     </>
                 ) : (
                     <>
-                        <div className="col-3" style={{ '--i': 0 }}><StatCard color="#6366f1" label="Resumes Uploaded" value={totalResumes} delta={totalResumes > 0 ? totalResumes : 0} /></div>
-                        <div className="col-3" style={{ '--i': 1 }}><StatCard color="#8b5cf6" label="Matches Found" value={totalMatches} delta={totalMatches > 0 ? totalMatches : 0} /></div>
-                        <div className="col-3" style={{ '--i': 2 }}><StatCard color="#22c55e" label="Approved" value={selectedCount} delta={selectedCount > 0 ? selectedCount : 0} /></div>
-                        <div className="col-3" style={{ '--i': 3 }}><StatCard color="#f59e0b" label="Avg ATS Score" value={avgAts} delta={avgAts > 0 ? (avgAts > 70 ? 5 : 2) : 0} /></div>
+                        <div className="col-3" style={{ '--i': 0 }}><StatCard color="#a87f4c" label="Resumes Uploaded" value={totalResumes} delta={totalResumes > 0 ? totalResumes : 0} /></div>
+                        <div className="col-3" style={{ '--i': 1 }}><StatCard color="#9c6f4a" label="Matches Found" value={totalMatches} delta={totalMatches > 0 ? totalMatches : 0} /></div>
+                        <div className="col-3" style={{ '--i': 2 }}><StatCard color="#7f9153" label="Approved" value={selectedCount} delta={selectedCount > 0 ? selectedCount : 0} /></div>
+                        <div className="col-3" style={{ '--i': 3 }}><StatCard color="#c08a35" label="Avg ATS Score" value={avgAts} delta={avgAts > 0 ? (avgAts > 70 ? 5 : 2) : 0} /></div>
                     </>
                 )}
             </div>
@@ -271,7 +271,7 @@ export default function Dashboard() {
                     <BarChart isDark={isDark} data={stats?.weekly_activity} />
                     <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <div style={{ width: 8, height: 8, borderRadius: 2, background: isDark ? 'rgba(240,240,244,.8)' : '#1a1a1e' }} />
+                            <div style={{ width: 8, height: 8, borderRadius: 2, background: isDark ? 'rgba(225,220,201,.8)' : '#1a1a1e' }} />
                             <span style={{ fontSize: 11, color: 'var(--text3)' }}>Uploads</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

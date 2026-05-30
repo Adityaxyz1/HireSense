@@ -71,7 +71,7 @@ function Toast({ message, type, onClose }) {
                     ? 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.08))'
                     : 'linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.08))',
                 border: `1px solid ${type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
-                color: type === 'success' ? '#22c55e' : '#ef4444',
+                color: type === 'success' ? '#7f9153' : '#c0563a',
                 fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)',
                 letterSpacing: '.03em',
                 backdropFilter: 'blur(20px)',
@@ -542,7 +542,7 @@ export default function Profile() {
                             padding: '4px 10px', borderRadius: 6,
                             background: 'rgba(34,197,94,0.1)',
                             border: '1px solid rgba(34,197,94,0.2)',
-                            color: '#22c55e', fontSize: 10,
+                            color: '#7f9153', fontSize: 10,
                             fontWeight: 600, letterSpacing: '.06em',
                             textTransform: 'uppercase', fontFamily: 'var(--font)',
                             alignSelf: isMobile ? 'flex-start' : 'center',
@@ -799,7 +799,7 @@ export default function Profile() {
                                     </div>
                                     {newPassword && confirmPassword && newPassword !== confirmPassword && (
                                         <p style={{
-                                            fontSize: 11, color: '#ef4444', marginTop: 6,
+                                            fontSize: 11, color: '#c0563a', marginTop: 6,
                                             fontFamily: 'var(--font)',
                                         }}>Passwords do not match</p>
                                     )}

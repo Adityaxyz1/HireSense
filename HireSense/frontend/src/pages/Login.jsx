@@ -237,7 +237,7 @@ export default function Login() {
                             transition: 'border 0.5s ease',
                         }}>
                             <div style={{
-                                background: isAdminMode ? 'linear-gradient(to right, #f59e0b, #d97706)' : 'var(--logo-bg)',
+                                background: isAdminMode ? 'linear-gradient(to right, #c08a35, #b0721f)' : 'var(--logo-bg)',
                                 padding: '0 18px',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -277,7 +277,7 @@ export default function Login() {
                             const Icon = r.icon;
                             const sel = loginRole === r.key;
                             const isApplicant = r.key === 'applicant';
-                            const accent = r.key === 'admin' ? '#f59e0b' : 'var(--btn)';
+                            const accent = r.key === 'admin' ? '#c08a35' : 'var(--btn)';
                             return (
                                 <button
                                     key={r.key}
@@ -289,7 +289,7 @@ export default function Login() {
                                         flex: isApplicant ? 1.25 : 1, position: 'relative', cursor: 'pointer',
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
                                         padding: '10px 6px', borderRadius: 9, border: 'none',
-                                        background: sel ? (r.key === 'admin' ? '#f59e0b' : 'var(--btn)') : 'transparent',
+                                        background: sel ? (r.key === 'admin' ? '#c08a35' : 'var(--btn)') : 'transparent',
                                         color: sel ? (r.key === 'admin' ? '#fff' : 'var(--btn-fg)') : 'var(--text2)',
                                         transition: 'all .25s cubic-bezier(.22,1,.36,1)', fontFamily: 'var(--font)',
                                     }}
@@ -316,7 +316,7 @@ export default function Login() {
                             fontFamily: 'var(--font)',
                             fontWeight: 600,
                             fontSize: 18,
-                            color: isAdminMode ? '#f59e0b' : 'var(--text)',
+                            color: isAdminMode ? '#c08a35' : 'var(--text)',
                             letterSpacing: '.05em',
                             marginBottom: 6,
                         }}>
@@ -569,7 +569,7 @@ export default function Login() {
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            background: remember ? (isAdminMode ? '#f59e0b' : 'var(--btn)') : 'transparent',
+                                            background: remember ? (isAdminMode ? '#c08a35' : 'var(--btn)') : 'transparent',
                                             transition: 'all .2s',
                                             cursor: 'pointer',
                                         }}
@@ -613,7 +613,7 @@ export default function Login() {
                                         borderRadius: 8,
                                         background: 'rgba(239,68,68,0.08)',
                                         border: '1px solid rgba(239,68,68,0.2)',
-                                        color: '#ef4444',
+                                        color: '#c0563a',
                                         fontSize: 12,
                                         marginBottom: 16,
                                         fontFamily: 'var(--font)',
@@ -632,7 +632,7 @@ export default function Login() {
                                         borderRadius: 8,
                                         background: 'rgba(34,197,94,0.08)',
                                         border: '1px solid rgba(34,197,94,0.2)',
-                                        color: '#22c55e',
+                                        color: '#7f9153',
                                         fontSize: 12,
                                         marginBottom: 16,
                                         fontFamily: 'var(--font)',
@@ -655,9 +655,9 @@ export default function Login() {
                             style={{
                                 width: '100%',
                                 padding: '14px 0',
-                                background: isAdminMode ? '#f59e0b' : 'var(--btn)',
+                                background: isAdminMode ? '#c08a35' : 'var(--btn)',
                                 color: isAdminMode ? '#fff' : 'var(--btn-fg)',
-                                border: isAdminMode ? '1.5px solid #d97706' : '1.5px solid var(--border2)',
+                                border: isAdminMode ? '1.5px solid #b0721f' : '1.5px solid var(--border2)',
                                 borderRadius: 10,
                                 fontSize: 13,
                                 fontWeight: 700,

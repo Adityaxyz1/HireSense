@@ -6,13 +6,13 @@ import { useBreakpoint } from '../hooks/useBreakpoint';
 
 const STATUS_META = {
     applied:     { label: 'New', color: 'var(--text2)' },
-    screening:   { label: 'Screened', color: '#3b82f6' },
-    shortlisted: { label: 'Shortlisted', color: '#22c55e' },
-    rejected:    { label: 'Rejected', color: '#ef4444' },
-    failed:      { label: 'Error', color: '#ef4444' },
+    screening:   { label: 'Screened', color: '#9a7b4a' },
+    shortlisted: { label: 'Shortlisted', color: '#7f9153' },
+    rejected:    { label: 'Rejected', color: '#c0563a' },
+    failed:      { label: 'Error', color: '#c0563a' },
 };
 const pct = (v) => (v == null ? '—' : `${Math.round((v <= 1 ? v * 100 : v))}%`);
-const riskColor = (r) => (r === 'Low' ? '#22c55e' : r === 'Medium' ? '#f59e0b' : r === 'High' ? '#ef4444' : 'var(--text3)');
+const riskColor = (r) => (r === 'Low' ? '#7f9153' : r === 'Medium' ? '#c08a35' : r === 'High' ? '#c0563a' : 'var(--text3)');
 
 export default function Applicants() {
     const [jobs, setJobs] = useState([]);
@@ -65,7 +65,7 @@ export default function Applicants() {
                     <p style={{ fontSize: 13, color: 'var(--text3)', marginTop: 6 }}>Applicants stream in & get AI-screened in real time</p>
                 </div>
                 <span className="pill" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11, color: 'var(--text2)', fontWeight: 600 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', animation: 'pulse-dot 2.5s infinite' }} /> Live
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#7f9153', animation: 'pulse-dot 2.5s infinite' }} /> Live
                 </span>
             </div>
 
