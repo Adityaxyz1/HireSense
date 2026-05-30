@@ -219,7 +219,7 @@ export default function PrivacyPolicy() {
                             HireSense is an artificial intelligence-supported platform. We utilize advanced machine learning algorithms, natural language 
                             processing (NLP), and large language models (LLMs) to perform:
                         </p>
-                        <div style={{
+                        <div className="mobile-grid-1" style={{
                             display: 'grid',
                             gridTemplateColumns: '1fr 1fr',
                             gap: 16,

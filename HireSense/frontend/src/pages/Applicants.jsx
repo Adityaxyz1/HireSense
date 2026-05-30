@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Users, Activity, ChevronRight } from 'lucide-react';
 import { api } from '../lib/api';
 import { supabase } from '../lib/supabase';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 
 const STATUS_META = {
     applied:     { label: 'New', color: 'var(--text2)' },
@@ -19,6 +20,7 @@ export default function Applicants() {
     const [applicants, setApplicants] = useState([]);
     const [loadingJobs, setLoadingJobs] = useState(true);
     const debounce = useRef(null);
+    const { isMobile } = useBreakpoint();
 
     useEffect(() => {
         api.getJobs()
@@ -76,9 +78,17 @@ export default function Applicants() {
             )}
 
             {jobs.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 240px) 1fr', gap: 18, alignItems: 'start' }}>
-                    {/* Job selector */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(180px, 240px) 1fr', gap: 18, alignItems: 'start' }}>
+                    {/* Job selector — vertical list on desktop/tablet, horizontal
+                        scroll strip on mobile so it doesn't eat vertical space. */}
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: isMobile ? 'row' : 'column',
+                        gap: 8,
+                        overflowX: isMobile ? 'auto' : 'visible',
+                        paddingBottom: isMobile ? 4 : 0,
+                        WebkitOverflowScrolling: 'touch',
+                    }}>
                         {jobs.map(j => {
                             const active = activeJob?.id === j.id;
                             return (
@@ -89,6 +99,8 @@ export default function Applicants() {
                                     border: '1.5px solid var(--border)', background: active ? 'var(--nav-on)' : 'var(--card)',
                                     color: active ? 'var(--nav-on-fg)' : 'var(--text2)',
                                     boxShadow: active ? 'var(--shadow-sm)' : 'none',
+                                    flexShrink: isMobile ? 0 : undefined,
+                                    maxWidth: isMobile ? 200 : undefined,
                                 }}>
                                     <span style={{ fontSize: 12.5, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{j.title || 'Untitled'}</span>
                                     <ChevronRight size={14} style={{ flexShrink: 0, opacity: 0.6 }} />

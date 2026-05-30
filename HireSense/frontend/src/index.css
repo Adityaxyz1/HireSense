@@ -94,6 +94,18 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; font-size: 14px; }
 
+/* ── GLOBAL OVERFLOW SAFETY NET ──
+   Belt-and-suspenders against horizontal scroll from any stray fixed-width
+   element. The app shell manages its own scroll containers, so the document
+   itself should never scroll sideways on any device. */
+html, body { max-width: 100%; overflow-x: hidden; }
+img, video, canvas { max-width: 100%; height: auto; }
+
+/* Tighten the base scale on very small phones so dense UIs fit comfortably. */
+@media (max-width: 360px) {
+  html, body, #root { font-size: 13px; }
+}
+
 body {
   background-color: var(--bg);
   background-image:

@@ -135,7 +135,7 @@ export default function StudentLayout() {
                                     {!isMobile && <span style={{ fontFamily: 'var(--font)', fontWeight: 600, fontSize: 12, color: 'var(--text)', whiteSpace: 'nowrap' }}>{displayName}</span>}
                                 </div>
                                 {showUserMenu && (
-                                    <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 220, background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, boxShadow: '0 12px 40px rgba(0,0,0,0.3)', zIndex: 100, overflow: 'hidden', animation: 'up .2s cubic-bezier(.22,1,.36,1) both' }}>
+                                    <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 'min(240px, calc(100vw - 24px))', background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, boxShadow: '0 12px 40px rgba(0,0,0,0.3)', zIndex: 100, overflow: 'hidden', animation: 'up .2s cubic-bezier(.22,1,.36,1) both' }}>
                                         <div style={{ padding: '16px', borderBottom: '1px solid var(--border)' }}>
                                             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font)' }}>{displayName}</div>
                                             <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--font)' }}>{user?.email}</div>

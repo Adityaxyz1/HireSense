@@ -51,11 +51,14 @@ export default function Pipeline() {
             {loading ? (
                 <BoardSkeleton />
             ) : (
-                <div className="mobile-scroll-x" style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: isMobile ? 'repeat(3, 280px)' : 'repeat(3, 1fr)', 
+                <div className="mobile-scroll-x" style={{
+                    display: 'grid',
+                    // Mobile: swipeable board; each column caps at 280px but shrinks
+                    // to fit small phones (min of 280px / 80vw) so a column never
+                    // overflows the viewport. Desktop/tablet: three equal columns.
+                    gridTemplateColumns: isMobile ? 'repeat(3, min(280px, 80vw))' : 'repeat(3, 1fr)',
                     gap: 14,
-                    paddingBottom: isMobile ? 12 : 0 
+                    paddingBottom: isMobile ? 12 : 0
                 }}>
                 {COLS.map(col => (
                     <div key={col.k}
