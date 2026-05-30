@@ -74,15 +74,25 @@ async function request(path, opts = {}) {
     }
 }
 
+// ── Cold-start resilience ──────────────────────────────────────────────────
+// On the free tier the backend dyno sleeps after ~15 min idle. While it wakes
+// (~30-60s) the gateway either drops the connection (fetch throws a TypeError —
+// surfaced in the console as a misleading "CORS policy / Failed to fetch" error,
+// since the gateway error page carries no CORS headers) or returns 502/503/504.
+// We retry those transient states with a short backoff so a sleeping dyno waking
+// up doesn't break login or the first dashboard load. 4xx and other 5xx are real
+// errors and are never retried.
+const RETRY_STATUSES = new Set([502, 503, 504]);
+const MAX_RETRIES = 3;             // total attempts = MAX_RETRIES + 1
+const RETRY_BASE_DELAY_MS = 2000;  // backoff: 2s, 4s, 6s (~12s, plus warmUp head start)
+
+const _sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 /**
- * Centralized fetch wrapper.
- *
- * - Spreads auth headers (unless `auth === false`).
- * - Sets JSON content-type (unless `json === false` or the body is FormData).
- * - Throws `Error(parseError(...))` on non-2xx responses.
- * - Optional `timeoutMs` aborts the request and surfaces `timeoutMessage`.
+ * Single fetch attempt. Marks transient failures with `err.__retryable = true`
+ * so the retry loop in `_doRequest` knows which ones are worth re-trying.
  */
-async function _doRequest(path, {
+async function _attempt(path, {
     method = 'GET',
     body,
     auth = true,
@@ -127,17 +137,72 @@ async function _doRequest(path, {
                     window.location.assign('/login');
                 }
             }
-            throw new Error(await parseError(res, fallbackError));
+            const err = new Error(await parseError(res, fallbackError));
+            if (RETRY_STATUSES.has(res.status)) err.__retryable = true;
+            throw err;
         }
         return res.json();
     } catch (e) {
         if (timeout) clearTimeout(timeout);
         if (e.name === 'AbortError') throw new Error(timeoutMessage);
+        // A TypeError from fetch means the request never got a response
+        // (dyno asleep, offline, DNS) — transient, worth retrying.
+        if (e.__retryable === undefined && e instanceof TypeError) e.__retryable = true;
         throw e;
     }
 }
 
+/**
+ * Centralized fetch wrapper.
+ *
+ * - Spreads auth headers (unless `auth === false`).
+ * - Sets JSON content-type (unless `json === false` or the body is FormData).
+ * - Throws `Error(parseError(...))` on non-2xx responses.
+ * - Optional `timeoutMs` aborts the request and surfaces `timeoutMessage`.
+ * - Retries transient cold-start failures with backoff. Defaults ON for GETs
+ *   (idempotent); pass `retry: true` to opt a mutation in, `retry: false` to opt out.
+ */
+async function _doRequest(path, opts = {}) {
+    const method = opts.method || 'GET';
+    const retry = opts.retry !== undefined ? opts.retry : method === 'GET';
+    const maxAttempts = retry ? MAX_RETRIES + 1 : 1;
+
+    let lastErr;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+            return await _attempt(path, opts);
+        } catch (e) {
+            lastErr = e;
+            if (attempt < maxAttempts - 1 && e.__retryable) {
+                await _sleep(RETRY_BASE_DELAY_MS * (attempt + 1));
+                continue;
+            }
+            throw e;
+        }
+    }
+    throw lastErr;
+}
+
 export const api = {
+    // Wake a sleeping free-tier backend so the first real request (login,
+    // profile, dashboard) doesn't pay the cold-start. Fire-and-forget — hits the
+    // unauthenticated /health root and ignores the outcome.
+    warmUp() {
+        const base = API_BASE.replace(/\/api\/?$/, '');
+        try { fetch(`${base}/health`, { method: 'GET', cache: 'no-store' }).catch(() => {}); }
+        catch { /* ignore */ }
+    },
+
+    // Fetch the signed-in user's profile. `token` lets the login flow pass the
+    // freshly-issued access token before the session is cached. Retries on a
+    // cold start (inherited from the GET default in _doRequest).
+    async getProfile(token = null) {
+        return request('/profile', {
+            fallbackError: 'Failed to load profile',
+            ...(token ? { authHeaders: { Authorization: `Bearer ${token}` } } : {}),
+        });
+    },
+
     async uploadResume(file, candidateName = '') {
         const formData = new FormData();
         formData.append('file', file);

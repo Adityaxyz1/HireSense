@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 
 const AuthContext = createContext();
 
@@ -12,17 +13,14 @@ export const AuthProvider = ({ children }) => {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Fetch profile from backend
+    // Fetch profile from backend. Routes through the shared API client, which
+    // retries transient cold-start failures (sleeping free-tier dyno) with
+    // backoff so login/restore survives a backend that's still waking up.
     const fetchProfile = async (session) => {
         if (!session?.access_token) return;
         try {
-            const res = await fetch(`${API_BASE}/profile?_t=${Date.now()}`, {
-                headers: { 'Authorization': `Bearer ${session.access_token}` },
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setProfile(data.profile);
-            }
+            const data = await api.getProfile(session.access_token);
+            setProfile(data.profile);
         } catch (error) {
             console.error('[AuthContext] fetchProfile error:', error);
         }
@@ -55,6 +53,10 @@ export const AuthProvider = ({ children }) => {
 
     // Restore session on mount
     useEffect(() => {
+        // Wake the (possibly sleeping) backend as early as possible, so by the
+        // time the user submits credentials the dyno is already spinning up.
+        api.warmUp();
+
         // Listen for auth state changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
