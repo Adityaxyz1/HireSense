@@ -1,8 +1,8 @@
 """
-Student Region — Applications router (Phase 2).
+Applicant Region — Applications router (Phase 2).
 
-This is the bridge between the Student Portal and the Recruiter Platform.
-When a student applies to a job, we immediately persist an `applications` row
+This is the bridge between the Applicant Portal and the Recruiter Platform.
+When an applicant applies to a job, we immediately persist an `applications` row
 (status='applied') + a placeholder `resumes` row (status='processing'), then
 fire a background screening task that reuses the existing AI engines. Because
 those tables are in the Supabase Realtime publication, every DB write is pushed
@@ -10,7 +10,7 @@ live to the recruiter's dashboard — no extra notification plumbing needed.
 
 Flow (see blueprints/realtime_student_portal_plan.pdf):
     POST /api/applications/apply  -> 201 instantly
-        -> process_student_application()  (background)
+        -> process_applicant_application()  (background)
             -> parse PDF -> ATS scan -> embedding -> skill/exp/strength
             -> cosine similarity -> weighted final score -> match_results
             -> link match back to the application (status='screening')
@@ -35,17 +35,17 @@ from routes.auth_dependency import require_user
 
 router = APIRouter()
 
-# Statuses a job can have while it's open to applicants on the student board.
+# Statuses a job can have while it's open to applicants on the applicant board.
 # The recruiter UI uses 'active' (the DB default) and 'closed'; 'published' is
 # kept for backward-compat with any legacy rows. Anything else (closed/draft/
-# archived/paused) is hidden from the student feed.
+# archived/paused) is hidden from the applicant feed.
 OPEN_JOB_STATUSES = ("active", "published")
 
 
 # ── Background screening engine ───────────────────────────────────────────
-async def process_student_application(app_id: str, resume_id: str, job_id: str,
+async def process_applicant_application(app_id: str, resume_id: str, job_id: str,
                                       recruiter_id: str, raw_text: str):
-    """Async worker: screens a student's resume against the target job.
+    """Async worker: screens an applicant's resume against the target job.
 
     Each DB write fires a Supabase Realtime broadcast, so the recruiter UI
     updates stage-by-stage (processing -> ATS done -> match scored).
@@ -71,62 +71,18 @@ async def process_student_application(app_id: str, resume_id: str, job_id: str,
             vector = await asyncio.to_thread(generate_embedding, raw_text)
             resume_update["embedding"] = vector
         except Exception as e:
-            print(f"[student-screen] embedding skipped for {resume_id}: {e}")
+            print(f"[applicant-screen] embedding skipped for {resume_id}: {e}")
             vector = None
 
         # First realtime update — resume parsed + scored
         db.table("resumes").update(resume_update).eq("id", resume_id).execute()
 
-        # ── Step C: load the job text + run the sub-engines ──
-        job_res = db.table("job_descriptions").select("job_text").eq("id", job_id).execute()
-        job_text = job_res.data[0]["job_text"] if job_res.data else ""
-
-        skill_score = calculate_skill_overlap(raw_text, job_text)
-        exp_score = calculate_experience_score(raw_text, job_text)
-        strength = compute_strength(raw_text)
-
-        # Semantic cosine similarity (regenerate JD embedding on the fly to avoid
-        # depending on the stored vector column type)
-        if vector is None:
-            vector = await asyncio.to_thread(generate_embedding, raw_text)
-        job_vec = await asyncio.to_thread(generate_embedding, job_text)
-        semantic_sim = float(cosine_similarity([np.array(job_vec)], [np.array(vector)])[0][0])
-        semantic_score = max(0.0, semantic_sim)
-
-        final_score = compute_final_score(semantic_score, skill_score, exp_score, strength, False)
-        risk_level = get_risk_level(final_score)
-
-        # ── Step D: persist match_results (owned by the recruiter) ──
-        match_res = db.table("match_results").insert({
-            "user_id": recruiter_id,
-            "resume_id": resume_id,
-            "job_id": job_id,
-            "semantic_score": round(semantic_score, 4),
-            "skill_score": round(skill_score, 4),
-            "experience_score": round(exp_score, 4),
-            # Canonical 0–100 scale (matches /match and what the UI expects).
-            "final_score": round(final_score * 100, 2),
-            "resume_strength": strength,
-            "risk_level": risk_level,
-            "fair_mode_enabled": False,
-            "bias_report": None,
-            "candidate_status": "pending",
-        }).execute()
-        match_id = match_res.data[0]["id"] if match_res.data else None
-
-        # Cache the match summary on the resume row too (mirrors /match)
-        db.table("resumes").update({
-            "match_score": round(final_score * 100, 2),
-        }).eq("id", resume_id).execute()
-
-        # ── Step E: link the match to the application (final realtime push) ──
-        db.table("applications").update({
-            "match_result_id": match_id,
-            "status": "screening",
-        }).eq("id", app_id).execute()
+        # ── Steps C–E: JD-dependent scoring + match persistence (shared) ──
+        await rescore_application(app_id, resume_id, job_id, recruiter_id, raw_text,
+                                  resume_vector=vector)
 
     except Exception as e:
-        print(f"[student-screen] Failed to process application {app_id}: {e}")
+        print(f"[applicant-screen] Failed to process application {app_id}: {e}")
         try:
             db.table("resumes").update({"status": "failed"}).eq("id", resume_id).execute()
             db.table("applications").update({"status": "failed"}).eq("id", app_id).execute()
@@ -134,10 +90,80 @@ async def process_student_application(app_id: str, resume_id: str, job_id: str,
             pass
 
 
-# ── Public job feed (student-facing) ──────────────────────────────────────
+async def rescore_application(app_id: str, resume_id: str, job_id: str,
+                              recruiter_id: str, raw_text: str, resume_vector=None):
+    """Recompute the JD-dependent match for one application and persist it.
+
+    Reused by the apply flow (first screen) and the recruiter's "Run Match"
+    re-run. Skips the resume-only ATS scan (already stored). Upserts the
+    match_results row, preserving the recruiter's existing triage status on a
+    re-run. Each write fires a Supabase Realtime broadcast to the dashboards.
+    """
+    db = get_admin_db()
+
+    job_res = db.table("job_descriptions").select("job_text").eq("id", job_id).execute()
+    job_text = job_res.data[0]["job_text"] if job_res.data else ""
+
+    skill_score = calculate_skill_overlap(raw_text, job_text)
+    exp_score = calculate_experience_score(raw_text, job_text)
+    strength = compute_strength(raw_text)
+
+    # Semantic cosine similarity (regenerate embeddings on the fly to avoid
+    # depending on the stored vector column type)
+    if resume_vector is None:
+        resume_vector = await asyncio.to_thread(generate_embedding, raw_text)
+    job_vec = await asyncio.to_thread(generate_embedding, job_text)
+    semantic_sim = float(cosine_similarity([np.array(job_vec)], [np.array(resume_vector)])[0][0])
+    semantic_score = max(0.0, semantic_sim)
+
+    final_score = compute_final_score(semantic_score, skill_score, exp_score, strength, False)
+    risk_level = get_risk_level(final_score)
+
+    payload = {
+        "user_id": recruiter_id,
+        "resume_id": resume_id,
+        "job_id": job_id,
+        "semantic_score": round(semantic_score, 4),
+        "skill_score": round(skill_score, 4),
+        "experience_score": round(exp_score, 4),
+        # Canonical 0–100 scale (matches /match and what the UI expects).
+        "final_score": round(final_score * 100, 2),
+        "resume_strength": strength,
+        "risk_level": risk_level,
+        "fair_mode_enabled": False,
+        "bias_report": None,
+    }
+
+    # Upsert by (resume_id, job_id). On a re-run, keep the recruiter's triage
+    # (candidate_status) instead of resetting it to 'pending'.
+    existing = (db.table("match_results").select("id")
+                .eq("resume_id", resume_id).eq("job_id", job_id).execute())
+    if existing.data:
+        match_id = existing.data[0]["id"]
+        db.table("match_results").update(payload).eq("id", match_id).execute()
+    else:
+        payload["candidate_status"] = "pending"
+        match_res = db.table("match_results").insert(payload).execute()
+        match_id = match_res.data[0]["id"] if match_res.data else None
+
+    # Cache the match summary on the resume row too (mirrors /match)
+    db.table("resumes").update({
+        "match_score": round(final_score * 100, 2),
+    }).eq("id", resume_id).execute()
+
+    # Link the match to the application (final realtime push)
+    db.table("applications").update({
+        "match_result_id": match_id,
+        "status": "screening",
+    }).eq("id", app_id).execute()
+
+    return match_id
+
+
+# ── Public job feed (applicant-facing) ────────────────────────────────────
 @router.get("/feed/jobs")
 def feed_jobs():
-    """List all OPEN jobs for the student job board (no auth required)."""
+    """List all OPEN jobs for the applicant job board (no auth required)."""
     db = get_admin_db()
     # NOTE: recruitment_docs is intentionally NOT exposed on the public feed —
     # those are internal recruiter documents.
@@ -153,7 +179,7 @@ def feed_jobs():
 
 @router.get("/feed/jobs/{job_id}")
 def feed_job_detail(job_id: str):
-    """Single open job detail for the student-facing job page."""
+    """Single open job detail for the applicant-facing job page."""
     db = get_admin_db()
     res = (
         db.table("job_descriptions")
@@ -166,7 +192,7 @@ def feed_job_detail(job_id: str):
     return res.data[0]
 
 
-# ── Student applies to a job ──────────────────────────────────────────────
+# ── Applicant applies to a job ────────────────────────────────────────────
 @router.post("/applications/apply")
 async def apply_to_job(
     request: Request,
@@ -174,7 +200,7 @@ async def apply_to_job(
     job_id: str = Form(...),
     file: UploadFile = File(...),
 ):
-    """A student submits their resume against a published job."""
+    """An applicant submits their resume against a published job."""
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF resumes are supported.")
 
@@ -207,7 +233,7 @@ async def apply_to_job(
         file_url = upload_resume_pdf(file_bytes, file.filename)
         raw_text = extract_text(file_bytes)
 
-        # Placeholder resume row — owned by the STUDENT (so RLS lets them see it)
+        # Placeholder resume row — owned by the APPLICANT (so RLS lets them see it)
         resume = db.table("resumes").insert({
             "user_id": applicant_id,
             "file_url": file_url,
@@ -216,7 +242,7 @@ async def apply_to_job(
         }).execute()
         resume_id = resume.data[0]["id"]
 
-        # Application row — owned by the student, tied to the recruiter's job.
+        # Application row — owned by the applicant, tied to the recruiter's job.
         # A UNIQUE(job_id, applicant_id) constraint makes this atomic against the
         # read-then-write race; catch the conflict and clean up the orphan resume.
         try:
@@ -239,7 +265,7 @@ async def apply_to_job(
 
         # Fire the background screening engine
         background_tasks.add_task(
-            process_student_application, app_id, resume_id, job_id, recruiter_id, raw_text
+            process_applicant_application, app_id, resume_id, job_id, recruiter_id, raw_text
         )
 
         return {"application_id": app_id, "resume_id": resume_id, "status": "applied"}
@@ -252,10 +278,10 @@ async def apply_to_job(
         raise HTTPException(status_code=500, detail=f"An internal error occurred during apply: {str(e)}")
 
 
-# ── Student: my applications ──────────────────────────────────────────────
+# ── Applicant: my applications ────────────────────────────────────────────
 @router.get("/applications/mine")
 def my_applications(user=Depends(require_user)):
-    """List the authenticated student's applications, joined with job + match."""
+    """List the authenticated applicant's applications, joined with job + match."""
     db = get_admin_db()
     res = (
         db.table("applications")
@@ -308,13 +334,13 @@ def job_applications(job_id: str, user=Depends(require_user)):
     )
     out = []
     for row in res.data or []:
-        student = row.pop("applicant_profiles", None) or {}
+        applicant = row.pop("applicant_profiles", None) or {}
         resume = row.pop("resumes", None) or {}
         match = row.pop("match_results", None) or {}
-        row["student_name"] = student.get("full_name") or resume.get("candidate_name")
-        row["student_email"] = student.get("email")
-        row["major"] = student.get("major")
-        row["graduation_year"] = student.get("graduation_year")
+        row["applicant_name"] = applicant.get("full_name") or resume.get("candidate_name")
+        row["applicant_email"] = applicant.get("email")
+        row["major"] = applicant.get("major")
+        row["graduation_year"] = applicant.get("graduation_year")
         row["resume_status"] = resume.get("status")
         row["resume_file"] = resume.get("file_url")
         row["ats_score"] = resume.get("ats_score")

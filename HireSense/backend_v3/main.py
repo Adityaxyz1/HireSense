@@ -75,6 +75,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 async def lifespan(app: FastAPI):
     """Initialize connections on server start."""
     print(f"Backend started: {settings.PROJECT_NAME}")
+    # Warm the embedding model off the event loop so the first job/resume
+    # upload doesn't pay the torch + SentenceTransformer cold-start. Boot
+    # stays fast — we don't await this.
+    import asyncio
+    from services.embedding_engine import warm_model
+    asyncio.create_task(asyncio.to_thread(warm_model))
     # Security: warn if critical keys are missing
     if not (settings.NVIDIA_NIM_API_KEY_DEEPSEEK or settings.NVIDIA_NIM_API_KEY_META or settings.NVIDIA_NIM_API_KEY_GEMMA):
         print("WARNING: No NVIDIA_NIM_API_KEY set in .env — AI features will fail.")

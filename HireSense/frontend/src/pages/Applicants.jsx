@@ -46,7 +46,7 @@ export default function Applicants() {
 
         // Live: new applicants stream in and self-populate as the screening
         // engine writes resume scores + match results — the exact same events
-        // the student's "My Applications" page reacts to.
+        // the applicant's "My Applications" page reacts to.
         const channel = supabase
             .channel(`recruiter-job-${jobId}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'applications', filter: `job_id=eq.${jobId}` }, () => refetch(jobId))
@@ -126,9 +126,9 @@ export default function Applicants() {
                                     return (
                                         <div key={a.id} className="hover-lift-sm" style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', transition: 'all .15s' }}>
                                             <div style={{ minWidth: 160, flex: 1 }}>
-                                                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{a.student_name || 'Candidate'}</div>
+                                                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{a.applicant_name || 'Candidate'}</div>
                                                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
-                                                    {[a.major, a.graduation_year, a.student_email].filter(Boolean).join(' · ') || '—'}
+                                                    {[a.major, a.graduation_year, a.applicant_email].filter(Boolean).join(' · ') || '—'}
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>

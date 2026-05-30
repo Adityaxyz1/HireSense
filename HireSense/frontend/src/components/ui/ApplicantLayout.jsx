@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, FileText, User, Sun, Moon, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, FileText, FileSearch, User, Sun, Moon, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
@@ -8,10 +8,11 @@ import { useBreakpoint } from '../../hooks/useBreakpoint';
 const NAV = [
     { id: '/student', icon: <Search size={18} />, label: 'Browse Jobs' },
     { id: '/student/applications', icon: <FileText size={18} />, label: 'My Applications' },
+    { id: '/student/ats-check', icon: <FileSearch size={18} />, label: 'ATS Check' },
     { id: '/student/profile', icon: <User size={18} />, label: 'Profile' },
 ];
 
-export default function StudentLayout() {
+export default function ApplicantLayout() {
     const location = useLocation();
     const navigate = useNavigate();
     const { theme, toggleTheme, isDark } = useTheme();
@@ -126,7 +127,19 @@ export default function StudentLayout() {
                     }}>
                         <h1 style={{ fontFamily: 'var(--font)', fontWeight: 700, fontSize: isMobile ? 14 : 16, color: 'var(--text)' }}>{currentPage}</h1>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12 }}>
+                            {/* Theme toggle — in the header so it's reachable on
+                                mobile/tablet where the sidebar is hidden. */}
+                            <button onClick={toggleTheme} className="nb" title={isDark ? 'Light mode' : 'Dark mode'} style={{
+                                display: 'flex', alignItems: 'center', gap: 6,
+                                padding: '6px 10px', border: '1.5px solid var(--border)',
+                                borderRadius: 8, color: 'var(--text2)', fontSize: 11,
+                                fontWeight: 500, letterSpacing: '.05em', fontFamily: 'var(--font)', cursor: 'pointer',
+                            }}>
+                                {isDark ? <Sun size={16} color="#fbbf24" /> : <Moon size={16} color="#6366f1" />}
+                                {!isMobile && <span>{isDark ? 'Light mode' : 'Dark mode'}</span>}
+                            </button>
+
                             <div ref={menuRef} style={{ position: 'relative' }}>
                                 <div onClick={() => setShowUserMenu(!showUserMenu)} className="rh" style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0 : 10, cursor: 'pointer', padding: '4px 6px', borderRadius: 10 }}>
                                     <div style={{ width: 32, height: 32, border: '1.5px solid var(--border2)', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg2)', flexShrink: 0 }}>

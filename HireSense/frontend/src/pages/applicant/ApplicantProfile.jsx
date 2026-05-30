@@ -8,7 +8,7 @@ const fieldWrap = { marginBottom: 18 };
 const labelStyle = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text2)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 8, fontFamily: 'var(--font)' };
 const inputStyle = { width: '100%', padding: '12px 14px', background: 'var(--input)', border: '1.5px solid var(--border)', borderRadius: 'var(--r-sm)', color: 'var(--text)', fontSize: 14, fontFamily: 'var(--font)', outline: 'none', boxSizing: 'border-box' };
 
-export default function StudentProfile() {
+export default function ApplicantProfile() {
     const { refreshProfile } = useAuth();
     const [form, setForm] = useState({ full_name: '', major: '', graduation_year: '', skills_json: [] });
     const [skillsText, setSkillsText] = useState('');
@@ -21,7 +21,7 @@ export default function StudentProfile() {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        api.getStudentProfile()
+        api.getApplicantProfile()
             .then(({ profile }) => {
                 setForm({
                     full_name: profile.full_name || '',
@@ -39,7 +39,7 @@ export default function StudentProfile() {
     const handleAvatar = async (optimizedFile) => {
         setAvatarBusy(true); setAvatarMsg('');
         try {
-            const { avatar_url } = await api.uploadStudentAvatar(optimizedFile);
+            const { avatar_url } = await api.uploadApplicantAvatar(optimizedFile);
             setAvatarUrl(avatar_url);
             setAvatarMsg('Profile picture updated.');
             refreshProfile?.();   // refresh the navbar avatar (profiles table)
@@ -54,7 +54,7 @@ export default function StudentProfile() {
         setSaving(true); setError(''); setSaved(false);
         try {
             const skills = skillsText.split(',').map(s => s.trim()).filter(Boolean);
-            await api.updateStudentProfile({ ...form, skills_json: skills });
+            await api.updateApplicantProfile({ ...form, skills_json: skills });
             setSaved(true);
             setTimeout(() => setSaved(false), 2500);
         } catch (e) {
