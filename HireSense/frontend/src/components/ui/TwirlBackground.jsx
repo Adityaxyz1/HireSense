@@ -74,7 +74,7 @@ export default function TwirlBackground() {
                 this.angle = Math.random() * Math.PI * 2;
 
                 // Color palette: deep indigo to gold accent
-                const colors = ['#b08a5a', '#e0d3bb', '#d4a94f', '#7a5a3a', '#1E1B4B'];
+                const colors = ['#818CF8', '#C7D2FE', '#FBBF24', '#4F46E5', '#1E1B4B'];
                 this.baseColor = colors[Math.floor(Math.random() * colors.length)];
             }
 

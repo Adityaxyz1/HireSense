@@ -15,39 +15,36 @@
 
 /* ── DARK THEME (default) ── */
 [data-theme="dark"] {
-  /* Punchy but glare-reduced dark: base lifted just off pure black (kills the
-     near-black + pure-white halation) while keeping crisp, high-contrast text
-     and bright CTAs. Surfaces step up by luminance so cards sit ABOVE the page. */
-  --bg:       #101117;
-  --bg2:      #16171e;
-  --bg3:      #212230;
-  --surface:  #17181f;
-  --border:   #2b2c36;
-  --border2:  #3d3e4a;
-  --text:     #eeeef3;
-  --text2:    #adaebc;
-  --text3:    #646573;
-  --logo-bg:  #eeeef3;
-  --logo-fg:  #101117;
-  --nav-on:   #f0f0f5;
-  --nav-on-fg:#101117;
-  --btn:      #f0f0f5;
-  --btn-fg:   #101117;
-  --accent:   #eeeef3;
-  --card:     #17181f;
-  --input:    #17181f;
-  --tag:      #212230;
-  --track:    #2b2c36;
+  --bg:       #0c0c0e;
+  --bg2:      #111114;
+  --bg3:      #18181c;
+  --surface:  #0a0a0d;
+  --border:   #22222a;
+  --border2:  #38383f;
+  --text:     #f0f0f4;
+  --text2:    #a0a0b0;
+  --text3:    #48485a;
+  --logo-bg:  #f0f0f4;
+  --logo-fg:  #0a0a0d;
+  --nav-on:   #f0f0f4;
+  --nav-on-fg:#0a0a0d;
+  --btn:      #f0f0f4;
+  --btn-fg:   #0a0a0d;
+  --accent:   #f0f0f4;
+  --card:     #111114;
+  --input:    #111114;
+  --tag:      #18181c;
+  --track:    #22222a;
   /* modern surface + depth tokens */
-  --card-hover: #1d1e27;
-  --elevated:  #282935;
+  --card-hover: #16161b;
+  --elevated:  #1c1c22;
   --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
-  --shadow-md: 0 4px 16px -4px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.4);
-  --shadow-lg: 0 18px 48px -12px rgba(0,0,0,.65), 0 4px 12px rgba(0,0,0,.4);
-  --ring:      0 0 0 3px rgba(238,238,243,.13);
+  --shadow-md: 0 4px 16px -4px rgba(0,0,0,.55), 0 1px 3px rgba(0,0,0,.4);
+  --shadow-lg: 0 18px 48px -12px rgba(0,0,0,.7), 0 4px 12px rgba(0,0,0,.4);
+  --ring:      0 0 0 3px rgba(240,240,244,.10);
   --mesh-1:    rgba(255,255,255,.05);
-  --mesh-2:    rgba(255,255,255,.024);
-  --hairline:  rgba(255,255,255,.07);
+  --mesh-2:    rgba(255,255,255,.025);
+  --hairline:  rgba(255,255,255,.06);
 }
 
 /* ── LIGHT THEME ── */
