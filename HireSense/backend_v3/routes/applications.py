@@ -324,7 +324,7 @@ def job_applications(job_id: str, user=Depends(require_user)):
         get_admin_db().table("applications")
         .select(
             "id, status, created_at, resume_id, match_result_id, applicant_id, "
-            "applicant_profiles (full_name, email, major, graduation_year), "
+            "applicant_profiles (full_name, email, major, graduation_year, github_url, github_data), "
             "resumes (status, ats_score, candidate_name, file_url), "
             "match_results (final_score, risk_level, skill_score, semantic_score)"
         )
@@ -341,6 +341,8 @@ def job_applications(job_id: str, user=Depends(require_user)):
         row["applicant_email"] = applicant.get("email")
         row["major"] = applicant.get("major")
         row["graduation_year"] = applicant.get("graduation_year")
+        row["github_url"] = applicant.get("github_url")
+        row["github_data"] = applicant.get("github_data")
         row["resume_status"] = resume.get("status")
         row["resume_file"] = resume.get("file_url")
         row["ats_score"] = resume.get("ats_score")

@@ -46,14 +46,43 @@ export default function ApplicantAtsCheck() {
 
     useEffect(() => { loadHistory(); }, [loadHistory]);
 
+    // A record is "done" once its ats_breakdown is populated (success or failure).
+    const recordToReport = (rec) => ({
+        score: rec.ats_score ?? 0,
+        candidate_name: rec.candidate_name,
+        breakdown: typeof rec.ats_breakdown === 'string'
+            ? (JSON.parse(rec.ats_breakdown || '[]'))
+            : (rec.ats_breakdown || []),
+    });
+
+    // The scan runs in the background on the server; poll the saved record until
+    // it's scored. Keeps the upload request fast so it never drops on mobile.
+    const pollForResult = (id) => new Promise((resolve) => {
+        let attempts = 0;
+        const tick = async () => {
+            attempts += 1;
+            try {
+                const list = await api.getApplicantResumes();
+                setHistory(list || []);
+                const rec = (list || []).find(r => r.id === id);
+                if (rec && rec.ats_breakdown != null) { resolve(rec); return; }
+            } catch { /* keep polling */ }
+            if (attempts >= 30) { resolve(null); return; }   // ~75s ceiling
+            setTimeout(tick, 2500);
+        };
+        setTimeout(tick, 1500);
+    });
+
     const runScan = async () => {
         if (!file) { setError('Please select your resume (PDF).'); return; }
         setLoading(true); setError(''); setReport(null);
         try {
-            const res = await api.applicantAtsCheck(file);
-            setReport(res.report);
+            const res = await api.applicantAtsCheck(file);   // returns instantly (scan is backgrounded)
             setFile(null);
             loadHistory();
+            const rec = await pollForResult(res.id);
+            if (rec) setReport(recordToReport(rec));
+            else setError('Still analyzing — your result will appear under "Past checks" in a moment.');
         } catch (e) {
             setError(e.message);
         } finally {
@@ -71,9 +100,10 @@ export default function ApplicantAtsCheck() {
         if (!id || !newFile) return;
         setBusyId(id); setError('');
         try {
-            const res = await api.replaceApplicantResume(id, newFile);
-            setReport(res.report);
+            const res = await api.replaceApplicantResume(id, newFile);   // instant; re-scan backgrounded
             loadHistory();
+            const rec = await pollForResult(res.id || id);
+            if (rec) setReport(recordToReport(rec));
         } catch (e) {
             setError(e.message);
         } finally {
@@ -222,6 +252,7 @@ export default function ApplicantAtsCheck() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {history.map(h => {
                             const busy = busyId === h.id;
+                            const processing = h.ats_breakdown == null;   // scan not finished yet
                             const s = h.ats_score ?? 0;
                             return (
                                 <div key={h.id} className="card-modern" style={{
@@ -230,17 +261,18 @@ export default function ApplicantAtsCheck() {
                                 }}>
                                     <div style={{
                                         width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                                        background: scC(s) + '1a', border: `1.5px solid ${scC(s)}44`,
+                                        background: processing ? 'var(--bg3)' : scC(s) + '1a',
+                                        border: `1.5px solid ${processing ? 'var(--border)' : scC(s) + '44'}`,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: 14, fontWeight: 700, color: scC(s),
-                                    }}>{Math.round(s)}</div>
+                                        fontSize: 14, fontWeight: 700, color: processing ? 'var(--text3)' : scC(s),
+                                    }}>{processing ? <Loader2 size={15} style={{ animation: 'spin .8s linear infinite' }} /> : Math.round(s)}</div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {h.candidate_name || h.filename || 'Resume'}
                                         </div>
                                         <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
                                             <FileText size={11} />
-                                            {h.filename || 'resume.pdf'} · {h.created_at ? new Date(h.created_at).toLocaleDateString() : '—'}
+                                            {processing ? 'Scanning…' : `${h.filename || 'resume.pdf'} · ${h.created_at ? new Date(h.created_at).toLocaleDateString() : '—'}`}
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>

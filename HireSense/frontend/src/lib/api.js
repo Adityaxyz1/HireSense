@@ -328,6 +328,16 @@ export const api = {
         });
     },
 
+    // Manually (re)fetch the applicant's public GitHub profile from their saved URL.
+    async syncApplicantGithub() {
+        return request('/student/profile/github-sync', {
+            method: 'POST',
+            fallbackError: 'Failed to sync GitHub',
+            timeoutMs: 20000,
+            timeoutMessage: 'GitHub sync timed out. Please try again.',
+        });
+    },
+
     // Upload an (already client-optimized) applicant avatar. `token` lets the
     // signup flow upload before AuthContext has a session cached.
     async uploadApplicantAvatar(file, token = null) {
@@ -352,8 +362,8 @@ export const api = {
             body: formData,
             json: false,
             fallbackError: 'ATS check failed',
-            timeoutMs: 45000, // racing engine returns faster
-            timeoutMessage: 'ATS analysis timed out. Please try again.',
+            timeoutMs: 60000, // upload only — the scan runs in the background
+            timeoutMessage: 'Upload timed out. Please try again.',
         });
     },
 
@@ -373,8 +383,8 @@ export const api = {
             body: formData,
             json: false,
             fallbackError: 'Failed to replace resume',
-            timeoutMs: 45000,
-            timeoutMessage: 'ATS analysis timed out. Please try again.',
+            timeoutMs: 60000, // upload only — the re-scan runs in the background
+            timeoutMessage: 'Upload timed out. Please try again.',
         });
     }
 };

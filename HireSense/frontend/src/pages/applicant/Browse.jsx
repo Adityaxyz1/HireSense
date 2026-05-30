@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapPin, Banknote, Briefcase, UploadCloud, X, CheckCircle2, Loader2 } from 'lucide-react';
+import { MapPin, Banknote, Briefcase, UploadCloud, X, CheckCircle2, Loader2, FileText } from 'lucide-react';
 import { api } from '../../lib/api';
 
 const card = {
@@ -16,6 +16,7 @@ export default function Browse() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [active, setActive] = useState(null);  // job selected for apply
+    const [detail, setDetail] = useState(null);  // job selected for full detail view
 
     useEffect(() => {
         api.getJobFeed()
@@ -56,16 +57,54 @@ export default function Browse() {
                         <p style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                             {job.job_text}
                         </p>
-                        <button onClick={() => setActive(job)} className="nb btn-primary" style={{
-                            marginTop: 'auto', alignSelf: 'flex-start', borderRadius: 999, padding: '10px 20px', fontSize: 11,
-                            fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer',
-                            transition: 'all .15s',
-                        }}>Apply Now</button>
+                        <div style={{ marginTop: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            <button onClick={() => setDetail(job)} className="nb" style={{
+                                alignSelf: 'flex-start', borderRadius: 999, padding: '10px 18px', fontSize: 11,
+                                fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer',
+                                border: '1.5px solid var(--border)', background: 'var(--card)', color: 'var(--text2)',
+                                display: 'inline-flex', alignItems: 'center', gap: 7, transition: 'all .15s',
+                            }}><FileText size={13} /> View Details</button>
+                            <button onClick={() => setActive(job)} className="nb btn-primary" style={{
+                                alignSelf: 'flex-start', borderRadius: 999, padding: '10px 20px', fontSize: 11,
+                                fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer',
+                                transition: 'all .15s',
+                            }}>Apply Now</button>
+                        </div>
                     </div>
                 ))}
             </div>
 
+            {detail && <JobDetailModal job={detail} onClose={() => setDetail(null)} onApply={() => { const j = detail; setDetail(null); setActive(j); }} />}
             {active && <ApplyModal job={active} onClose={() => setActive(null)} />}
+        </div>
+    );
+}
+
+function JobDetailModal({ job, onClose, onApply }) {
+    return (
+        <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+            <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 640, maxHeight: '85vh', display: 'flex', flexDirection: 'column', background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 16, fontFamily: 'var(--font)', animation: 'up .25s cubic-bezier(.22,1,.36,1) both' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '24px 28px 16px', borderBottom: '1.5px solid var(--border)' }}>
+                    <div>
+                        <h3 style={{ fontSize: 19, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{job.title || 'Untitled Role'}</h3>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                            {job.location && <span style={chip}><MapPin size={12} />{job.location}</span>}
+                            {job.salary_range && <span style={chip}><Banknote size={12} />{job.salary_range}</span>}
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="nb" style={{ color: 'var(--text3)', cursor: 'pointer', flexShrink: 0 }}><X size={18} /></button>
+                </div>
+                <div style={{ padding: '20px 28px', overflowY: 'auto', flex: 1 }}>
+                    <div style={{ fontSize: 10, color: 'var(--text3)', letterSpacing: '.12em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>Full Description</div>
+                    <p style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{job.job_text}</p>
+                </div>
+                <div style={{ padding: '16px 28px', borderTop: '1.5px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button onClick={onApply} className="nb btn-primary" style={{
+                        borderRadius: 999, padding: '11px 26px', fontSize: 11, fontWeight: 700, letterSpacing: '.12em',
+                        textTransform: 'uppercase', cursor: 'pointer', transition: 'all .15s',
+                    }}>Apply Now</button>
+                </div>
+            </div>
         </div>
     );
 }

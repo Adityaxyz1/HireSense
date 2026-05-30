@@ -23,6 +23,10 @@ class Settings:
     # MagicalAPI (optional, must be set in .env)
     MAGICAL_API_KEY: str = os.getenv("MAGICAL_API_KEY", "")
 
+    # GitHub enrichment — optional token raises the public API rate limit
+    # (60 -> 5000 req/hr). Profile reads work without it.
+    GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
+
     # Admin Panel
     ADMIN_MASTER_KEY: str = os.getenv("ADMIN_MASTER_KEY", "")
     # Admin allowlist — comma-separated emails. Defaults to the legacy admin so

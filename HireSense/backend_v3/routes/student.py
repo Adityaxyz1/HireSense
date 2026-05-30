@@ -11,13 +11,14 @@ existing clients; only the code identifiers use the "applicant" vocabulary.
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, List
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, BackgroundTasks
 from pydantic import BaseModel
 
 from database import get_admin_db
 from routes.auth_dependency import require_user
 from services.pdf_parser import extract_text
 from services.ats_scanner import scan_ats_compliance
+from services.github_service import fetch_github_profile
 from services.storage_service import (
     upload_applicant_resume_pdf,
     remove_applicant_resume_pdf,
@@ -42,6 +43,19 @@ class ApplicantProfileUpdate(BaseModel):
     major: Optional[str] = None
     graduation_year: Optional[str] = None
     skills_json: Optional[List[str]] = None
+    github_url: Optional[str] = None  # optional
+
+
+async def _sync_github_background(user_id: str, github_url: str):
+    """Background: pull the applicant's public GitHub profile and cache it."""
+    data = await fetch_github_profile(github_url)
+    try:
+        get_admin_db().table("applicant_profiles").update({
+            "github_data": data,
+            "github_synced_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("id", user_id).execute()
+    except Exception as e:
+        print(f"[github] cache write failed for {user_id}: {e}")
 
 
 def _ensure_applicant_profile(db, user):
@@ -76,8 +90,10 @@ def get_applicant_profile(user=Depends(require_user)):
 
 
 @router.put("/student/profile")
-def update_applicant_profile(payload: ApplicantProfileUpdate, user=Depends(require_user)):
-    """Update the applicant's editable profile fields."""
+def update_applicant_profile(payload: ApplicantProfileUpdate, background_tasks: BackgroundTasks,
+                             user=Depends(require_user)):
+    """Update the applicant's editable profile fields. When a GitHub URL is set
+    or changed, kick a background fetch of their public GitHub profile."""
     db = get_admin_db()
     _ensure_applicant_profile(db, user)
 
@@ -91,11 +107,57 @@ def update_applicant_profile(payload: ApplicantProfileUpdate, user=Depends(requi
     if payload.skills_json is not None:
         updates["skills_json"] = payload.skills_json
 
+    github_action = None  # None | "fetch" | "clear"
+    if payload.github_url is not None:
+        gh = payload.github_url.strip()
+        updates["github_url"] = gh or None
+        github_action = "fetch" if gh else "clear"
+
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update.")
 
     res = db.table("applicant_profiles").update(updates).eq("id", str(user.id)).execute()
+
+    # Mirror the name to profiles.display_name so the navbar/avatar (surfaced via
+    # AuthContext) updates instead of staying on the email-derived fallback.
+    if updates.get("full_name"):
+        try:
+            db.table("profiles").upsert(
+                {"id": str(user.id), "display_name": updates["full_name"]}
+            ).execute()
+        except Exception:
+            pass
+
+    # GitHub enrichment (optional): fetch in the background, or clear if removed.
+    if github_action == "fetch":
+        background_tasks.add_task(_sync_github_background, str(user.id), updates["github_url"])
+    elif github_action == "clear":
+        try:
+            db.table("applicant_profiles").update(
+                {"github_data": None, "github_synced_at": None}
+            ).eq("id", str(user.id)).execute()
+        except Exception:
+            pass
+
     return {"message": "Profile updated", "profile": res.data[0] if res.data else updates}
+
+
+@router.post("/student/profile/github-sync")
+async def sync_applicant_github(user=Depends(require_user)):
+    """Manually (re)fetch the applicant's GitHub profile from their saved URL."""
+    db = get_admin_db()
+    profile = _ensure_applicant_profile(db, user)
+    github_url = (profile.get("github_url") or "").strip()
+    if not github_url:
+        raise HTTPException(status_code=400, detail="Add a GitHub URL to your profile first.")
+    data = await fetch_github_profile(github_url)
+    if data is None:
+        raise HTTPException(status_code=422, detail="Couldn't read that GitHub profile. Make sure the URL points to a public profile.")
+    db.table("applicant_profiles").update({
+        "github_data": data,
+        "github_synced_at": datetime.now(timezone.utc).isoformat(),
+    }).eq("id", str(user.id)).execute()
+    return {"github_data": data}
 
 
 @router.post("/student/profile/avatar")
@@ -181,26 +243,69 @@ def _clean_name(name) -> Optional[str]:
     return None
 
 
+async def _scan_applicant_resume_background(resume_id: str, raw_text: str):
+    """Background: run the (potentially slow) ATS scan and write the result to the
+    applicant_resumes row. Keeping the scan out of the request means the upload
+    responds instantly — so mobile connections don't drop on a slow/cold backend.
+    A row is 'processing' while ats_breakdown is null; this fills it in."""
+    db = get_admin_db()
+    try:
+        report = await scan_ats_compliance(raw_text)
+        db.table("applicant_resumes").update({
+            "ats_score": report.get("score", 0),
+            "ats_breakdown": report.get("breakdown", []),
+            "candidate_name": _clean_name(report.get("candidate_name")),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("id", resume_id).execute()
+    except Exception as e:
+        print(f"[applicant-ats] background scan failed for {resume_id}: {e}")
+        try:
+            db.table("applicant_resumes").update({
+                "ats_score": 0,
+                "ats_breakdown": [{"type": "critical", "message": "Analysis failed. Please try again."}],
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }).eq("id", resume_id).execute()
+        except Exception:
+            pass
+
+
 @router.post("/student/ats-check")
-async def applicant_ats_check(file: UploadFile = File(...), user=Depends(require_user)):
-    """Scan an applicant's resume, store the PDF + a history row, return the report."""
+async def applicant_ats_check(background_tasks: BackgroundTasks, file: UploadFile = File(...),
+                              user=Depends(require_user)):
+    """Store the resume and START the ATS scan in the background, returning immediately.
+    The frontend polls the saved record for the result. This keeps the request fast so
+    it never times out / drops on mobile or a cold free-tier backend."""
     contents = await _validated_pdf_bytes(file)
+    raw_text = extract_text(contents)
+    if not raw_text or not raw_text.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="Couldn't read any text from this PDF. If it's a scanned/image resume, please upload a text-based PDF.",
+        )
+
     db = get_admin_db()
     _ensure_applicant_profile(db, user)
 
+    # Best-effort bucket store — never block on storage.
     object_path = upload_applicant_resume_pdf(contents, file.filename, str(user.id))
-    report = await scan_ats_compliance(extract_text(contents))
 
-    ins = db.table("applicant_resumes").insert({
-        "user_id": str(user.id),
-        "file_url": object_path,
-        "filename": file.filename,
-        "candidate_name": _clean_name(report.get("candidate_name")),
-        "ats_score": report.get("score", 0),
-        "ats_breakdown": report.get("breakdown", []),
-    }).execute()
-    record = ins.data[0] if ins.data else {}
-    return {"id": record.get("id"), "report": report, "record": record}
+    # Insert a 'processing' row (ats_breakdown left null) and scan in the background.
+    record = {}
+    try:
+        ins = db.table("applicant_resumes").insert({
+            "user_id": str(user.id),
+            "file_url": object_path,
+            "filename": file.filename,
+        }).execute()
+        record = ins.data[0] if ins.data else {}
+    except Exception as e:
+        print(f"[applicant-ats] history insert failed: {e}")
+        raise HTTPException(status_code=500, detail="Couldn't save your resume. Please try again.")
+
+    rid = record.get("id")
+    if rid:
+        background_tasks.add_task(_scan_applicant_resume_background, rid, raw_text)
+    return {"id": rid, "status": "processing", "record": record}
 
 
 @router.get("/student/resumes")
@@ -226,8 +331,10 @@ def delete_applicant_resume(resume_id: str, user=Depends(require_user)):
 
 
 @router.put("/student/resumes/{resume_id}")
-async def replace_applicant_resume(resume_id: str, file: UploadFile = File(...), user=Depends(require_user)):
-    """Replace a saved resume in place — old file is removed, new one re-scanned."""
+async def replace_applicant_resume(resume_id: str, background_tasks: BackgroundTasks,
+                                   file: UploadFile = File(...), user=Depends(require_user)):
+    """Replace a saved resume in place — old file removed, new one re-scanned in the
+    background (row returns to 'processing' until the new scan completes)."""
     db = get_admin_db()
     chk = (db.table("applicant_resumes").select("id, file_url")
            .eq("id", resume_id).eq("user_id", str(user.id)).execute())
@@ -235,18 +342,24 @@ async def replace_applicant_resume(resume_id: str, file: UploadFile = File(...),
         raise HTTPException(status_code=404, detail="Resume not found.")
 
     contents = await _validated_pdf_bytes(file)
+    raw_text = extract_text(contents)
+    if not raw_text or not raw_text.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="Couldn't read any text from this PDF. If it's a scanned/image resume, please upload a text-based PDF.",
+        )
+
     remove_applicant_resume_pdf(chk.data[0].get("file_url"))
     object_path = upload_applicant_resume_pdf(contents, file.filename, str(user.id))
-    report = await scan_ats_compliance(extract_text(contents))
 
-    upd = {
+    # Reset to 'processing' (clear old scan) and re-scan in the background.
+    db.table("applicant_resumes").update({
         "file_url": object_path,
         "filename": file.filename,
-        "candidate_name": _clean_name(report.get("candidate_name")),
-        "ats_score": report.get("score", 0),
-        "ats_breakdown": report.get("breakdown", []),
+        "ats_score": None,
+        "ats_breakdown": None,
         "updated_at": datetime.now(timezone.utc).isoformat(),
-    }
-    res = db.table("applicant_resumes").update(upd).eq("id", resume_id).execute()
-    record = res.data[0] if res.data else {}
-    return {"id": resume_id, "report": report, "record": record}
+    }).eq("id", resume_id).execute()
+
+    background_tasks.add_task(_scan_applicant_resume_background, resume_id, raw_text)
+    return {"id": resume_id, "status": "processing"}
