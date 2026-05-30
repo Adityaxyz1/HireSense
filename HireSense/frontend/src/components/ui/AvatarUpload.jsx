@@ -85,7 +85,7 @@ export default function AvatarUpload({ currentUrl, initial = 'S', busy = false, 
                     {info && (
                         <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.6 }}>
                             {info.wasOptimized && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#7f9153', marginBottom: 2 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#22c55e', marginBottom: 2 }}>
                                     <CheckCircle2 size={13} /> Your image was automatically optimized to meet platform requirements.
                                 </div>
                             )}
@@ -96,7 +96,7 @@ export default function AvatarUpload({ currentUrl, initial = 'S', busy = false, 
                     )}
 
                     {error && (
-                        <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: '#c0563a' }}>
+                        <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: '#ef4444' }}>
                             <AlertCircle size={13} /> {error}
                         </div>
                     )}
@@ -121,7 +121,7 @@ export default function AvatarUpload({ currentUrl, initial = 'S', busy = false, 
 
                     {/* Guidelines informational alert */}
                     <div role="note" style={{ marginTop: 12, display: 'flex', gap: 11, border: '1.5px solid rgba(59,130,246,0.35)', background: 'rgba(59,130,246,0.07)', borderRadius: 10, padding: '13px 15px' }}>
-                        <Info size={16} style={{ color: '#9a7b4a', flexShrink: 0, marginTop: 1 }} />
+                        <Info size={16} style={{ color: '#3b82f6', flexShrink: 0, marginTop: 1 }} />
                         <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.65 }}>
                             <strong style={{ color: 'var(--text)' }}>Profile Picture Guidelines:</strong> Please upload a clear, professional-looking photograph with good lighting and a neutral background. Avoid group photos, selfies with filters, sunglasses, or casual/social-media-style images. This photo may be visible to recruiters and administrators.
                         </div>

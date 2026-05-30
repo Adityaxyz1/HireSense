@@ -4,7 +4,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { api } from '../../lib/api';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 
-const scC = v => v >= 85 ? '#7f9153' : v >= 70 ? '#c08a35' : '#c0563a';
+const scC = v => v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
 
 // Score gauge — mirrors the recruiter ATS report ring.
 function ScoreRing({ score, isDark }) {
@@ -160,7 +160,7 @@ export default function ApplicantAtsCheck() {
                         <div style={{ fontSize: 13, color: 'var(--text)' }}>{file ? file.name : 'Drop PDF here or click to browse'}</div>
                     </div>
 
-                    {error && <p style={{ fontSize: 12, color: '#c0563a', marginTop: 12 }}>{error}</p>}
+                    {error && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 12 }}>{error}</p>}
 
                     <button onClick={runScan} disabled={loading || !file} style={{
                         width: '100%', marginTop: 14, padding: 12, borderRadius: 'var(--r-sm)',
@@ -198,14 +198,14 @@ export default function ApplicantAtsCheck() {
                                     <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>Overall readiness score</div>
                                     <div style={{
                                         marginTop: 10, padding: '6px 12px',
-                                        background: score >= 70 ? (isDark ? '#1f2410' : '#eef0e1') : (isDark ? '#2a1510' : '#f6ece5'),
-                                        border: `1.5px solid ${score >= 70 ? '#7f915333' : '#c0563a33'}`,
+                                        background: score >= 70 ? (isDark ? '#052e16' : '#f0fdf4') : (isDark ? '#2d0a0a' : '#fff1f2'),
+                                        border: `1.5px solid ${score >= 70 ? '#22c55e33' : '#ef444433'}`,
                                         borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 6,
                                     }}>
-                                        <span style={{ color: score >= 70 ? '#7f9153' : '#c0563a', display: 'flex' }}>
+                                        <span style={{ color: score >= 70 ? '#22c55e' : '#ef4444', display: 'flex' }}>
                                             {score >= 70 ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
                                         </span>
-                                        <span style={{ fontSize: 12, color: score >= 70 ? '#7f9153' : '#c0563a', fontWeight: 500 }}>
+                                        <span style={{ fontSize: 12, color: score >= 70 ? '#22c55e' : '#ef4444', fontWeight: 500 }}>
                                             {score >= 85 ? 'Excellent' : score >= 70 ? 'Good — minor fixes' : 'Needs improvement'}
                                         </span>
                                     </div>
@@ -217,7 +217,7 @@ export default function ApplicantAtsCheck() {
                                     <div style={{ height: 1.5, background: 'var(--border)', margin: '14px 0' }} />
                                     <div style={{ fontSize: 11, color: 'var(--text3)', letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: 10, fontWeight: 500 }}>Diagnostics</div>
                                     {report.breakdown.map((d, i) => {
-                                        const c = d.type === 'success' ? '#7f9153' : d.type === 'warning' ? '#c08a35' : '#c0563a';
+                                        const c = d.type === 'success' ? '#22c55e' : d.type === 'warning' ? '#f59e0b' : '#ef4444';
                                         return (
                                             <div key={i} style={{
                                                 display: 'flex', gap: 10, alignItems: 'flex-start',
@@ -289,7 +289,7 @@ export default function ApplicantAtsCheck() {
                                             className="nb" style={{
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '7px 10px',
                                                 border: '1.5px solid var(--border)', borderRadius: 8, background: 'var(--bg3)',
-                                                color: '#c0563a', fontSize: 11, fontWeight: 600, cursor: busy ? 'default' : 'pointer',
+                                                color: '#ef4444', fontSize: 11, fontWeight: 600, cursor: busy ? 'default' : 'pointer',
                                             }}>
                                             <Trash2 size={13} />
                                         </button>

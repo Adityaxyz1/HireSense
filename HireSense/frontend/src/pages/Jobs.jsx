@@ -153,8 +153,8 @@ export default function Jobs() {
             <div className="bento stagger" style={{ marginBottom: 20 }}>
                 {[
                     { color: 'var(--text)', label: 'Total Job Roles', value: totalOpenings },
-                    { color: '#9c6f4a', label: 'Active Roles', value: jobs.filter(j => j.status !== 'closed').length },
-                    { color: '#c08a35', label: 'Total Matches', value: results.length },
+                    { color: '#8b5cf6', label: 'Active Roles', value: jobs.filter(j => j.status !== 'closed').length },
+                    { color: '#f59e0b', label: 'Total Matches', value: results.length },
                 ].map((s, i) => (
                     <div key={i} className="card-modern hover-lift-sm col-4" style={{
                         '--i': i,

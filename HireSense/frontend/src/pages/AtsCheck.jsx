@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../lib/api';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 
-const scC = v => v >= 85 ? '#7f9153' : v >= 70 ? '#c08a35' : '#c0563a';
+const scC = v => v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
 
 const ICONS = {
     upload: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>,
@@ -290,7 +290,7 @@ export default function AtsCheck() {
                             <div style={{ height: 1.5, background: 'var(--border)', margin: '14px 0' }} />
                             <div style={{ fontSize: 11, color: 'var(--text3)', letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: 10, fontWeight: 500 }}>Diagnostics</div>
                             {report.breakdown.map((d, i) => {
-                                const c = d.type === 'success' ? '#7f9153' : d.type === 'warning' ? '#c08a35' : '#c0563a';
+                                const c = d.type === 'success' ? '#22c55e' : d.type === 'warning' ? '#f59e0b' : '#ef4444';
                                 return (
                                     <div key={i} style={{
                                         display: 'flex', gap: 10, alignItems: 'flex-start',
@@ -316,8 +316,8 @@ export default function AtsCheck() {
                                 {(matchReport.matched_keywords || []).map(k => (
                                     <span key={k} style={{
                                         padding: '3px 9px', borderRadius: 6, fontSize: 11,
-                                        background: isDark ? '#1f2410' : '#eef0e1',
-                                        border: '1px solid #7f915333', color: '#7f9153', fontWeight: 500,
+                                        background: isDark ? '#052e16' : '#f0fdf4',
+                                        border: '1px solid #22c55e33', color: '#22c55e', fontWeight: 500,
                                         display: 'flex', alignItems: 'center', gap: 5,
                                     }}>
                                         {ICONS.check} {k}
@@ -330,8 +330,8 @@ export default function AtsCheck() {
                                 {(matchReport.missing_keywords || []).map(k => (
                                     <span key={k} style={{
                                         padding: '3px 9px', borderRadius: 6, fontSize: 11,
-                                        background: isDark ? '#2a1510' : '#f6ece5',
-                                        border: '1px solid #c0563a33', color: '#c0563a', fontWeight: 500,
+                                        background: isDark ? '#2d0a0a' : '#fff1f2',
+                                        border: '1px solid #ef444433', color: '#ef4444', fontWeight: 500,
                                         display: 'flex', alignItems: 'center', gap: 5,
                                     }}>
                                         {ICONS.alert} {k}
@@ -400,14 +400,14 @@ export default function AtsCheck() {
                                         <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>Overall readiness score</div>
                                         <div style={{
                                             marginTop: 10, padding: '6px 12px',
-                                            background: score >= 70 ? (isDark ? '#1f2410' : '#eef0e1') : (isDark ? '#2a1510' : '#f6ece5'),
-                                            border: `1.5px solid ${score >= 70 ? '#7f915333' : '#c0563a33'}`,
+                                            background: score >= 70 ? (isDark ? '#052e16' : '#f0fdf4') : (isDark ? '#2d0a0a' : '#fff1f2'),
+                                            border: `1.5px solid ${score >= 70 ? '#22c55e33' : '#ef444433'}`,
                                             borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 6,
                                         }}>
-                                            <span style={{ color: score >= 70 ? '#7f9153' : '#c0563a', display: 'flex', alignItems: 'center' }}>
+                                            <span style={{ color: score >= 70 ? '#22c55e' : '#ef4444', display: 'flex', alignItems: 'center' }}>
                                                 {score >= 70 ? ICONS.check : ICONS.alert}
                                             </span>
-                                            <span style={{ fontSize: 12, color: score >= 70 ? '#7f9153' : '#c0563a', fontWeight: 500 }}>
+                                            <span style={{ fontSize: 12, color: score >= 70 ? '#22c55e' : '#ef4444', fontWeight: 500 }}>
                                                 {score >= 85 ? 'Excellent' : score >= 70 ? 'Good — minor fixes needed' : 'Needs improvement'}
                                             </span>
                                         </div>
@@ -455,7 +455,7 @@ export default function AtsCheck() {
                                 Select a resume, paste a job description, and click Run Precision Match.
                             </div>
                         ) : matchReport.error ? (
-                            <div style={{ padding: 20, color: '#c0563a', fontSize: 13 }}>Error: {matchReport.error}</div>
+                            <div style={{ padding: 20, color: '#ef4444', fontSize: 13 }}>Error: {matchReport.error}</div>
                         ) : (
                             (() => {
                                 const ms = Math.round(Math.min(100, Math.max(0, matchReport.final_score || 0)));
@@ -486,14 +486,14 @@ export default function AtsCheck() {
                                                 <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>Blended match score</div>
                                                 <div style={{
                                                     marginTop: 10, padding: '6px 12px',
-                                                    background: ms >= 70 ? (isDark ? '#1f2410' : '#eef0e1') : (isDark ? '#2a1510' : '#f6ece5'),
-                                                    border: `1.5px solid ${ms >= 70 ? '#7f915333' : '#c0563a33'}`,
+                                                    background: ms >= 70 ? (isDark ? '#052e16' : '#f0fdf4') : (isDark ? '#2d0a0a' : '#fff1f2'),
+                                                    border: `1.5px solid ${ms >= 70 ? '#22c55e33' : '#ef444433'}`,
                                                     borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 6,
                                                 }}>
-                                                    <span style={{ color: ms >= 70 ? '#7f9153' : '#c0563a', display: 'flex', alignItems: 'center' }}>
+                                                    <span style={{ color: ms >= 70 ? '#22c55e' : '#ef4444', display: 'flex', alignItems: 'center' }}>
                                                         {ms >= 70 ? ICONS.check : ICONS.alert}
                                                     </span>
-                                                    <span style={{ fontSize: 12, color: ms >= 70 ? '#7f9153' : '#c0563a', fontWeight: 500 }}>
+                                                    <span style={{ fontSize: 12, color: ms >= 70 ? '#22c55e' : '#ef4444', fontWeight: 500 }}>
                                                         {ms >= 85 ? 'Strong match' : ms >= 70 ? 'Good match' : 'Weak match'}
                                                     </span>
                                                 </div>
