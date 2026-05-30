@@ -61,6 +61,7 @@ export default function ApplicantProfile() {
             const skills = skillsText.split(',').map(s => s.trim()).filter(Boolean);
             await api.updateApplicantProfile({ ...form, skills_json: skills });
             setSaved(true);
+            refreshProfile?.();   // update the navbar name/avatar (profiles table) immediately
             setTimeout(() => setSaved(false), 2500);
         } catch (e) {
             setError(e.message);

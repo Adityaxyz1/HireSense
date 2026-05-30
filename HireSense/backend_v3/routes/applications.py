@@ -320,27 +320,18 @@ def job_applications(job_id: str, user=Depends(require_user)):
     if not chk.data:
         raise HTTPException(status_code=404, detail="Job not found or access denied.")
 
-    def _fetch(profile_cols):
-        return (
-            get_admin_db().table("applications")
-            .select(
-                "id, status, created_at, resume_id, match_result_id, applicant_id, "
-                f"applicant_profiles ({profile_cols}), "
-                "resumes (status, ats_score, candidate_name, file_url), "
-                "match_results (final_score, risk_level, skill_score, semantic_score)"
-            )
-            .eq("job_id", job_id)
-            .order("created_at", desc=True)
-            .execute()
+    res = (
+        get_admin_db().table("applications")
+        .select(
+            "id, status, created_at, resume_id, match_result_id, applicant_id, "
+            "applicant_profiles (full_name, email, major, graduation_year, github_url, github_data), "
+            "resumes (status, ats_score, candidate_name, file_url), "
+            "match_results (final_score, risk_level, skill_score, semantic_score)"
         )
-
-    # Prefer the GitHub-enriched columns; gracefully fall back if the
-    # applicant_github migration hasn't been applied yet (so this page never
-    # regresses before the SQL is run).
-    try:
-        res = _fetch("full_name, email, major, graduation_year, github_url, github_data")
-    except Exception:
-        res = _fetch("full_name, email, major, graduation_year")
+        .eq("job_id", job_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
     out = []
     for row in res.data or []:
         applicant = row.pop("applicant_profiles", None) or {}

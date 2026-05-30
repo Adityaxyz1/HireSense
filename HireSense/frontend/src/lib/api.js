@@ -362,8 +362,8 @@ export const api = {
             body: formData,
             json: false,
             fallbackError: 'ATS check failed',
-            timeoutMs: 45000, // racing engine returns faster
-            timeoutMessage: 'ATS analysis timed out. Please try again.',
+            timeoutMs: 60000, // upload only — the scan runs in the background
+            timeoutMessage: 'Upload timed out. Please try again.',
         });
     },
 
@@ -383,8 +383,8 @@ export const api = {
             body: formData,
             json: false,
             fallbackError: 'Failed to replace resume',
-            timeoutMs: 45000,
-            timeoutMessage: 'ATS analysis timed out. Please try again.',
+            timeoutMs: 60000, // upload only — the re-scan runs in the background
+            timeoutMessage: 'Upload timed out. Please try again.',
         });
     }
 };
