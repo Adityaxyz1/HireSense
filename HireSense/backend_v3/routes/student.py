@@ -11,13 +11,14 @@ existing clients; only the code identifiers use the "applicant" vocabulary.
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, List
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, BackgroundTasks
 from pydantic import BaseModel
 
 from database import get_admin_db
 from routes.auth_dependency import require_user
 from services.pdf_parser import extract_text
 from services.ats_scanner import scan_ats_compliance
+from services.github_service import fetch_github_profile
 from services.storage_service import (
     upload_applicant_resume_pdf,
     remove_applicant_resume_pdf,
@@ -42,6 +43,19 @@ class ApplicantProfileUpdate(BaseModel):
     major: Optional[str] = None
     graduation_year: Optional[str] = None
     skills_json: Optional[List[str]] = None
+    github_url: Optional[str] = None  # optional
+
+
+async def _sync_github_background(user_id: str, github_url: str):
+    """Background: pull the applicant's public GitHub profile and cache it."""
+    data = await fetch_github_profile(github_url)
+    try:
+        get_admin_db().table("applicant_profiles").update({
+            "github_data": data,
+            "github_synced_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("id", user_id).execute()
+    except Exception as e:
+        print(f"[github] cache write failed for {user_id}: {e}")
 
 
 def _ensure_applicant_profile(db, user):
@@ -76,8 +90,10 @@ def get_applicant_profile(user=Depends(require_user)):
 
 
 @router.put("/student/profile")
-def update_applicant_profile(payload: ApplicantProfileUpdate, user=Depends(require_user)):
-    """Update the applicant's editable profile fields."""
+def update_applicant_profile(payload: ApplicantProfileUpdate, background_tasks: BackgroundTasks,
+                             user=Depends(require_user)):
+    """Update the applicant's editable profile fields. When a GitHub URL is set
+    or changed, kick a background fetch of their public GitHub profile."""
     db = get_admin_db()
     _ensure_applicant_profile(db, user)
 
@@ -91,11 +107,47 @@ def update_applicant_profile(payload: ApplicantProfileUpdate, user=Depends(requi
     if payload.skills_json is not None:
         updates["skills_json"] = payload.skills_json
 
+    github_action = None  # None | "fetch" | "clear"
+    if payload.github_url is not None:
+        gh = payload.github_url.strip()
+        updates["github_url"] = gh or None
+        github_action = "fetch" if gh else "clear"
+
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update.")
 
     res = db.table("applicant_profiles").update(updates).eq("id", str(user.id)).execute()
+
+    # GitHub enrichment (optional): fetch in the background, or clear if removed.
+    if github_action == "fetch":
+        background_tasks.add_task(_sync_github_background, str(user.id), updates["github_url"])
+    elif github_action == "clear":
+        try:
+            db.table("applicant_profiles").update(
+                {"github_data": None, "github_synced_at": None}
+            ).eq("id", str(user.id)).execute()
+        except Exception:
+            pass
+
     return {"message": "Profile updated", "profile": res.data[0] if res.data else updates}
+
+
+@router.post("/student/profile/github-sync")
+async def sync_applicant_github(user=Depends(require_user)):
+    """Manually (re)fetch the applicant's GitHub profile from their saved URL."""
+    db = get_admin_db()
+    profile = _ensure_applicant_profile(db, user)
+    github_url = (profile.get("github_url") or "").strip()
+    if not github_url:
+        raise HTTPException(status_code=400, detail="Add a GitHub URL to your profile first.")
+    data = await fetch_github_profile(github_url)
+    if data is None:
+        raise HTTPException(status_code=422, detail="Couldn't read that GitHub profile. Make sure the URL points to a public profile.")
+    db.table("applicant_profiles").update({
+        "github_data": data,
+        "github_synced_at": datetime.now(timezone.utc).isoformat(),
+    }).eq("id", str(user.id)).execute()
+    return {"github_data": data}
 
 
 @router.post("/student/profile/avatar")

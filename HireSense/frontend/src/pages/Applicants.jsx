@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Users, Activity, ChevronRight } from 'lucide-react';
+import { Users, Activity, ChevronRight, Github, Star } from 'lucide-react';
 import { api } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { useBreakpoint } from '../hooks/useBreakpoint';
@@ -130,6 +130,21 @@ export default function Applicants() {
                                                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
                                                     {[a.major, a.graduation_year, a.applicant_email].filter(Boolean).join(' · ') || '—'}
                                                 </div>
+                                                {a.github_url && (
+                                                    <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                                        <a href={a.github_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}
+                                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none', padding: '2px 8px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--tag)' }}>
+                                                            <Github size={12} /> GitHub
+                                                        </a>
+                                                        {a.github_data && (
+                                                            <span style={{ fontSize: 11, color: 'var(--text3)', display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><Star size={10} /> {a.github_data.total_stars}</span>
+                                                                · {a.github_data.public_repos} repos
+                                                                {a.github_data.top_languages?.length > 0 && ` · ${a.github_data.top_languages.slice(0, 3).map(l => l.lang).join(', ')}`}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                                                 <Metric label="ATS" value={pct(a.ats_score)} dim={processing} />
