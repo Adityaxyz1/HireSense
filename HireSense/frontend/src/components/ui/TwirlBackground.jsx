@@ -2,8 +2,8 @@ import React, { useRef, useEffect } from 'react';
 
 /**
  * A premium, high-performance background animation using Canvas.
- * Creates a "HireSense aesthetic" continuous flowing gold/indigo wave matrix
- * that gently reacts to mouse movement.
+ * Creates a "HireSense aesthetic" continuous flowing coffee/cream wave matrix
+ * (warm espresso → ochre → cream) that gently reacts to mouse movement.
  *
  * Rendered fixed to the viewport so it always covers the full screen,
  * regardless of how tall the page content is or how far it's scrolled.
@@ -73,8 +73,8 @@ export default function TwirlBackground() {
                 this.speedY = (Math.random() * 0.8) - 0.4;
                 this.angle = Math.random() * Math.PI * 2;
 
-                // Color palette: deep indigo to gold accent
-                const colors = ['#b08a5a', '#e0d3bb', '#d4a94f', '#7a5a3a', '#1E1B4B'];
+                // Coffee palette: cream → ochre → tan → coffee → espresso
+                const colors = ['#e1dcc9', '#d4a94f', '#b08a5a', '#8a5a1f', '#412d15'];
                 this.baseColor = colors[Math.floor(Math.random() * colors.length)];
             }
 
@@ -138,8 +138,8 @@ export default function TwirlBackground() {
                         const opacity = 1 - (distance / CONNECTION_DISTANCE);
                         const mixFactor = ((particles[a].x + particles[b].y) % 100) / 100; // Fake gradient based on position
 
-                        // Use a rich gradient mix for lines
-                        ctx.strokeStyle = `rgba(${129 + mixFactor * 100}, ${140 + mixFactor * 50}, 248, ${opacity * 0.25})`;
+                        // Warm cream→bronze gradient mix for the connecting lines
+                        ctx.strokeStyle = `rgba(${198 + mixFactor * 27}, ${168 + mixFactor * 30}, ${130 + mixFactor * 25}, ${opacity * 0.22})`;
                         ctx.lineWidth = 1;
                         ctx.beginPath();
                         ctx.moveTo(particles[a].x, particles[a].y);
