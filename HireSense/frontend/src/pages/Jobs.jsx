@@ -340,9 +340,9 @@ export default function Jobs() {
                                                                 </div>
                                                                 <div className="w-40">
                                                                     <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
-                                                                    <select value={editStatus} onChange={e => setEditStatus(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent text-gray-900 dark:text-white outline-none focus:border-indigo-500">
-                                                                        <option value="active">Active</option>
-                                                                        <option value="closed">Closed</option>
+                                                                    <select value={editStatus} onChange={e => setEditStatus(e.target.value)} style={{ colorScheme: isDark ? 'dark' : 'light' }} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent text-gray-900 dark:text-white outline-none focus:border-indigo-500">
+                                                                        <option value="active" style={{ background: 'var(--input)', color: 'var(--text)' }}>Active</option>
+                                                                        <option value="closed" style={{ background: 'var(--input)', color: 'var(--text)' }}>Closed</option>
                                                                     </select>
                                                                 </div>
                                                             </div>

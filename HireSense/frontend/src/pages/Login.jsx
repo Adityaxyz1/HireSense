@@ -7,7 +7,6 @@ import { api } from '../lib/api';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import AvatarUpload from '../components/ui/AvatarUpload';
 import TwirlBackground from '../components/ui/TwirlBackground';
-import AmbientGlow from '../components/ui/AmbientGlow';
 
 // Role switcher config — Applicant is the primary, default flow.
 const ROLES = [
@@ -166,8 +165,7 @@ export default function Login() {
             overflow: 'hidden',
             padding: isMobile ? 12 : 20,
         }}>
-            {/* Background effects — warm aurora wash behind the particle field */}
-            <AmbientGlow />
+            {/* Background effects */}
             <TwirlBackground />
 
             {/* Radial glow behind card */}

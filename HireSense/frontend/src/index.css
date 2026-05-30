@@ -15,76 +15,73 @@
 
 /* ── DARK THEME (default) ── */
 [data-theme="dark"] {
-  /* "Coffee" palette — #000000 / #1F150C / #412D15 / #E1DCC9.
-     Espresso base (warm near-black, no pure-black glare), coffee mid-tones for
-     borders/elevation, and cream ink + cream CTAs. Surfaces step up by
-     luminance so cards sit ABOVE the page. */
-  --bg:       #18110a;
-  --bg2:      #1f150c;
-  --bg3:      #34230f;
-  --surface:  #24180a;
-  --border:   #412d15;
-  --border2:  #5a3f20;
-  --text:     #e1dcc9;
-  --text2:    #ab9f86;
-  --text3:    #6f6149;
-  --logo-bg:  #e1dcc9;
-  --logo-fg:  #18110a;
-  --nav-on:   #e1dcc9;
-  --nav-on-fg:#18110a;
-  --btn:      #e1dcc9;
-  --btn-fg:   #18110a;
-  --accent:   #e1dcc9;
-  --card:     #24180a;
-  --input:    #24180a;
-  --tag:      #34230f;
-  --track:    #412d15;
+  /* Punchy but glare-reduced dark: base lifted just off pure black (kills the
+     near-black + pure-white halation) while keeping crisp, high-contrast text
+     and bright CTAs. Surfaces step up by luminance so cards sit ABOVE the page. */
+  --bg:       #101117;
+  --bg2:      #16171e;
+  --bg3:      #212230;
+  --surface:  #17181f;
+  --border:   #2b2c36;
+  --border2:  #3d3e4a;
+  --text:     #eeeef3;
+  --text2:    #adaebc;
+  --text3:    #646573;
+  --logo-bg:  #eeeef3;
+  --logo-fg:  #101117;
+  --nav-on:   #f0f0f5;
+  --nav-on-fg:#101117;
+  --btn:      #f0f0f5;
+  --btn-fg:   #101117;
+  --accent:   #eeeef3;
+  --card:     #17181f;
+  --input:    #17181f;
+  --tag:      #212230;
+  --track:    #2b2c36;
   /* modern surface + depth tokens */
-  --card-hover: #2c1e0c;
-  --elevated:  #3a2813;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.45);
-  --shadow-md: 0 4px 16px -4px rgba(0,0,0,.6), 0 1px 3px rgba(0,0,0,.45);
-  --shadow-lg: 0 18px 48px -12px rgba(0,0,0,.72), 0 4px 12px rgba(0,0,0,.45);
-  --ring:      0 0 0 3px rgba(225,220,201,.14);
-  --mesh-1:    rgba(225,220,201,.05);
-  --mesh-2:    rgba(225,220,201,.025);
-  --hairline:  rgba(225,220,201,.07);
+  --card-hover: #1d1e27;
+  --elevated:  #282935;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-md: 0 4px 16px -4px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.4);
+  --shadow-lg: 0 18px 48px -12px rgba(0,0,0,.65), 0 4px 12px rgba(0,0,0,.4);
+  --ring:      0 0 0 3px rgba(238,238,243,.13);
+  --mesh-1:    rgba(255,255,255,.05);
+  --mesh-2:    rgba(255,255,255,.024);
+  --hairline:  rgba(255,255,255,.07);
 }
 
 /* ── LIGHT THEME ── */
 [data-theme="light"] {
-  /* "Coffee" palette, light side — parchment cream page, espresso ink, and a
-     coffee-brown primary action. (#000000 / #1F150C / #412D15 / #E1DCC9) */
-  --bg:       #e1dcc9;
-  --bg2:      #eeebe0;
-  --bg3:      #d4ceb8;
-  --surface:  #efece2;
-  --border:   #cabfa3;
-  --border2:  #a89a7c;
-  --text:     #1f150c;
-  --text2:    #5c4a30;
-  --text3:    #93856a;
-  --logo-bg:  #1f150c;
-  --logo-fg:  #e1dcc9;
-  --nav-on:   #1f150c;
-  --nav-on-fg:#e1dcc9;
-  --btn:      #412d15;
-  --btn-fg:   #e1dcc9;
-  --accent:   #412d15;
-  --card:     #efece2;
-  --input:    #f3f0e8;
-  --tag:      #d8d2be;
-  --track:    #cabfa3;
+  --bg:       #f5f4f1;
+  --bg2:      #ffffff;
+  --bg3:      #eceae4;
+  --surface:  #ffffff;
+  --border:   #e0ddd6;
+  --border2:  #b8b5ae;
+  --text:     #1a1a1e;
+  --text2:    #5c5c6e;
+  --text3:    #b0b0c0;
+  --logo-bg:  #1a1a1e;
+  --logo-fg:  #f5f4f1;
+  --nav-on:   #1a1a1e;
+  --nav-on-fg:#f5f4f1;
+  --btn:      #1a1a1e;
+  --btn-fg:   #f5f4f1;
+  --accent:   #1a1a1e;
+  --card:     #ffffff;
+  --input:    #ffffff;
+  --tag:      #eceae4;
+  --track:    #e0ddd6;
   /* modern surface + depth tokens */
-  --card-hover: #f3f0e8;
-  --elevated:  #f6f4ec;
-  --shadow-sm: 0 1px 2px rgba(31,21,12,.07);
-  --shadow-md: 0 6px 20px -6px rgba(31,21,12,.14), 0 1px 3px rgba(31,21,12,.06);
-  --shadow-lg: 0 20px 52px -14px rgba(31,21,12,.2), 0 4px 12px rgba(31,21,12,.08);
-  --ring:      0 0 0 3px rgba(65,45,21,.14);
-  --mesh-1:    rgba(31,21,12,.04);
-  --mesh-2:    rgba(31,21,12,.02);
-  --hairline:  rgba(31,21,12,.05);
+  --card-hover: #ffffff;
+  --elevated:  #ffffff;
+  --shadow-sm: 0 1px 2px rgba(26,26,30,.06);
+  --shadow-md: 0 6px 20px -6px rgba(26,26,30,.12), 0 1px 3px rgba(26,26,30,.05);
+  --shadow-lg: 0 20px 52px -14px rgba(26,26,30,.18), 0 4px 12px rgba(26,26,30,.07);
+  --ring:      0 0 0 3px rgba(26,26,30,.08);
+  --mesh-1:    rgba(26,26,30,.04);
+  --mesh-2:    rgba(26,26,30,.02);
+  --hairline:  rgba(26,26,30,.05);
 }
 
 /* ── RESET & BASE ── */

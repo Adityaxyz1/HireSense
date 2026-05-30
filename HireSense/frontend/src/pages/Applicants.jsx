@@ -7,6 +7,7 @@ import { useBreakpoint } from '../hooks/useBreakpoint';
 const STATUS_META = {
     applied:     { label: 'New', color: 'var(--text2)' },
     screening:   { label: 'Screened', color: '#9a7b4a' },
+    interview:   { label: 'Interview', color: '#5a7fa0' },
     shortlisted: { label: 'Shortlisted', color: '#7f9153' },
     rejected:    { label: 'Rejected', color: '#c0563a' },
     failed:      { label: 'Error', color: '#c0563a' },

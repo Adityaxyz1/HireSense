@@ -287,7 +287,7 @@ def my_applications(user=Depends(require_user)):
         db.table("applications")
         .select(
             "id, status, created_at, job_id, resume_id, match_result_id, "
-            "job_descriptions (title, location, salary_range), "
+            "job_descriptions (title, location, salary_range, job_text), "
             "resumes (status, ats_score, candidate_name), "
             "match_results (final_score, risk_level)"
         )
@@ -303,6 +303,7 @@ def my_applications(user=Depends(require_user)):
         row["job_title"] = job.get("title")
         row["location"] = job.get("location")
         row["salary_range"] = job.get("salary_range")
+        row["job_text"] = job.get("job_text")
         row["resume_status"] = resume.get("status")
         row["ats_score"] = resume.get("ats_score")
         row["match_score"] = match.get("final_score")
