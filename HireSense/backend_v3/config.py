@@ -27,6 +27,12 @@ class Settings:
     # (60 -> 5000 req/hr). Profile reads work without it.
     GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
 
+    # Eagerly load the embedding model at startup so the first job/resume isn't
+    # slow. Disable on tiny/free instances (e.g. 512MB Render) where loading
+    # torch at boot strains memory/CPU and slows ALL requests — it will lazy-load
+    # on first actual use instead. Set WARM_EMBEDDING_MODEL=false on Render.
+    WARM_EMBEDDING_MODEL: bool = os.getenv("WARM_EMBEDDING_MODEL", "true").lower() in ("1", "true", "yes")
+
     # Admin Panel
     ADMIN_MASTER_KEY: str = os.getenv("ADMIN_MASTER_KEY", "")
     # Admin allowlist — comma-separated emails. Defaults to the legacy admin so
