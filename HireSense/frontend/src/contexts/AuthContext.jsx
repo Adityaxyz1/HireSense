@@ -13,6 +13,16 @@ export const AuthProvider = ({ children }) => {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    // Last-known persona, cached across reloads. Lets a returning user land in
+    // the correct region instantly on a cold-start restore (before the /profile
+    // round-trip resolves), avoiding the wrong-region flash the persona gates
+    // would otherwise produce by defaulting to 'recruiter'. Self-corrects once
+    // the profile loads; cleared on logout.
+    const ROLE_CACHE_KEY = 'hs_role';
+    const [cachedRole] = useState(() => {
+        try { return localStorage.getItem(ROLE_CACHE_KEY); } catch { return null; }
+    });
+
     // Fetch profile from backend. Routes through the shared API client, which
     // retries transient cold-start failures (sleeping free-tier dyno) with
     // backoff so login/restore survives a backend that's still waking up.
@@ -21,6 +31,10 @@ export const AuthProvider = ({ children }) => {
         try {
             const data = await api.getProfile(session.access_token);
             setProfile(data.profile);
+            // Remember the persona so the next cold-start restore routes right.
+            try {
+                if (data.profile?.role) localStorage.setItem(ROLE_CACHE_KEY, data.profile.role);
+            } catch { /* ignore */ }
         } catch (error) {
             console.error('[AuthContext] fetchProfile error:', error);
         }
@@ -167,6 +181,7 @@ export const AuthProvider = ({ children }) => {
         await supabase.auth.signOut();
         setUser(null);
         setProfile(null);
+        try { localStorage.removeItem(ROLE_CACHE_KEY); } catch { /* ignore */ }
     };
 
     // Update profile
@@ -252,7 +267,7 @@ export const AuthProvider = ({ children }) => {
     return (
         <AuthContext.Provider value={{
             user, profile, loading,
-            role: profile?.role || 'recruiter',
+            role: profile?.role || cachedRole || 'recruiter',
             login, signup, signInWithOAuth, logout, resetPassword,
             updateProfile, uploadAvatar, changePassword, refreshProfile,
         }}>
