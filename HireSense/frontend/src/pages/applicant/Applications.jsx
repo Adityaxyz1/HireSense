@@ -7,11 +7,11 @@ import { useAuth } from '../../contexts/AuthContext';
 // Maps an application's lifecycle to a label + colour, mirroring the recruiter view.
 const STATUS_META = {
     applied:     { label: 'Applied',      color: 'var(--text2)' },
-    screening:   { label: 'Under Review', color: '#9a7b4a' },
+    screening:   { label: 'Under Review', color: '#3b82f6' },
     interview:   { label: 'Interview',    color: '#5a7fa0' },
-    shortlisted: { label: 'Shortlisted',  color: '#7f9153' },
-    rejected:    { label: 'Not Selected', color: '#c0563a' },
-    failed:      { label: 'Error',        color: '#c0563a' },
+    shortlisted: { label: 'Shortlisted',  color: '#22c55e' },
+    rejected:    { label: 'Not Selected', color: '#ef4444' },
+    failed:      { label: 'Error',        color: '#ef4444' },
 };
 
 const pct = (v) => (v == null ? '—' : `${Math.round((v <= 1 ? v * 100 : v))}%`);
