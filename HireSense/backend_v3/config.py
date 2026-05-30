@@ -27,11 +27,13 @@ class Settings:
     # (60 -> 5000 req/hr). Profile reads work without it.
     GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
 
-    # Eagerly load the embedding model at startup so the first job/resume isn't
-    # slow. Disable on tiny/free instances (e.g. 512MB Render) where loading
-    # torch at boot strains memory/CPU and slows ALL requests — it will lazy-load
-    # on first actual use instead. Set WARM_EMBEDDING_MODEL=false on Render.
-    WARM_EMBEDDING_MODEL: bool = os.getenv("WARM_EMBEDDING_MODEL", "true").lower() in ("1", "true", "yes")
+    # Eagerly load the embedding model at startup. Default OFF: on tiny/free
+    # instances (e.g. 512MB Render) loading torch at boot strains memory/CPU and
+    # slows ALL requests (and can OOM the boot). With it off, the model lazy-loads
+    # on first actual use; job creation is still instant because the embedding is
+    # computed in a background task. Set WARM_EMBEDDING_MODEL=true to pre-warm
+    # (handy on a roomy local dev box).
+    WARM_EMBEDDING_MODEL: bool = os.getenv("WARM_EMBEDDING_MODEL", "false").lower() in ("1", "true", "yes")
 
     # Admin Panel
     ADMIN_MASTER_KEY: str = os.getenv("ADMIN_MASTER_KEY", "")
