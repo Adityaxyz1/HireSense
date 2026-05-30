@@ -60,3 +60,8 @@ backend_node/
 backend_v2/
 server.log
 .agent/
+
+# The frontend's src/lib is application source, NOT a Python build dir —
+# the broad `lib/` rule above must not exclude it (broke Cloudflare builds).
+!HireSense/frontend/src/lib/
+!HireSense/frontend/src/lib/**
