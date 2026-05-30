@@ -35,7 +35,7 @@ export default function Browse() {
             </div>
 
             {loading && <p style={{ color: 'var(--text3)', fontSize: 13 }}>Loading roles…</p>}
-            {error && <p style={{ color: '#ef4444', fontSize: 13 }}>{error}</p>}
+            {error && <p style={{ color: '#c0563a', fontSize: 13 }}>{error}</p>}
 
             {!loading && !error && jobs.length === 0 && (
                 <div className="card-modern" style={{ ...card, alignItems: 'center', textAlign: 'center', padding: 48 }}>
@@ -139,7 +139,7 @@ function ApplyModal({ job, onClose }) {
 
                 {phase === 'done' ? (
                     <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                        <CheckCircle2 size={40} style={{ color: '#22c55e', margin: '0 auto' }} />
+                        <CheckCircle2 size={40} style={{ color: '#7f9153', margin: '0 auto' }} />
                         <p style={{ fontSize: 14, color: 'var(--text)', fontWeight: 600, marginTop: 16 }}>Application submitted!</p>
                         <p style={{ fontSize: 12.5, color: 'var(--text2)', marginTop: 8, lineHeight: 1.6 }}>
                             The AI screening engine is now analyzing your resume. Track live status in <strong style={{ color: 'var(--text)' }}>My Applications</strong> — the recruiter sees your match the moment it's scored.
@@ -159,7 +159,7 @@ function ApplyModal({ job, onClose }) {
                             {!file && <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Max 10MB</p>}
                         </div>
 
-                        {msg && <p style={{ fontSize: 12, color: '#ef4444', marginBottom: 12 }}>{msg}</p>}
+                        {msg && <p style={{ fontSize: 12, color: '#c0563a', marginBottom: 12 }}>{msg}</p>}
 
                         <button onClick={submit} disabled={phase === 'uploading'} className="nb btn-primary" style={{
                             width: '100%', borderRadius: 'var(--r-sm)',

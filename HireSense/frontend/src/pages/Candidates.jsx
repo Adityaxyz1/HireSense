@@ -6,13 +6,14 @@ import { supabase } from '../lib/supabase';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { ListSkeleton } from '../components/ui/Skeletons';
 
-const scC = v => v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
-const AVC = ['#818cf8', '#c084fc', '#f472b6', '#34d399', '#fbbf24'];
+const scC = v => v >= 85 ? '#7f9153' : v >= 70 ? '#c08a35' : '#c0563a';
+const AVC = ['#b08a5a', '#c0905a', '#bb7a6a', '#88a05f', '#d4a94f'];
 
 const STATUS_META = {
-    approved: { label: 'Approved', color: '#22c55e', bg_dark: '#052e16', bg_light: '#f0fdf4' },
-    pending: { label: 'Pending', color: '#f59e0b', bg_dark: '#1c1400', bg_light: '#fffbeb' },
-    rejected: { label: 'Rejected', color: '#ef4444', bg_dark: '#2d0a0a', bg_light: '#fff1f2' },
+    approved: { label: 'Approved', color: '#7f9153', bg_dark: '#1f2410', bg_light: '#eef0e1' },
+    interview: { label: 'Interview', color: '#5a7fa0', bg_dark: '#141d24', bg_light: '#e6edf3' },
+    pending: { label: 'Pending', color: '#c08a35', bg_dark: '#241a0b', bg_light: '#f5efe0' },
+    rejected: { label: 'Rejected', color: '#c0563a', bg_dark: '#2a1510', bg_light: '#f6ece5' },
 };
 
 const ICONS = {
@@ -24,6 +25,7 @@ const ICONS = {
     x: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
     sync: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>,
     circle: <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle></svg>,
+    calendar: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>,
     trash: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
     report: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="16" y2="13.01"></line><line x1="16" y1="17" x2="16" y2="17.01"></line><line x1="12" y1="13" x2="12" y2="13.01"></line><line x1="12" y1="17" x2="12" y2="17.01"></line><line x1="8" y1="13" x2="8" y2="13.01"></line><line x1="8" y1="17" x2="8" y2="17.01"></line></svg>,
     target: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>,
@@ -125,6 +127,7 @@ export default function Candidates() {
         all: candidates.length,
         pending: candidates.filter(c => (c.candidate_status || 'pending') === 'pending').length,
         approved: candidates.filter(c => c.candidate_status === 'approved').length,
+        interview: candidates.filter(c => c.candidate_status === 'interview').length,
         rejected: candidates.filter(c => c.candidate_status === 'rejected').length,
     };
 
@@ -151,7 +154,7 @@ export default function Candidates() {
         <>
             <div className="section-head" style={{ marginBottom: 16 }}>
                 <div>
-                    <div className="title" style={{ fontSize: 25, fontWeight: 700, letterSpacing: '-.02em', color: 'var(--text)' }}>Candidates</div>
+                    <div className="title" style={{ fontSize: 25, fontWeight: 700, letterSpacing: '-.02em', color: 'var(--text)' }}>Applicants</div>
                     <div className="subtitle" style={{ fontSize: 13, color: 'var(--text3)' }}>Review, score, and triage every applicant in one place</div>
                 </div>
             </div>
@@ -171,7 +174,7 @@ export default function Candidates() {
                     paddingBottom: isMobile ? 6 : 0,
                     WebkitOverflowScrolling: 'touch',
                 }}>
-                    {['all', 'pending', 'approved', 'rejected'].map(f => (
+                    {['all', 'pending', 'approved', 'interview', 'rejected'].map(f => (
                         <button key={f} onClick={() => setFilter(f)} style={{
                             padding: '7px 14px', borderRadius: 999,
                             border: `1.5px solid ${f === filter ? 'var(--border2)' : 'var(--border)'}`,
@@ -200,7 +203,7 @@ export default function Candidates() {
                         <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', display: 'flex', alignItems: 'center' }}>{ICONS.search}</span>
                         <input value={search} onChange={e => setSearch(e.target.value)}
                             className="focusable"
-                            placeholder="Search candidates…"
+                            placeholder="Search applicants…"
                             style={{ ...inp, paddingLeft: 30, width: '100%', minWidth: isMobile ? 0 : 180 }} />
                     </div>
                     <select value={sort} onChange={e => setSort(e.target.value)} style={{ ...inp, cursor: 'pointer', flex: isMobile ? 1 : 'none' }}>
@@ -219,15 +222,15 @@ export default function Candidates() {
                         ? '1.2fr 50px 105px' 
                         : isTablet 
                             ? '1.8fr 60px 100px 150px' 
-                            : '2.2fr 60px 80px 100px 180px',
+                            : '2fr 64px 76px 96px 224px',
                     gap: 12, padding: '6px 10px 10px',
                     borderBottom: '1.5px solid var(--border)', marginBottom: 4,
                 }}>
-                    {(isMobile 
-                        ? ['Candidate', 'Score', 'Actions'] 
-                        : isTablet 
-                            ? ['Candidate', 'Score', 'Status', 'Actions'] 
-                            : ['Candidate', 'Score', 'File', 'Status', 'Actions']
+                    {(isMobile
+                        ? ['Applicant', 'Score', 'Actions']
+                        : isTablet
+                            ? ['Applicant', 'Score', 'Status', 'Actions']
+                            : ['Applicant', 'Score', 'File', 'Status', 'Actions']
                     ).map(h => (
                         <span key={h} style={{ fontSize: 10, color: 'var(--text3)', letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 600 }}>{h}</span>
                     ))}
@@ -239,12 +242,12 @@ export default function Candidates() {
                     <div style={{ padding: 50, textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>
                         <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>{ICONS.empty}</div>
                         {candidates.length === 0
-                            ? 'No candidates yet. Upload a resume from the ATS Checker page.'
-                            : 'No candidates match this filter.'}
+                            ? 'No applicants yet. They will appear here as people apply to your jobs.'
+                            : 'No applicants match this filter.'}
                     </div>
                 ) : (
                     list.map((c, i) => {
-                    const name = c.candidate_name || c.file_url?.split('/').pop()?.replace('.pdf', '') || `Candidate #${i + 1}`;
+                    const name = c.candidate_name || c.file_url?.split('/').pop()?.replace('.pdf', '') || `Applicant #${i + 1}`;
                     const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
                     const candStatus = c.candidate_status || 'pending';
                     const sm = getStatusStyle(candStatus, isDark);
@@ -252,8 +255,9 @@ export default function Candidates() {
                     const uploading = updatingId === c.id;
                     const isExpanded = expandedId === c.id;
                     const isHighlighted = searchParams.get('highlight') === c.id;
-                    const hasScore = c.match_score != null || c.ats_score != null;
-                    const score = c.match_score != null ? c.match_score : (c.ats_score != null ? c.ats_score : 0);
+                    // Score column reflects the resume-screening (ATS) result only (read-only).
+                    const hasScore = c.ats_score != null;
+                    const score = c.ats_score != null ? c.ats_score : 0;
                     // Applied candidates' resumes are owned by the applicant — the
                     // recruiter can triage but must not delete them.
                     const isApplied = c.source === 'application';
@@ -274,14 +278,14 @@ export default function Candidates() {
                                 ? '1.2fr 50px 105px' 
                                 : isTablet 
                                     ? '1.8fr 60px 100px 150px' 
-                                    : '2.2fr 60px 80px 100px 180px',
+                                    : '2fr 64px 76px 96px 224px',
                             gap: 12, alignItems: 'center', padding: '12px 10px',
                             borderBottom: (!isExpanded && i < list.length - 1) ? '1.5px solid var(--border)' : 'none',
                             borderRadius: 8, animationDelay: `${i * 28}ms`,
                             opacity: uploading ? 0.6 : 1, transition: 'all .2s',
                             cursor: 'pointer',
-                            outline: isHighlighted ? '2px solid #6366f1' : 'none',
-                            background: isHighlighted ? (isDark ? '#6366f110' : '#6366f108') : 'transparent',
+                            outline: isHighlighted ? '2px solid #a87f4c' : 'none',
+                            background: isHighlighted ? (isDark ? '#a87f4c10' : '#a87f4c08') : 'transparent',
                         }}>
                             {/* Name + avatar */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10, minWidth: 0 }}>
@@ -344,9 +348,9 @@ export default function Candidates() {
                                 <span style={{
                                     fontSize: 11, fontWeight: 600,
                                     display: 'flex', alignItems: 'center', gap: 6,
-                                    color: procStatus === 'completed' ? '#22c55e'
-                                        : procStatus === 'failed' ? '#ef4444'
-                                            : '#f59e0b',
+                                    color: procStatus === 'completed' ? '#7f9153'
+                                        : procStatus === 'failed' ? '#c0563a'
+                                            : '#c08a35',
                                     textTransform: 'uppercase', letterSpacing: '.05em',
                                 }}>
                                     {hasScore ? 'Completed' : (procStatus === 'completed' ? 'Active' : procStatus === 'failed' ? 'Error' : 'Scanning')}
@@ -376,7 +380,7 @@ export default function Candidates() {
                                                 background: 'var(--bg3)',
                                                 outline: '1.5px solid var(--border)',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                fontSize: 10, color: '#ef4444',
+                                                fontSize: 10, color: '#c0563a',
                                                 fontWeight: 700, transition: 'all .15s',
                                             }}
                                         >{ICONS.trash}</button>
@@ -387,6 +391,7 @@ export default function Candidates() {
                                         <div style={{ display: 'flex', gap: 3 }}>
                                             {[
                                                 { v: 'approved', icon: ICONS.check, title: 'Approve' },
+                                                { v: 'interview', icon: ICONS.calendar, title: 'Interview' },
                                                 { v: 'rejected', icon: ICONS.x, title: 'Reject' },
                                             ].map(({ v, icon, title }) => {
                                                 const active = candStatus === v;
@@ -411,7 +416,7 @@ export default function Candidates() {
                                             })}
                                             <button
                                                 onClick={() => !uploading && handleDelete(c.id)}
-                                                title="Delete Candidate"
+                                                title="Delete Applicant"
                                                 disabled={uploading}
                                                 style={{
                                                     width: 22, height: 22, borderRadius: 6, border: 'none',
@@ -419,7 +424,7 @@ export default function Candidates() {
                                                     background: 'var(--bg3)',
                                                     outline: '1.5px solid var(--border)',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    fontSize: 10, color: '#ef4444',
+                                                    fontSize: 10, color: '#c0563a',
                                                     fontWeight: 700, transition: 'all .15s',
                                                 }}
                                             >{ICONS.trash}</button>
@@ -441,6 +446,7 @@ export default function Candidates() {
                                         <div style={{ display: 'flex', gap: 3 }}>
                                             {[
                                                 { v: 'approved', icon: ICONS.check, title: 'Approve' },
+                                                { v: 'interview', icon: ICONS.calendar, title: 'Move to Interview' },
                                                 { v: 'pending', icon: ICONS.circle, title: 'Set Pending' },
                                                 { v: 'rejected', icon: ICONS.x, title: 'Reject' },
                                             ].map(({ v, icon, title }) => {
@@ -467,7 +473,7 @@ export default function Candidates() {
 
                                             <button
                                                 onClick={() => !uploading && handleDelete(c.id)}
-                                                title="Delete Candidate"
+                                                title="Delete Applicant"
                                                 disabled={uploading}
                                                 style={{
                                                     width: 22, height: 22, borderRadius: 6, border: 'none',
@@ -475,7 +481,7 @@ export default function Candidates() {
                                                     marginLeft: 4, background: 'var(--bg3)',
                                                     outline: '1.5px solid var(--border)',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    fontSize: 10, color: '#ef4444',
+                                                    fontSize: 10, color: '#c0563a',
                                                     fontWeight: 700, transition: 'all .15s', opacity: 0.7
                                                 }}
                                                 onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
@@ -514,10 +520,10 @@ export default function Candidates() {
                                                         {atsBreakdown.slice(0, 8).map((b, bi) => (
                                                             <div key={bi} style={{
                                                                 padding: '5px 8px', borderRadius: 6, fontSize: 11,
-                                                                background: b.type === 'success' ? (isDark ? '#052e1666' : '#f0fdf4')
-                                                                    : b.type === 'critical' ? (isDark ? '#2d0a0a66' : '#fff1f2')
-                                                                        : (isDark ? '#1c140066' : '#fffbeb'),
-                                                                color: b.type === 'success' ? '#22c55e' : b.type === 'critical' ? '#ef4444' : '#f59e0b',
+                                                                background: b.type === 'success' ? (isDark ? '#1f241066' : '#eef0e1')
+                                                                    : b.type === 'critical' ? (isDark ? '#2a151066' : '#f6ece5')
+                                                                        : (isDark ? '#241a0b66' : '#f5efe0'),
+                                                                color: b.type === 'success' ? '#7f9153' : b.type === 'critical' ? '#c0563a' : '#c08a35',
                                                                 display: 'flex', alignItems: 'center', gap: 6,
                                                             }}>
                                                                 {b.type === 'success' ? ICONS.check : b.type === 'critical' ? ICONS.x : ICONS.alert} {b.message}
@@ -547,7 +553,7 @@ export default function Candidates() {
                                                         <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 4, fontWeight: 600, letterSpacing: '.06em' }}>MATCHED KEYWORDS</div>
                                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                                                             {matchBreakdown.matched_keywords.slice(0, 10).map((kw, ki) => (
-                                                                <span key={ki} style={{ padding: '2px 7px', borderRadius: 4, fontSize: 10, background: isDark ? '#052e16' : '#f0fdf4', color: '#22c55e', fontWeight: 500 }}>{kw}</span>
+                                                                <span key={ki} style={{ padding: '2px 7px', borderRadius: 4, fontSize: 10, background: isDark ? '#1f2410' : '#eef0e1', color: '#7f9153', fontWeight: 500 }}>{kw}</span>
                                                             ))}
                                                         </div>
                                                     </div>
@@ -557,7 +563,7 @@ export default function Candidates() {
                                                         <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 4, fontWeight: 600, letterSpacing: '.06em' }}>MISSING KEYWORDS</div>
                                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                                                             {matchBreakdown.missing_keywords.slice(0, 10).map((kw, ki) => (
-                                                                <span key={ki} style={{ padding: '2px 7px', borderRadius: 4, fontSize: 10, background: isDark ? '#2d0a0a' : '#fff1f2', color: '#ef4444', fontWeight: 500 }}>{kw}</span>
+                                                                <span key={ki} style={{ padding: '2px 7px', borderRadius: 4, fontSize: 10, background: isDark ? '#2a1510' : '#f6ece5', color: '#c0563a', fontWeight: 500 }}>{kw}</span>
                                                             ))}
                                                         </div>
                                                     </div>

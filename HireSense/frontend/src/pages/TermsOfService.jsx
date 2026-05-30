@@ -127,7 +127,7 @@ export default function TermsOfService() {
                         borderRadius: 14,
                         background: 'rgba(99, 102, 241, 0.08)',
                         border: '1.5px solid rgba(99, 102, 241, 0.2)',
-                        color: '#6366f1',
+                        color: '#a87f4c',
                         marginBottom: 20,
                     }}>
                         <BookOpen size={26} />
@@ -223,15 +223,15 @@ export default function TermsOfService() {
                             gap: 10,
                         }}>
                             <div style={{ display: 'flex', gap: 8 }}>
-                                <span style={{ color: '#ef4444' }}>✕</span>
+                                <span style={{ color: '#c0563a' }}>✕</span>
                                 <span>Upload files containing malware, trojans, or automated scripts intended to interfere with our database structures.</span>
                             </div>
                             <div style={{ display: 'flex', gap: 8 }}>
-                                <span style={{ color: '#ef4444' }}>✕</span>
+                                <span style={{ color: '#c0563a' }}>✕</span>
                                 <span>Inject artificial profiles, synthetic resumes, or scraping bots to manipulate search indexes or deplete server resources.</span>
                             </div>
                             <div style={{ display: 'flex', gap: 8 }}>
-                                <span style={{ color: '#ef4444' }}>✕</span>
+                                <span style={{ color: '#c0563a' }}>✕</span>
                                 <span>Employ HireSense's ATS scoring parameters for unlawful bias or discriminatory screening practices under global labor regulations.</span>
                             </div>
                         </div>
@@ -240,7 +240,7 @@ export default function TermsOfService() {
                     {/* AI Scoring and Limits */}
                     <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <AlertTriangle size={18} style={{ color: '#f59e0b' }} />
+                            <AlertTriangle size={18} style={{ color: '#c08a35' }} />
                             <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--text)' }}>4. AI Scoring Accuracy & Disclaimer</h2>
                         </div>
                         <p style={{ color: 'var(--text2)', lineHeight: '1.6', fontSize: 13.5 }}>
@@ -256,7 +256,7 @@ export default function TermsOfService() {
                             fontSize: 12.5,
                             lineHeight: '1.5',
                         }}>
-                            <strong style={{ color: '#f59e0b', display: 'block', marginBottom: 4 }}>Notice Regarding Algorithmic Matching:</strong>
+                            <strong style={{ color: '#c08a35', display: 'block', marginBottom: 4 }}>Notice Regarding Algorithmic Matching:</strong>
                             You acknowledge and agree that automated scores are purely advisory recommendations to increase recruiter efficiency. 
                             HireSense does NOT guarantee candidate fit, verification of resumes, or placement suitability. Recruiters must perform standard 
                             background verification and human screening prior to contracting.

@@ -70,8 +70,11 @@ def list_jobs(user=Depends(require_user)):
 
 
 @router.put("/jobs/{job_id}")
-def update_job(job_id: str, payload: JobUpdateRequest, user=Depends(require_user)):
-    """Update job description, title, or status. Re-computes embedding if text changes."""
+def update_job(job_id: str, payload: JobUpdateRequest, background_tasks: BackgroundTasks, user=Depends(require_user)):
+    """Update job description, title, or status. When the text changes the
+    embedding is recomputed in the background, so the edit returns instantly
+    (the model cold-loads in ~20s — doing it inline blocked the request and made
+    the description look like it never saved)."""
     db = get_db()
     chk = db.table("job_descriptions").select("id, job_text").eq("id", job_id).eq("user_id", str(user.id)).execute()
     if not chk.data:
@@ -88,15 +91,22 @@ def update_job(job_id: str, payload: JobUpdateRequest, user=Depends(require_user
                 detail=f"Invalid status. Allowed: {', '.join(sorted(ALLOWED_JOB_STATUSES))}.",
             )
         update_data["status"] = status
-    if payload.job_text is not None and payload.job_text != chk.data[0]["job_text"]:
+    text_changed = payload.job_text is not None and payload.job_text != chk.data[0]["job_text"]
+    if text_changed:
         update_data["job_text"] = payload.job_text
-        update_data["embedding"] = generate_embedding(payload.job_text)
-        # We optionally might want to mark candidates as outdated, but we will handle on-demand trigger instead
 
     if not update_data:
         return {"message": "No changes made."}
 
     db.table("job_descriptions").update(update_data).eq("id", job_id).execute()
+
+    # Recompute the JD embedding off the request path so the edit is instant.
+    # (Re-matching regenerates embeddings on the fly, so a briefly-stale vector
+    # is harmless.) Candidates are re-screened on the recruiter's on-demand
+    # "Run Match", not here.
+    if text_changed:
+        background_tasks.add_task(_embed_job_background, job_id, payload.job_text)
+
     return {"message": "Job updated successfully."}
 
 

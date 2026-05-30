@@ -3,7 +3,7 @@ from pydantic import BaseModel
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
-from database import get_db
+from database import get_db, get_admin_db
 from services.skill_engine import calculate_skill_overlap, extract_skills_with_proficiency
 from services.experience_engine import calculate_experience_score
 from services.resume_strength import compute_strength
@@ -148,11 +148,11 @@ class StatusUpdate(BaseModel):
 @router.put("/results/{match_id}/status")
 def update_candidate_status(match_id: str, payload: StatusUpdate, user=Depends(require_user)):
     """Update tracking status — only if owned by the authenticated user."""
-    valid_statuses = {"pending", "approved", "rejected"}
+    valid_statuses = {"pending", "approved", "rejected", "interview"}
     status = payload.status.lower()
 
     if status not in valid_statuses:
-        raise HTTPException(status_code=400, detail="Invalid status. Must be pending, approved, or rejected.")
+        raise HTTPException(status_code=400, detail="Invalid status. Must be pending, approved, interview, or rejected.")
 
     db = get_db()
 
@@ -165,5 +165,22 @@ def update_candidate_status(match_id: str, payload: StatusUpdate, user=Depends(r
         raise HTTPException(status_code=404, detail="Match result not found.")
 
     db.table("match_results").update({"candidate_status": status}).eq("id", match_id).execute()
+
+    # Mirror the recruiter's triage onto the application lifecycle so the
+    # applicant's "My Applications" reflects approve/reject — and Supabase
+    # Realtime pushes the change to their portal live. Best-effort: a recruiter
+    # match that isn't tied to an applicant application simply matches no row.
+    try:
+        mr = db.table("match_results").select("resume_id, job_id").eq("id", match_id).execute()
+        if mr.data:
+            app_status = {"approved": "shortlisted", "rejected": "rejected", "pending": "screening", "interview": "interview"}.get(status)
+            if app_status:
+                (get_admin_db().table("applications")
+                    .update({"status": app_status})
+                    .eq("resume_id", mr.data[0]["resume_id"])
+                    .eq("job_id", mr.data[0]["job_id"])
+                    .execute())
+    except Exception as e:
+        print(f"Application-status propagation failed (non-fatal): {e}")
 
     return {"message": "Status updated successfully", "status": status}

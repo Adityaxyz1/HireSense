@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FileText, Activity } from 'lucide-react';
+import { FileText, Activity, ChevronDown } from 'lucide-react';
 import { api } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Maps an application's lifecycle to a label + colour, mirroring the recruiter view.
 const STATUS_META = {
-    applied:     { label: 'Applied',     color: 'var(--text2)' },
-    screening:   { label: 'AI Screened', color: '#3b82f6' },
-    shortlisted: { label: 'Shortlisted', color: '#22c55e' },
-    rejected:    { label: 'Not Selected', color: '#ef4444' },
-    failed:      { label: 'Error',       color: '#ef4444' },
+    applied:     { label: 'Applied',      color: 'var(--text2)' },
+    screening:   { label: 'Under Review', color: '#9a7b4a' },
+    interview:   { label: 'Interview',    color: '#5a7fa0' },
+    shortlisted: { label: 'Shortlisted',  color: '#7f9153' },
+    rejected:    { label: 'Not Selected', color: '#c0563a' },
+    failed:      { label: 'Error',        color: '#c0563a' },
 };
 
 const pct = (v) => (v == null ? '—' : `${Math.round((v <= 1 ? v * 100 : v))}%`);
@@ -19,6 +20,7 @@ export default function Applications() {
     const { user } = useAuth();
     const [apps, setApps] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [openId, setOpenId] = useState(null);   // application whose JD is expanded
     const debounce = useRef(null);
 
     const refetch = useCallback(() => {
@@ -85,6 +87,30 @@ export default function Applications() {
                                         {processing ? 'Processing…' : meta.label}
                                     </span>
                                 </div>
+                            </div>
+
+                            {/* Full-width: view the job description this application was for */}
+                            <div style={{ flexBasis: '100%' }}>
+                                <button onClick={() => setOpenId(openId === app.id ? null : app.id)} style={{
+                                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                    fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600,
+                                    color: 'var(--text2)', display: 'inline-flex', alignItems: 'center', gap: 6,
+                                }}>
+                                    {openId === app.id ? 'Hide job description' : 'View job description'}
+                                    <span style={{ display: 'inline-flex', transform: openId === app.id ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>
+                                        <ChevronDown size={14} />
+                                    </span>
+                                </button>
+                                {openId === app.id && (
+                                    <div style={{
+                                        marginTop: 10, padding: 14, background: 'var(--bg2)',
+                                        border: '1px solid var(--border)', borderRadius: 10,
+                                        maxHeight: 320, overflowY: 'auto', whiteSpace: 'pre-wrap',
+                                        fontSize: 12.5, lineHeight: 1.6, color: 'var(--text2)',
+                                    }}>
+                                        {app.job_text || 'No description available for this role.'}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     );

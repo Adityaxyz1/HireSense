@@ -105,7 +105,7 @@ export default function ApplicantProfile() {
                     onChange={handleAvatar}
                 />
                 {avatarMsg && (
-                    <p style={{ marginTop: 12, fontSize: 12, color: avatarMsg.includes('updated') ? '#22c55e' : '#ef4444' }}>{avatarMsg}</p>
+                    <p style={{ marginTop: 12, fontSize: 12, color: avatarMsg.includes('updated') ? '#7f9153' : '#c0563a' }}>{avatarMsg}</p>
                 )}
             </div>
 
@@ -143,7 +143,7 @@ export default function ApplicantProfile() {
                             {ghBusy ? 'Syncing…' : 'Sync'}
                         </button>
                     </div>
-                    {ghMsg && <p style={{ fontSize: 11, marginTop: 6, color: ghMsg === 'GitHub synced.' ? '#22c55e' : '#ef4444' }}>{ghMsg}</p>}
+                    {ghMsg && <p style={{ fontSize: 11, marginTop: 6, color: ghMsg === 'GitHub synced.' ? '#7f9153' : '#c0563a' }}>{ghMsg}</p>}
 
                     {githubData && (
                         <div style={{ marginTop: 10, padding: '12px 14px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'var(--bg3)' }}>
@@ -165,10 +165,10 @@ export default function ApplicantProfile() {
                     )}
                 </div>
 
-                {error && <p style={{ fontSize: 12, color: '#ef4444', marginBottom: 12 }}>{error}</p>}
+                {error && <p style={{ fontSize: 12, color: '#c0563a', marginBottom: 12 }}>{error}</p>}
 
                 <button onClick={save} disabled={saving} className="nb" style={{
-                    background: saved ? '#22c55e' : 'var(--btn)', color: saved ? '#fff' : 'var(--btn-fg)',
+                    background: saved ? '#7f9153' : 'var(--btn)', color: saved ? '#fff' : 'var(--btn-fg)',
                     border: '1.5px solid var(--border2)', borderRadius: 999, padding: '12px 24px', fontSize: 11,
                     fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', cursor: saving ? 'not-allowed' : 'pointer',
                     opacity: saving ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: 9, transition: 'all .15s',

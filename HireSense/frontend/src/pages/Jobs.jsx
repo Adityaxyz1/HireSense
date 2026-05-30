@@ -153,8 +153,8 @@ export default function Jobs() {
             <div className="bento stagger" style={{ marginBottom: 20 }}>
                 {[
                     { color: 'var(--text)', label: 'Total Job Roles', value: totalOpenings },
-                    { color: '#8b5cf6', label: 'Active Roles', value: jobs.filter(j => j.status !== 'closed').length },
-                    { color: '#f59e0b', label: 'Total Matches', value: results.length },
+                    { color: '#9c6f4a', label: 'Active Roles', value: jobs.filter(j => j.status !== 'closed').length },
+                    { color: '#c08a35', label: 'Total Matches', value: results.length },
                 ].map((s, i) => (
                     <div key={i} className="card-modern hover-lift-sm col-4" style={{
                         '--i': i,
@@ -340,9 +340,9 @@ export default function Jobs() {
                                                                 </div>
                                                                 <div className="w-40">
                                                                     <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
-                                                                    <select value={editStatus} onChange={e => setEditStatus(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent text-gray-900 dark:text-white outline-none focus:border-indigo-500">
-                                                                        <option value="active">Active</option>
-                                                                        <option value="closed">Closed</option>
+                                                                    <select value={editStatus} onChange={e => setEditStatus(e.target.value)} style={{ colorScheme: isDark ? 'dark' : 'light' }} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent text-gray-900 dark:text-white outline-none focus:border-indigo-500">
+                                                                        <option value="active" style={{ background: 'var(--input)', color: 'var(--text)' }}>Active</option>
+                                                                        <option value="closed" style={{ background: 'var(--input)', color: 'var(--text)' }}>Closed</option>
                                                                     </select>
                                                                 </div>
                                                             </div>

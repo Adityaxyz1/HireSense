@@ -5,8 +5,8 @@ import { api } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 
-const scC = v => v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
-const AVC = ['#818cf8', '#c084fc', '#f472b6', '#34d399', '#fbbf24'];
+const scC = v => v >= 85 ? '#7f9153' : v >= 70 ? '#c08a35' : '#c0563a';
+const AVC = ['#b08a5a', '#c0905a', '#bb7a6a', '#88a05f', '#d4a94f'];
 const SUGG = ['Aditya', 'ML engineers PyTorch', 'React architects', 'DevOps Kubernetes', 'Data scientists'];
 
 const ICONS = {
@@ -65,9 +65,9 @@ export default function Finder() {
     };
 
     const stM = (s) => ({
-        approved: { bg: isDark ? '#052e16' : '#f0fdf4', c: isDark ? '#4ade80' : '#15803d' },
-        pending:  { bg: isDark ? '#1c1400' : '#fffbeb', c: isDark ? '#fbbf24' : '#b45309' },
-        rejected: { bg: isDark ? '#2d0a0a' : '#fff1f2', c: isDark ? '#f87171' : '#be123c' },
+        approved: { bg: isDark ? '#1f2410' : '#eef0e1', c: isDark ? '#9fb06d' : '#5c6b38' },
+        pending:  { bg: isDark ? '#241a0b' : '#f5efe0', c: isDark ? '#d4a94f' : '#8a5a1f' },
+        rejected: { bg: isDark ? '#2a1510' : '#f6ece5', c: isDark ? '#d2806a' : '#9e3b2a' },
     }[s] || { bg: isDark ? '#1a1a1a' : '#f8fafc', c: isDark ? '#94a3b8' : '#64748b' });
 
     return (

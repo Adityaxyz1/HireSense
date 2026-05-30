@@ -221,10 +221,10 @@ class ResumeStatusUpdate(BaseModel):
 @router.put("/resumes/{resume_id}/status")
 def update_resume_status(resume_id: str, payload: ResumeStatusUpdate, user=Depends(require_user)):
     """Update the recruiter-facing candidate status for a resume."""
-    valid = {"pending", "approved", "rejected"}
+    valid = {"pending", "approved", "rejected", "interview"}
     status = payload.status.lower()
     if status not in valid:
-        raise HTTPException(status_code=400, detail="Status must be pending, approved, or rejected.")
+        raise HTTPException(status_code=400, detail="Status must be pending, approved, interview, or rejected.")
     
     db = get_db()
     
@@ -238,6 +238,16 @@ def update_resume_status(resume_id: str, payload: ResumeStatusUpdate, user=Depen
     except Exception as e:
         print(f"Resume status update error: {e}")
         raise HTTPException(status_code=500, detail="Failed to update status. Please ensure the database schema is up to date.")
+
+    # If this resume came in via an applicant application, mirror the triage
+    # onto the application lifecycle so the applicant sees it (realtime live).
+    try:
+        app_status = {"approved": "shortlisted", "rejected": "rejected", "pending": "screening", "interview": "interview"}.get(status)
+        if app_status:
+            get_admin_db().table("applications").update({"status": app_status}).eq("resume_id", resume_id).execute()
+    except Exception as e:
+        print(f"Application-status propagation (resume) failed (non-fatal): {e}")
+
     return {"message": "Status updated", "status": status}
 
 
