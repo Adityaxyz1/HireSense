@@ -290,6 +290,11 @@ export const api = {
     },
 
     // Admin Panel Routes
+    // Capability check — resolves for admins, throws (403) for everyone else.
+    async adminCheck() {
+        return request('/admin/me', { fallbackError: 'Not authorized' });
+    },
+
     async adminGetUsers() {
         return request('/admin/users', { fallbackError: 'Failed to fetch users' });
     },

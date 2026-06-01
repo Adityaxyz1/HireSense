@@ -7,14 +7,34 @@ import re
 import secrets
 from datetime import datetime, timezone
 from typing import Optional
+from urllib.parse import urlparse
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from database import get_admin_db
 from routes.admin_dependency import require_admin
+from config import settings
 
 router = APIRouter()
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _invite_redirect_url(request: Request) -> str:
+    """Where Supabase sends a recruiter after they click the onboarding invite:
+    the app's set-password page. Derived from the admin's own origin so it works
+    in dev (localhost:5173) and prod; falls back to the first configured CORS
+    origin, then localhost.
+
+    IMPORTANT: this URL must be present in the Supabase project's "Redirect URLs"
+    allowlist, or Supabase ignores redirect_to and falls back to the Site URL.
+    """
+    candidate = request.headers.get("origin") or request.headers.get("referer") or ""
+    parsed = urlparse(candidate)
+    base = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else ""
+    if not base and settings.CORS_ORIGINS:
+        base = settings.CORS_ORIGINS[0]
+    base = (base or "http://localhost:5173").rstrip("/")
+    return f"{base}/reset-password"
 
 # ── Request schemas ──────────────────────────────────────────
 
@@ -83,6 +103,17 @@ def _set_login_ban(db, user_id: str, disabled: bool):
         )
     except Exception as e:
         print(f"[RECRUITER] ban toggle skipped (non-fatal): {e}")
+
+# ── GET /api/admin/me ────────────────────────────────────────
+@router.get("/admin/me")
+async def admin_me(admin=Depends(require_admin)):
+    """Capability check for the frontend admin gate: 200 = admin, 403 = not.
+
+    Mirrors backend authorization exactly (ADMIN_EMAILS allowlist OR
+    profiles.role == 'admin'), so the UI never has to hardcode an email.
+    """
+    return {"is_admin": True, "email": getattr(admin, "email", None)}
+
 
 # ── GET /api/admin/users ─────────────────────────────────────
 @router.get("/admin/users")
@@ -331,7 +362,7 @@ async def list_recruiters(search: str = "", status: str = "", admin=Depends(requ
 
 # ── POST /api/admin/recruiters ───────────────────────────────
 @router.post("/admin/recruiters")
-async def create_recruiter(payload: CreateRecruiterRequest, admin=Depends(require_admin)):
+async def create_recruiter(payload: CreateRecruiterRequest, request: Request, admin=Depends(require_admin)):
     """Create a recruiter account: provisions the auth user, sends an onboarding
     invite (password set on first login via the emailed link), records the
     structured profile, and audit-logs the creating admin."""
@@ -353,10 +384,12 @@ async def create_recruiter(payload: CreateRecruiterRequest, admin=Depends(requir
         raise HTTPException(status_code=409, detail="An account with this email already exists.")
 
     # Provision the auth user + onboarding link. Prefer invite (emails the user);
-    # fall back to create_user + recovery link if SMTP isn't configured.
+    # fall back to create_user + recovery link if SMTP isn't configured. Both send
+    # the recruiter to the app's set-password page so they can choose a password.
+    redirect_url = _invite_redirect_url(request)
     onboarding_link = None
     try:
-        invited = db.auth.admin.invite_user_by_email(email)
+        invited = db.auth.admin.invite_user_by_email(email, {"redirect_to": redirect_url})
         user_obj = getattr(invited, "user", None) or invited
     except Exception as invite_err:
         print(f"[RECRUITER] invite email failed, using fallback: {invite_err}")
@@ -371,7 +404,11 @@ async def create_recruiter(payload: CreateRecruiterRequest, admin=Depends(requir
             raise HTTPException(status_code=500, detail=f"Failed to provision account: {create_err}")
         # Generate a set-password link the admin can forward manually
         try:
-            link = db.auth.admin.generate_link({"type": "recovery", "email": email})
+            link = db.auth.admin.generate_link({
+                "type": "recovery",
+                "email": email,
+                "options": {"redirect_to": redirect_url},
+            })
             props = getattr(link, "properties", None)
             onboarding_link = getattr(props, "action_link", None) if props else None
         except Exception:
