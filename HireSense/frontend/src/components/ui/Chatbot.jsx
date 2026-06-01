@@ -106,8 +106,8 @@ export default function Chatbot() {
             <motion.button
                 type="button"
                 onClick={() => setOpen(!open)}
-                title={open ? 'Close assistant' : 'Open assistant'}
-                aria-label={open ? 'Close assistant' : 'Open assistant'}
+                title={open ? 'Close HireBot' : 'Open HireBot'}
+                aria-label={open ? 'Close HireBot' : 'Open HireBot'}
                 className="nb"
                 style={{
                     position: 'fixed',
@@ -172,7 +172,7 @@ export default function Chatbot() {
                                 <Bot size={18} />
                             </div>
                             <div style={{ minWidth: 0 }}>
-                                <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.12em', textTransform: 'uppercase' }}>Candidate Assistant</div>
+                                <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '.06em' }}>HireBot</div>
                                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>Candidate details and job applicant lists</div>
                             </div>
                         </div>

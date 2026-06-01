@@ -21,8 +21,9 @@ EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 def _invite_redirect_url(request: Request) -> str:
     """Where Supabase sends a recruiter after they click the onboarding invite:
-    the app's set-password page. Derived from the admin's own origin so it works
-    in dev (localhost:5173) and prod; falls back to the first configured CORS
+    the app's /auth/confirm page, which verifies the token (token-hash flow) and
+    forwards to set-password. Derived from the admin's own origin so it works in
+    dev (localhost:5173) and prod; falls back to the first configured CORS
     origin, then localhost.
 
     IMPORTANT: this URL must be present in the Supabase project's "Redirect URLs"
@@ -34,7 +35,7 @@ def _invite_redirect_url(request: Request) -> str:
     if not base and settings.CORS_ORIGINS:
         base = settings.CORS_ORIGINS[0]
     base = (base or "http://localhost:5173").rstrip("/")
-    return f"{base}/reset-password"
+    return f"{base}/auth/confirm?next=/reset-password"
 
 # ── Request schemas ──────────────────────────────────────────
 
