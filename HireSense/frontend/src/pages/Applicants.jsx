@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Users, Activity, ChevronRight, Github, Star } from 'lucide-react';
+import { Users, Activity, ChevronRight, Github, Star, Download } from 'lucide-react';
 import { api } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { useBreakpoint } from '../hooks/useBreakpoint';
@@ -26,6 +26,7 @@ export default function Applicants() {
     const [activeJob, setActiveJob] = useState(null);
     const [applicants, setApplicants] = useState([]);
     const [loadingJobs, setLoadingJobs] = useState(true);
+    const [exporting, setExporting] = useState(false);
     const debounce = useRef(null);
     const { isMobile } = useBreakpoint();
 
@@ -69,6 +70,18 @@ export default function Applicants() {
         return () => { supabase.removeChannel(channel); clearTimeout(debounce.current); };
     }, [activeJob?.id, refetch]);
 
+    const downloadApplicants = async () => {
+        if (!activeJob?.id || exporting) return;
+        setExporting(true);
+        try {
+            await api.downloadJobApplicationsExcel(activeJob.id, activeJob.title);
+        } catch (err) {
+            alert(err.message || 'Failed to download applicants.');
+        } finally {
+            setExporting(false);
+        }
+    };
+
     return (
         <div className="up" style={{ fontFamily: 'var(--font)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22, flexWrap: 'wrap', gap: 12 }}>
@@ -76,9 +89,36 @@ export default function Applicants() {
                     <h2 style={{ fontSize: 25, fontWeight: 700, letterSpacing: '-.02em', color: 'var(--text)' }}>Live Applicants</h2>
                     <p style={{ fontSize: 13, color: 'var(--text3)', marginTop: 6 }}>Applicants stream in & get AI-screened in real time</p>
                 </div>
-                <span className="pill" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11, color: 'var(--text2)', fontWeight: 600 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', animation: 'pulse-dot 2.5s infinite' }} /> Live
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <button
+                        type="button"
+                        onClick={downloadApplicants}
+                        disabled={!activeJob?.id || exporting}
+                        className="nb hover-lift-sm"
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            borderRadius: 999,
+                            border: '1.5px solid var(--border)',
+                            background: 'var(--card)',
+                            color: 'var(--text)',
+                            padding: '9px 14px',
+                            fontSize: 11,
+                            fontWeight: 800,
+                            letterSpacing: '.08em',
+                            textTransform: 'uppercase',
+                            cursor: !activeJob?.id || exporting ? 'not-allowed' : 'pointer',
+                            opacity: !activeJob?.id || exporting ? 0.55 : 1,
+                        }}
+                    >
+                        <Download size={14} />
+                        {exporting ? 'Preparing...' : 'Download Excel'}
+                    </button>
+                    <span className="pill" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11, color: 'var(--text2)', fontWeight: 600 }}>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', animation: 'pulse-dot 2.5s infinite' }} /> Live
+                    </span>
+                </div>
             </div>
 
             {loadingJobs && <p style={{ color: 'var(--text3)', fontSize: 13 }}>Loading…</p>}

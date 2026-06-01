@@ -1,11 +1,10 @@
 import asyncio
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
-import hashlib
 import json as _json
 
 
-from database import get_db, row_to_dict, new_id
+from database import get_db, new_id
 from services.resume_matcher import match_resume_to_jd
 from services.embedding_engine import generate_embedding
 from services.experience_engine import calculate_experience_score

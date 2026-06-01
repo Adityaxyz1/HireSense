@@ -17,10 +17,14 @@ Flow (see blueprints/realtime_student_portal_plan.pdf):
 """
 import asyncio
 import json as _json
+from io import BytesIO
+from zipfile import ZIP_DEFLATED, ZipFile
+from xml.sax.saxutils import escape
 
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from fastapi import APIRouter, File, UploadFile, BackgroundTasks, Form, HTTPException, Request, Depends
+from fastapi.responses import StreamingResponse
 
 from database import get_db, get_admin_db
 from services.pdf_parser import extract_text
@@ -355,3 +359,136 @@ def job_applications(job_id: str, user=Depends(require_user)):
         row["candidate_status"] = match.get("candidate_status")
         out.append(row)
     return out
+
+
+def _xlsx_col_name(index: int) -> str:
+    name = ""
+    while index:
+        index, rem = divmod(index - 1, 26)
+        name = chr(65 + rem) + name
+    return name
+
+
+def _xlsx_cell(value, row_idx: int, col_idx: int) -> str:
+    ref = f"{_xlsx_col_name(col_idx)}{row_idx}"
+    if value is None:
+        value = ""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return f'<c r="{ref}"><v>{value}</v></c>'
+    return f'<c r="{ref}" t="inlineStr"><is><t>{escape(str(value))}</t></is></c>'
+
+
+def _build_applicants_xlsx(job_title: str, applicants: list) -> bytes:
+    headers = [
+        "Applicant Name",
+        "Email",
+        "Major",
+        "Graduation Year",
+        "ATS Score",
+        "Match Score",
+        "Risk",
+        "Status",
+        "Resume Status",
+        "GitHub",
+        "Applied At",
+    ]
+    rows = [headers]
+    for a in applicants:
+        rows.append([
+            a.get("applicant_name") or "Candidate",
+            a.get("applicant_email") or "",
+            a.get("major") or "",
+            a.get("graduation_year") or "",
+            a.get("ats_score") if a.get("ats_score") is not None else "",
+            a.get("match_score") if a.get("match_score") is not None else "",
+            a.get("risk_level") or "",
+            a.get("candidate_status") or a.get("status") or "",
+            a.get("resume_status") or "",
+            a.get("github_url") or "",
+            a.get("created_at") or "",
+        ])
+
+    sheet_rows = []
+    for row_idx, row in enumerate(rows, start=1):
+        cells = "".join(_xlsx_cell(value, row_idx, col_idx) for col_idx, value in enumerate(row, start=1))
+        sheet_rows.append(f'<row r="{row_idx}">{cells}</row>')
+
+    dimension = f"A1:{_xlsx_col_name(len(headers))}{len(rows)}"
+    worksheet = f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <dimension ref="{dimension}"/>
+  <sheetViews><sheetView workbookViewId="0"/></sheetViews>
+  <sheetFormatPr defaultRowHeight="15"/>
+  <cols>
+    <col min="1" max="11" width="20" customWidth="1"/>
+  </cols>
+  <sheetData>{''.join(sheet_rows)}</sheetData>
+</worksheet>'''
+
+    workbook = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+ xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets><sheet name="Applicants" sheetId="1" r:id="rId1"/></sheets>
+</workbook>'''
+    workbook_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>'''
+    root_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>'''
+    content_types = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>'''
+    styles = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>
+  <fills count="1"><fill><patternFill patternType="none"/></fill></fills>
+  <borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
+  <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+  <cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs>
+</styleSheet>'''
+
+    buf = BytesIO()
+    with ZipFile(buf, "w", ZIP_DEFLATED) as zf:
+        zf.writestr("[Content_Types].xml", content_types)
+        zf.writestr("_rels/.rels", root_rels)
+        zf.writestr("xl/workbook.xml", workbook)
+        zf.writestr("xl/_rels/workbook.xml.rels", workbook_rels)
+        zf.writestr("xl/worksheets/sheet1.xml", worksheet)
+        zf.writestr("xl/styles.xml", styles)
+    return buf.getvalue()
+
+
+@router.get("/jobs/{job_id}/applications/export.xlsx")
+def export_job_applications(job_id: str, user=Depends(require_user)):
+    """Download applicants for one recruiter-owned job as an Excel workbook."""
+    db = get_db()
+    chk = (
+        db.table("job_descriptions")
+        .select("id, title")
+        .eq("id", job_id)
+        .eq("user_id", str(user.id))
+        .execute()
+    )
+    if not chk.data:
+        raise HTTPException(status_code=404, detail="Job not found or access denied.")
+
+    applicants = job_applications(job_id, user)
+    job_title = chk.data[0].get("title") or "job"
+    data = _build_applicants_xlsx(job_title, applicants)
+    safe_title = "".join(ch if ch.isalnum() else "_" for ch in job_title).strip("_")[:50] or "job"
+    filename = f"{safe_title}_applicants.xlsx"
+    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+    return StreamingResponse(
+        BytesIO(data),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers,
+    )

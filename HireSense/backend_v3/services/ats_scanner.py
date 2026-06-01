@@ -1,6 +1,5 @@
 from typing import Dict, Any, Optional
 from services.llm_service import prompt_nim_async
-import json
 import re
 
 def extract_candidate_name(resume_text: str) -> Optional[str]:

@@ -1,10 +1,9 @@
 from fastapi import APIRouter, HTTPException, Request, Depends, UploadFile, File, BackgroundTasks
-import json
 import uuid
 
 from database import get_db, get_admin_db, new_id
 from services.embedding_engine import generate_embedding
-from services.pdf_parser import compress_pdf, extract_text
+from services.pdf_parser import compress_pdf
 from routes.schemas import JobUploadRequest, JobUploadResponse, JobUpdateRequest
 from routes.auth_dependency import require_user
 from routes.applications import rescore_application

@@ -1,5 +1,3 @@
-import numpy as np
-
 _model = None
 
 def get_model():

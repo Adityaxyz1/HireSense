@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { MapPin, Banknote, Briefcase, UploadCloud, X, CheckCircle2, Loader2, FileText } from 'lucide-react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { MapPin, Banknote, Briefcase, UploadCloud, X, CheckCircle2, Loader2, FileText, Search } from 'lucide-react';
 import { api } from '../../lib/api';
 
 const card = {
@@ -17,6 +17,7 @@ export default function Browse() {
     const [error, setError] = useState('');
     const [active, setActive] = useState(null);  // job selected for apply
     const [detail, setDetail] = useState(null);  // job selected for full detail view
+    const [query, setQuery] = useState('');
 
     useEffect(() => {
         api.getJobFeed()
@@ -25,13 +26,68 @@ export default function Browse() {
             .finally(() => setLoading(false));
     }, []);
 
+    const filteredJobs = useMemo(() => {
+        const term = query.trim().toLowerCase();
+        if (!term) return jobs;
+        return jobs.filter(job => {
+            const blob = [
+                job.title,
+                job.location,
+                job.salary_range,
+                job.job_text,
+            ].filter(Boolean).join(' ').toLowerCase();
+            return blob.includes(term);
+        });
+    }, [jobs, query]);
+
     return (
         <div className="up" style={{ fontFamily: 'var(--font)' }}>
-            <div className="section-head" style={{ marginBottom: 24 }}>
-                <h2 className="title" style={{ fontSize: 25, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.02em' }}>Open Positions</h2>
-                <p className="subtitle" style={{ fontSize: 13, color: 'var(--text3)', marginTop: 6 }}>
-                    Apply with your resume — get instantly screened by AI
-                </p>
+            <div className="section-head" style={{ marginBottom: 18 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+                    <div>
+                        <h2 className="title" style={{ fontSize: 25, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.02em' }}>Open Positions</h2>
+                        <p className="subtitle" style={{ fontSize: 13, color: 'var(--text3)', marginTop: 6 }}>
+                            Search roles and apply with your resume
+                        </p>
+                    </div>
+                    {!loading && !error && (
+                        <span className="pill" style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 700 }}>
+                            {filteredJobs.length} of {jobs.length} roles
+                        </span>
+                    )}
+                </div>
+                <div style={{ position: 'relative', marginTop: 18, maxWidth: 620 }}>
+                    <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', pointerEvents: 'none' }} />
+                    <input
+                        type="search"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="Search by title, skill, location, or salary..."
+                        className="focusable"
+                        style={{
+                            width: '100%',
+                            padding: '13px 42px',
+                            background: 'var(--input)',
+                            border: '1.5px solid var(--border)',
+                            borderRadius: 'var(--r-sm)',
+                            color: 'var(--text)',
+                            fontSize: 13,
+                            outline: 'none',
+                            fontFamily: 'var(--font)',
+                        }}
+                    />
+                    {query && (
+                        <button
+                            type="button"
+                            onClick={() => setQuery('')}
+                            className="nb"
+                            title="Clear search"
+                            style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', cursor: 'pointer' }}
+                        >
+                            <X size={15} />
+                        </button>
+                    )}
+                </div>
             </div>
 
             {loading && <p style={{ color: 'var(--text3)', fontSize: 13 }}>Loading roles…</p>}
@@ -44,8 +100,15 @@ export default function Browse() {
                 </div>
             )}
 
+            {!loading && !error && jobs.length > 0 && filteredJobs.length === 0 && (
+                <div className="card-modern" style={{ ...card, alignItems: 'center', textAlign: 'center', padding: 42 }}>
+                    <Search size={26} style={{ opacity: 0.3, color: 'var(--text2)' }} />
+                    <p style={{ fontSize: 13, color: 'var(--text2)', marginTop: 12 }}>No roles match your search.</p>
+                </div>
+            )}
+
             <div className="bento stagger" style={{ gap: 16 }}>
-                {jobs.map((job, i) => (
+                {filteredJobs.map((job, i) => (
                     <div key={job.id} className="card-modern hover-lift col-4" style={{ ...card, '--i': i }}>
                         <div>
                             <h3 style={{ fontSize: 16.5, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{job.title || 'Untitled Role'}</h3>

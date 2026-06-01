@@ -1,9 +1,9 @@
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form, Depends
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Depends
 from pydantic import BaseModel
 from database import get_db, get_auth_db
 from typing import Optional
 import uuid
-from routes.auth_dependency import require_user, get_current_user
+from routes.auth_dependency import require_user
 
 router = APIRouter()
 

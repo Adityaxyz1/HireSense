@@ -4,13 +4,16 @@ import { Shield, Users, Database, Activity, Trash2, RefreshCw, XCircle, FileText
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../lib/api';
 
-const ADMIN_EMAIL = 'aditya.poddar3698@gmail.com';
 const EMPTY_RECRUITER = { company_name: '', full_name: '', email: '', phone: '', designation: '', company_website: '', linkedin_url: '', status: 'active' };
 
 export default function Admin() {
     const { user } = useAuth();
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState('users');
+    // null = still verifying, true/false = backend's verdict. The gate mirrors
+    // backend authorization (ADMIN_EMAILS or profiles.role='admin') instead of
+    // a hardcoded email, so env/DB admins aren't blocked by the UI.
+    const [isAdmin, setIsAdmin] = useState(null);
 
     // Data States
     const [users, setUsers] = useState([]);
@@ -35,16 +38,26 @@ export default function Admin() {
     const [recFormError, setRecFormError] = useState('');
     const [recNotice, setRecNotice] = useState('');
 
+    // Verify admin capability against the backend (source of truth).
     useEffect(() => {
-        if (user && user.email === ADMIN_EMAIL) {
+        let cancelled = false;
+        if (!user) { setIsAdmin(null); return; }
+        api.adminCheck()
+            .then(() => { if (!cancelled) setIsAdmin(true); })
+            .catch(() => { if (!cancelled) setIsAdmin(false); });
+        return () => { cancelled = true; };
+    }, [user]);
+
+    useEffect(() => {
+        if (isAdmin) {
             fetchData();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeTab, user, recStatusFilter]);
+    }, [activeTab, isAdmin, recStatusFilter]);
 
     // Debounced refetch for recruiter search
     useEffect(() => {
-        if (activeTab !== 'recruiters' || !user) return;
+        if (activeTab !== 'recruiters' || !isAdmin) return;
         const t = setTimeout(() => { fetchData(); }, 300);
         return () => clearTimeout(t);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -147,7 +160,18 @@ export default function Admin() {
 
     if (!user) return null;
 
-    if (user.email !== 'aditya.poddar3698@gmail.com') {
+    if (isAdmin === null) {
+        return (
+            <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0c] flex items-center justify-center p-4">
+                <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400">
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    <span className="text-sm font-medium">Verifying admin access…</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (!isAdmin) {
         return (
             <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0c] flex items-center justify-center p-4">
                 <div className="max-w-md w-full bg-white dark:bg-[#121215] border border-red-200 dark:border-red-900/30 p-10 rounded-3xl shadow-2xl text-center">
@@ -392,7 +416,7 @@ export default function Admin() {
                                                                 </button>
                                                                 <button 
                                                                     onClick={() => handleDeleteUser(u.id)}
-                                                                    disabled={u.email === 'aditya.poddar3698@gmail.com'}
+                                                                    disabled={u.id === user.id}
                                                                     className="text-red-500 hover:text-red-600 transition-colors p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed group relative"
                                                                 >
                                                                     <Trash2 className="w-5 h-5" />

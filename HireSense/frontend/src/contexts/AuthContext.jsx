@@ -243,10 +243,11 @@ export const AuthProvider = ({ children }) => {
         return await res.json();
     };
 
-    // Forgot password — send reset email via Supabase
+    // Forgot password — send reset email via Supabase. Route through
+    // /auth/confirm (token-hash verify) so the link survives email scanners.
     const resetPassword = async (email) => {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/reset-password`,
+            redirectTo: `${window.location.origin}/auth/confirm?next=/reset-password`,
         });
         if (error) throw error;
     };

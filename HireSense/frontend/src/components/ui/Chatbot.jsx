@@ -1,44 +1,87 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, Users, ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowRight, Bot, Download, MessageCircle, Search, Send, X } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { api } from '../../lib/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { useBreakpoint } from '../../hooks/useBreakpoint';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const pct = (value) => {
+    if (value == null || value === '') return 'N/A';
+    const n = Number(value);
+    if (Number.isNaN(n)) return 'N/A';
+    return `${Math.round(n <= 1 ? n * 100 : n)}%`;
+};
 
 export default function Chatbot() {
+    const { user, role } = useAuth();
+    const { isMobile } = useBreakpoint();
+    const location = useLocation();
+    const navigate = useNavigate();
     const [open, setOpen] = useState(false);
-    const [messages, setMessages] = useState([
-        { role: 'model', reply: "Enter a candidate's name or a skill to find them in the system.", results: [] }
-    ]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [downloadId, setDownloadId] = useState('');
+    const [messages, setMessages] = useState([
+        {
+            role: 'model',
+            reply: 'Ask about a candidate, skill, email, or a job role: "who applied for React Developer?"',
+            results: [],
+            job_applicants: [],
+        },
+    ]);
     const messagesEndRef = useRef(null);
-    const navigate = useNavigate();
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [messages, open]);
+
+    // Recruiter-only tool — never surface the candidate finder to applicants.
+    if (!user || role === 'applicant' || location.pathname === '/login' || location.pathname === '/reset-password') return null;
 
     const handleSearch = async () => {
-        if (!input.trim() || loading) return;
+        const text = input.trim();
+        if (!text || loading) return;
 
-        const userMsg = { role: 'user', reply: input.trim(), results: [] };
+        const userMsg = { role: 'user', reply: text, results: [], job_applicants: [] };
         setMessages(prev => [...prev, userMsg]);
         setInput('');
         setLoading(true);
 
         try {
-            const res = await fetch(`${API_BASE}/chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMsg.reply }),
-            });
-            const data = await res.json();
-            setMessages(prev => [...prev, { role: 'model', reply: data.reply, results: data.results || [] }]);
-        } catch {
-            setMessages(prev => [...prev, { role: 'model', reply: "Sorry, the search failed. Please try again.", results: [] }]);
+            const data = await api.chatAssistant(text, messages.slice(-6));
+            setMessages(prev => [...prev, {
+                role: 'model',
+                reply: data.reply,
+                results: data.results || [],
+                job_applicants: data.job_applicants || [],
+            }]);
+        } catch (err) {
+            setMessages(prev => [...prev, {
+                role: 'model',
+                reply: err.message || 'Assistant search failed. Please try again.',
+                results: [],
+                job_applicants: [],
+            }]);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDownload = async (job) => {
+        if (!job?.job_id) return;
+        setDownloadId(job.job_id);
+        try {
+            await api.downloadJobApplicationsExcel(job.job_id, job.job_title);
+        } catch (err) {
+            setMessages(prev => [...prev, {
+                role: 'model',
+                reply: err.message || 'Could not download the applicant workbook.',
+                results: [],
+                job_applicants: [],
+            }]);
+        } finally {
+            setDownloadId('');
         }
     };
 
@@ -49,145 +92,242 @@ export default function Chatbot() {
         }
     };
 
-    const navigateToCandidate = (matchId) => {
+    const openCandidate = (candidate) => {
         setOpen(false);
-        if (matchId) {
-            navigate('/results', { state: { matchData: { id: matchId } } });
+        if (candidate.match_id) {
+            navigate('/results', { state: { matchData: { id: candidate.match_id } } });
         } else {
-            // If no match ID, send them to the recruiter board to see the raw resume
-            navigate('/recruiter');
+            navigate(`/candidates?highlight=${candidate.id}`);
         }
     };
 
     return (
         <>
-            {/* Floating Button */}
             <motion.button
+                type="button"
                 onClick={() => setOpen(!open)}
-                className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-foreground text-background flex items-center justify-center shadow-2xl hover:scale-110 transition-transform duration-300"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                animate={{ boxShadow: open ? '0 0 0 0 rgba(255,255,255,0)' : '0 0 30px rgba(255,255,255,0.15)' }}
+                title={open ? 'Close HireBot' : 'Open HireBot'}
+                aria-label={open ? 'Close HireBot' : 'Open HireBot'}
+                className="nb"
+                style={{
+                    position: 'fixed',
+                    right: isMobile ? 16 : 24,
+                    bottom: isMobile ? 74 : 24,
+                    zIndex: 1200,
+                    width: 52,
+                    height: 52,
+                    borderRadius: 14,
+                    border: '1.5px solid var(--border2)',
+                    background: 'var(--btn)',
+                    color: 'var(--btn-fg)',
+                    boxShadow: '0 18px 45px rgba(0,0,0,0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                }}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.96 }}
             >
                 <AnimatePresence mode="wait">
                     {open ? (
-                        <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
-                            <X className="w-5 h-5" />
-                        </motion.div>
+                        <motion.span key="x" initial={{ rotate: -45, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 45, opacity: 0 }} style={{ display: 'flex' }}>
+                            <X size={20} />
+                        </motion.span>
                     ) : (
-                        <motion.div key="open" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}>
-                            <Search className="w-5 h-5" />
-                        </motion.div>
+                        <motion.span key="chat" initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }} style={{ display: 'flex' }}>
+                            <MessageCircle size={21} />
+                        </motion.span>
                     )}
                 </AnimatePresence>
             </motion.button>
 
-            {/* Chat Panel */}
             <AnimatePresence>
                 {open && (
                     <motion.div
-                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                        initial={{ opacity: 0, y: 18, scale: 0.96 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                        className="fixed bottom-28 right-8 z-50 w-96 h-[500px] flex flex-col
-                                   border border-border bg-background/95 backdrop-blur-xl
-                                   shadow-[0_0_60px_rgba(0,0,0,0.3)]"
+                        exit={{ opacity: 0, y: 18, scale: 0.96 }}
+                        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                        style={{
+                            position: 'fixed',
+                            right: isMobile ? 10 : 24,
+                            bottom: isMobile ? 136 : 88,
+                            zIndex: 1200,
+                            width: isMobile ? 'calc(100vw - 20px)' : 420,
+                            height: isMobile ? 'min(560px, calc(100vh - 160px))' : 560,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            background: 'var(--surface)',
+                            color: 'var(--text)',
+                            border: '1.5px solid var(--border)',
+                            borderRadius: 14,
+                            boxShadow: '0 22px 70px rgba(0,0,0,0.34)',
+                            overflow: 'hidden',
+                            fontFamily: 'var(--font)',
+                        }}
                     >
-                        {/* Header */}
-                        <div className="p-5 border-b border-border flex items-center justify-between">
-                            <div className="flex items-center">
-                                <div className="w-8 h-8 rounded-full bg-foreground/10 flex items-center justify-center mr-3">
-                                    <Users className="w-4 h-4 text-foreground" />
-                                </div>
-                                <div>
-                                    <h3 className="text-[11px] tracking-[0.2em] uppercase font-medium text-foreground">Candidate Finder</h3>
-                                    <p className="text-[9px] tracking-[0.1em] text-text-secondary uppercase">Local Search</p>
-                                </div>
+                        <div style={{ padding: '15px 16px', borderBottom: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: 11 }}>
+                            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--nav-on)', color: 'var(--nav-on-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <Bot size={18} />
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '.06em' }}>HireBot</div>
+                                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>Candidate details and job applicant lists</div>
                             </div>
                         </div>
 
-                        {/* Messages */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                            {messages.map((msg, i) => (
-                                <motion.div
-                                    key={i}
-                                    initial={{ opacity: 0, y: 8 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.3, delay: i === messages.length - 1 ? 0.1 : 0 }}
-                                    className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
-                                >
-                                    <div className={`max-w-[85%] px-4 py-3 text-[12px] leading-relaxed mb-2 ${msg.role === 'user'
-                                            ? 'bg-foreground text-background'
-                                            : 'border border-border text-foreground bg-foreground/5'
-                                        }`}>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            {messages.map((msg, idx) => (
+                                <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start', gap: 8 }}>
+                                    <div style={{
+                                        maxWidth: '88%',
+                                        padding: '10px 12px',
+                                        borderRadius: msg.role === 'user' ? '12px 12px 3px 12px' : '12px 12px 12px 3px',
+                                        background: msg.role === 'user' ? 'var(--btn)' : 'var(--bg2)',
+                                        color: msg.role === 'user' ? 'var(--btn-fg)' : 'var(--text)',
+                                        border: msg.role === 'user' ? 'none' : '1px solid var(--border)',
+                                        fontSize: 12.5,
+                                        lineHeight: 1.5,
+                                    }}>
                                         {msg.reply}
                                     </div>
 
-                                    {/* Render Candidate Link Results */}
-                                    {msg.results && msg.results.length > 0 && (
-                                        <div className="w-full space-y-2 mb-4">
-                                            {msg.results.map((candidate, idx) => (
+                                    {msg.results?.length > 0 && (
+                                        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                            {msg.results.map(candidate => (
                                                 <button
-                                                    key={idx}
-                                                    onClick={() => navigateToCandidate(candidate.match_id)}
-                                                    className="w-[85%] text-left border border-border p-3 hover:border-foreground transition-colors group bg-background"
+                                                    key={`${candidate.id}-${candidate.match_id || candidate.job_title}`}
+                                                    type="button"
+                                                    onClick={() => openCandidate(candidate)}
+                                                    className="nb hover-lift-sm"
+                                                    style={{
+                                                        width: '100%',
+                                                        textAlign: 'left',
+                                                        padding: 12,
+                                                        borderRadius: 10,
+                                                        border: '1px solid var(--border)',
+                                                        background: 'var(--card)',
+                                                        color: 'var(--text)',
+                                                        cursor: 'pointer',
+                                                    }}
                                                 >
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <span className="text-[11px] font-medium tracking-[0.05em] uppercase truncate">{candidate.name}</span>
-                                                        <ArrowRight className="w-3 h-3 text-text-secondary group-hover:text-foreground transition-colors" />
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                                                        <span style={{ fontSize: 12.5, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{candidate.name}</span>
+                                                        <ArrowRight size={14} style={{ color: 'var(--text3)', flexShrink: 0 }} />
                                                     </div>
-                                                    <div className="flex justify-between items-center text-[9px] text-text-secondary tracking-wider uppercase mb-2">
-                                                        <span>{candidate.job_title}</span>
-                                                        {candidate.match_score !== null && (
-                                                            <span>Match: {Math.round(candidate.match_score <= 1 ? candidate.match_score * 100 : candidate.match_score)}%</span>
-                                                        )}
+                                                    <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 10.5, color: 'var(--text3)', fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase' }}>
+                                                        <span>{candidate.job_title || 'Candidate'}</span>
+                                                        <span>Match {pct(candidate.match_score)}</span>
+                                                        <span>ATS {pct(candidate.ats_score)}</span>
+                                                        {candidate.status && <span>{candidate.status}</span>}
                                                     </div>
-                                                    <p className="text-[10px] text-text-secondary/80 line-clamp-2 leading-relaxed lowercase">
-                                                        "{candidate.summary}"
-                                                    </p>
+                                                    <div style={{ marginTop: 7, fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.45 }}>{candidate.summary}</div>
                                                 </button>
                                             ))}
                                         </div>
                                     )}
-                                </motion.div>
-                            ))}
-                            {loading && (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    className="flex justify-start"
-                                >
-                                    <div className="border border-border px-4 py-3 bg-foreground/5">
-                                        <div className="flex space-x-1.5">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-text-secondary animate-bounce" style={{ animationDelay: '0ms' }} />
-                                            <div className="w-1.5 h-1.5 rounded-full bg-text-secondary animate-bounce" style={{ animationDelay: '150ms' }} />
-                                            <div className="w-1.5 h-1.5 rounded-full bg-text-secondary animate-bounce" style={{ animationDelay: '300ms' }} />
+
+                                    {msg.job_applicants?.length > 0 && (
+                                        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                            {msg.job_applicants.map(job => (
+                                                <div key={job.job_id} style={{ padding: 12, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--card)' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                                                        <div style={{ minWidth: 0 }}>
+                                                            <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.job_title}</div>
+                                                            <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>{job.applicants.length} applicants</div>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDownload(job)}
+                                                            disabled={downloadId === job.job_id}
+                                                            className="nb"
+                                                            title="Download Excel"
+                                                            style={{
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: 6,
+                                                                border: '1px solid var(--border)',
+                                                                borderRadius: 999,
+                                                                padding: '7px 10px',
+                                                                fontSize: 10.5,
+                                                                fontWeight: 800,
+                                                                color: 'var(--text)',
+                                                                background: 'var(--bg2)',
+                                                                cursor: downloadId === job.job_id ? 'wait' : 'pointer',
+                                                                opacity: downloadId === job.job_id ? 0.65 : 1,
+                                                                flexShrink: 0,
+                                                            }}
+                                                        >
+                                                            <Download size={12} /> XLSX
+                                                        </button>
+                                                    </div>
+                                                    <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                                                        {job.applicants.slice(0, 5).map(applicant => (
+                                                            <div key={applicant.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontSize: 11.5, color: 'var(--text2)' }}>
+                                                                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{applicant.applicant_name || applicant.applicant_email || 'Candidate'}</span>
+                                                                <span style={{ color: 'var(--text3)', flexShrink: 0 }}>Match {pct(applicant.match_score)}</span>
+                                                            </div>
+                                                        ))}
+                                                        {job.applicants.length > 5 && (
+                                                            <div style={{ fontSize: 11, color: 'var(--text3)' }}>+{job.applicants.length - 5} more in the Excel file</div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
-                                    </div>
-                                </motion.div>
+                                    )}
+                                </div>
+                            ))}
+
+                            {loading && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text3)', fontSize: 12 }}>
+                                    <Search size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                                    Searching records...
+                                </div>
                             )}
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Input */}
-                        <div className="p-4 border-t border-border bg-background">
-                            <div className="flex items-center border border-border">
+                        <div style={{ padding: 12, borderTop: '1.5px solid var(--border)', background: 'var(--surface)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--border)', borderRadius: 11, background: 'var(--input)', overflow: 'hidden' }}>
                                 <input
                                     type="text"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={handleKeyDown}
-                                    placeholder="Search by name or keyword..."
-                                    className="flex-1 bg-transparent px-4 py-3 text-[12px] text-foreground placeholder-text-secondary/50 focus:outline-none"
+                                    placeholder="Ask about candidates or job applicants..."
                                     disabled={loading}
+                                    style={{
+                                        flex: 1,
+                                        minWidth: 0,
+                                        border: 'none',
+                                        outline: 'none',
+                                        background: 'transparent',
+                                        color: 'var(--text)',
+                                        padding: '12px 13px',
+                                        fontSize: 12.5,
+                                        fontFamily: 'var(--font)',
+                                    }}
                                 />
                                 <button
+                                    type="button"
                                     onClick={handleSearch}
                                     disabled={loading || !input.trim()}
-                                    className="px-4 py-3 text-foreground hover:bg-foreground/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                    className="nb"
+                                    title="Send"
+                                    style={{
+                                        width: 42,
+                                        alignSelf: 'stretch',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'var(--text)',
+                                        cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
+                                        opacity: loading || !input.trim() ? 0.35 : 1,
+                                    }}
                                 >
-                                    <Search className="w-4 h-4" />
+                                    <Send size={15} />
                                 </button>
                             </div>
                         </div>
