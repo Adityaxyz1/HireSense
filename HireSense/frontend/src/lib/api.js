@@ -137,6 +137,33 @@ async function _doRequest(path, {
     }
 }
 
+async function downloadBlob(path, filenameFallback = 'download.xlsx') {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE}${path}`, { headers });
+    if (!res.ok) {
+        if (res.status === 401 && typeof window !== 'undefined') {
+            try { await supabase.auth.signOut(); } catch { /* ignore */ }
+            if (!window.location.pathname.startsWith('/login')) {
+                window.location.assign('/login');
+            }
+        }
+        throw new Error(await parseError(res, 'Download failed'));
+    }
+    const blob = await res.blob();
+    const disposition = res.headers.get('content-disposition') || '';
+    const match = disposition.match(/filename="?([^"]+)"?/i);
+    const filename = match?.[1] || filenameFallback;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    return { filename };
+}
+
 export const api = {
     async uploadResume(file, candidateName = '') {
         const formData = new FormData();
@@ -254,6 +281,14 @@ export const api = {
         return request('/stats', { fallbackError: 'Failed to fetch stats' });
     },
 
+    async chatAssistant(message, history = []) {
+        return request('/chat', {
+            method: 'POST',
+            body: JSON.stringify({ message, history }),
+            fallbackError: 'Assistant search failed',
+        });
+    },
+
     // Admin Panel Routes
     async adminGetUsers() {
         return request('/admin/users', { fallbackError: 'Failed to fetch users' });
@@ -366,6 +401,11 @@ export const api = {
 
     async getJobApplications(jobId) {
         return request(`/jobs/${jobId}/applications`, { fallbackError: 'Failed to load applicants' });
+    },
+
+    async downloadJobApplicationsExcel(jobId, title = 'job') {
+        const safeTitle = String(title || 'job').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || 'job';
+        return downloadBlob(`/jobs/${jobId}/applications/export.xlsx`, `${safeTitle}_applicants.xlsx`);
     },
 
     async getApplicantProfile() {

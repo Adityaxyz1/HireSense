@@ -4,6 +4,7 @@ import Layout from './components/ui/Layout';
 import ApplicantLayout from './components/ui/ApplicantLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
+import Chatbot from './components/ui/Chatbot';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Candidates = lazy(() => import('./pages/Candidates'));
@@ -99,6 +100,7 @@ function App() {
         </Route>
       </Routes>
       </Suspense>
+      <Chatbot />
     </Router>
   );
 }
