@@ -8,7 +8,7 @@ from services.pdf_parser import extract_text
 from services.storage_service import upload_resume_pdf
 from services.embedding_engine import generate_embedding
 from services.ats_scanner import scan_ats_compliance
-from routes.auth_dependency import get_current_user, require_user
+from routes.auth_dependency import require_user
 from routes.schemas import UploadResponse
 
 router = APIRouter()

@@ -1,5 +1,3 @@
-from typing import Dict, Any
-
 def get_risk_level(final_score: float) -> str:
     """
     Accept score on either 0-100 or 0.0-1.0 scale.
