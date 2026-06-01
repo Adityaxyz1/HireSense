@@ -110,7 +110,10 @@ export const AuthProvider = ({ children }) => {
             if (data.user) {
                 await fetch(`${API_BASE}/auth/signup`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(data.session?.access_token ? { 'Authorization': `Bearer ${data.session.access_token}` } : {}),
+                    },
                     body: JSON.stringify({ user_id: data.user.id, email, role }),
                 });
             }
@@ -137,7 +140,10 @@ export const AuthProvider = ({ children }) => {
             if (data.user) {
                 await fetch(`${API_BASE}/auth/login`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(data.session?.access_token ? { 'Authorization': `Bearer ${data.session.access_token}` } : {}),
+                    },
                     body: JSON.stringify({ user_id: data.user.id, email }),
                 });
             }
@@ -148,12 +154,16 @@ export const AuthProvider = ({ children }) => {
 
     // Logout
     const logout = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
         // Log to backend first
         if (user) {
             try {
                 await fetch(`${API_BASE}/auth/logout`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
+                    },
                     body: JSON.stringify({
                         user_id: user.id,
                         email: user.email,

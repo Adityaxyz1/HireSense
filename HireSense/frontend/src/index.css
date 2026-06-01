@@ -408,3 +408,26 @@ body {
     flex-direction: column !important;
   }
 }
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text2);
+  opacity: .72;
+}
+
+.login-shell {
+  max-width: min(420px, calc(100vw - 20px)) !important;
+  width: min(100%, calc(100vw - 20px)) !important;
+}
+
+@media (max-width: 640px) {
+  .login-shell {
+    max-width: calc(100vw - 20px) !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .login-shell {
+    max-width: 350px !important;
+  }
+}

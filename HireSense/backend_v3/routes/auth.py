@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 from config import settings
 from database import get_db, get_admin_db
-from routes.auth_dependency import require_user
+from routes.auth_dependency import get_current_user, require_user
 
 router = APIRouter()
 
@@ -43,6 +43,34 @@ def _log_auth_event(event_type: str, user_id: str, email: str, request: Request)
         print(f"[AUTH LOG WARNING] Failed to log {event_type}: {e}")
 
 
+def _verified_payload_identity(payload: AuthEventPayload, request: Request, require_session: bool = False):
+    """Return a trusted (user_id, email) pair for audit/profile writes."""
+    token_user = get_current_user(request)
+    payload_email = (payload.email or "").lower()
+
+    if token_user:
+        token_id = str(token_user.id)
+        token_email = (token_user.email or "").lower()
+        if token_id != payload.user_id or token_email != payload_email:
+            raise HTTPException(status_code=403, detail="Auth payload does not match the verified session.")
+        return token_id, token_email
+
+    if require_session:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+
+    try:
+        resp = get_admin_db().auth.admin.get_user_by_id(payload.user_id)
+        auth_user = getattr(resp, "user", None) or resp
+        auth_email = (getattr(auth_user, "email", "") or "").lower()
+    except Exception:
+        auth_email = ""
+
+    if not auth_email or auth_email != payload_email:
+        raise HTTPException(status_code=403, detail="Signup identity could not be verified.")
+
+    return payload.user_id, auth_email
+
+
 # ── POST /api/auth/signup ────────────────────────────────────
 @router.post("/auth/signup")
 async def log_signup(payload: AuthEventPayload, request: Request):
@@ -52,26 +80,27 @@ async def log_signup(payload: AuthEventPayload, request: Request):
     profiles.role and, for applicants, seed an applicant_profiles row — using the
     service-role client so it works before email confirmation (no session yet).
     """
-    _log_auth_event("signup", payload.user_id, payload.email, request)
+    user_id, email = _verified_payload_identity(payload, request, require_session=False)
+    _log_auth_event("signup", user_id, email, request)
 
     # Recruiters are provisioned by an admin only — a self-service signup can
     # never create one, regardless of what the client requests. Admin-allowlisted
     # emails land in the recruiter region (so they can reach /admin); everyone
     # else is an applicant.
-    role = "recruiter" if (payload.email or "").lower() in settings.ADMIN_EMAILS else "applicant"
+    role = "recruiter" if email in settings.ADMIN_EMAILS else "applicant"
 
     try:
         admin = get_admin_db()
-        admin.table("profiles").upsert({"id": payload.user_id, "role": role}).execute()
+        admin.table("profiles").upsert({"id": user_id, "role": role}).execute()
         if role == "applicant":
             admin.table("applicant_profiles").upsert({
-                "id": payload.user_id,
-                "full_name": (payload.full_name or payload.email.split("@")[0]),
-                "email": payload.email,
+                "id": user_id,
+                "full_name": (payload.full_name or email.split("@")[0]),
+                "email": email,
                 "skills_json": [],
             }).execute()
     except Exception as e:
-        print(f"[AUTH] Failed to persist role for {payload.email}: {e}")
+        print(f"[AUTH] Failed to persist role for {email}: {e}")
 
     return {"message": "Signup event logged", "role": role}
 
@@ -133,17 +162,19 @@ async def oauth_sync(payload: AuthEventPayload, request: Request, user=Depends(r
 
 # ── POST /api/auth/login ─────────────────────────────────────
 @router.post("/auth/login")
-async def log_login(payload: AuthEventPayload, request: Request):
+async def log_login(payload: AuthEventPayload, request: Request, user=Depends(require_user)):
     """Log a login event (audit trail only — auth is handled client-side by Supabase SDK)."""
-    _log_auth_event("login", payload.user_id, payload.email, request)
+    _verified_payload_identity(payload, request, require_session=True)
+    _log_auth_event("login", str(user.id), user.email, request)
     return {"message": "Login event logged"}
 
 
 # ── POST /api/auth/logout ────────────────────────────────────
 @router.post("/auth/logout")
-async def log_logout(payload: AuthEventPayload, request: Request):
+async def log_logout(payload: AuthEventPayload, request: Request, user=Depends(require_user)):
     """Log a logout event."""
-    _log_auth_event("logout", payload.user_id, payload.email, request)
+    _verified_payload_identity(payload, request, require_session=True)
+    _log_auth_event("logout", str(user.id), user.email, request)
     return {"message": "Logout event logged"}
 
 

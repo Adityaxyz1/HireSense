@@ -468,7 +468,7 @@ export default function Admin() {
                                                                         try {
                                                                             await api.adminUpdateJob(j.id, { status: newStatus });
                                                                             fetchData();
-                                                                        } catch(e) { alert('Update failed'); }
+                                                                        } catch { alert('Update failed'); }
                                                                     }}
                                                                     className={`px-2 py-1 rounded text-xs font-medium ${j.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'}`}
                                                                 >
@@ -484,7 +484,7 @@ export default function Admin() {
                                                                         try {
                                                                             await api.adminDeleteJob(j.id);
                                                                             fetchData();
-                                                                        } catch(e) { alert('Delete failed'); }
+                                                                        } catch { alert('Delete failed'); }
                                                                     }}
                                                                     className="text-red-500 hover:text-red-600 transition-colors p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg group relative"
                                                                 >

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../lib/api';
-import { useBreakpoint } from '../hooks/useBreakpoint';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, Edit3, FileText, Users, Trash2, PlusCircle, UploadCloud, RefreshCw, CheckCircle, Play, AlertCircle } from 'lucide-react';
 
@@ -43,8 +42,6 @@ export default function Jobs() {
 
     const [uploadingDocJob, setUploadingDocJob] = useState(null);
     const [matchingJob, setMatchingJob] = useState(null);
-
-    const { isMobile } = useBreakpoint();
 
     const fetchData = () => {
         api.getJobs().then(r => setJobs(r || [])).catch(() => {});

@@ -84,8 +84,7 @@ export default function Login() {
         setError('');
         setSuccess('');
         setAvatarFile(null);
-        // Prefill the known admin address; clear it otherwise.
-        setEmail(role === 'admin' ? 'aditya.poddar3698@gmail.com' : '');
+        setEmail('');
     };
 
     const handleForgotPassword = async (e) => {
@@ -135,12 +134,7 @@ export default function Login() {
             } else {
                 await login(email, password);
                 if (isAdminMode) {
-                    if (email === 'aditya.poddar3698@gmail.com') {
-                        navigate('/admin');
-                    } else {
-                        setError('⛔ Access Denied — You do not have admin privileges.');
-                        return;
-                    }
+                    navigate('/admin');
                 } else {
                     // Land on the recruiter home; the persona gate redirects
                     // applicants to /student automatically once the role loads.
@@ -162,8 +156,9 @@ export default function Login() {
             alignItems: 'center',
             justifyContent: 'center',
             position: 'relative',
-            overflow: 'hidden',
-            padding: isMobile ? 12 : 20,
+            overflowX: 'hidden',
+            overflowY: 'auto',
+            padding: isMobile ? '12px 10px' : 20,
         }}>
             {/* Background effects */}
             <TwirlBackground />
@@ -182,14 +177,16 @@ export default function Login() {
 
             {/* Login Card */}
             <motion.div
+                className="login-shell"
                 initial={{ opacity: 0, y: 30, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                 style={{
                     position: 'relative',
                     zIndex: 10,
-                    width: '100%',
-                    maxWidth: 420,
+                    width: 'min(100%, calc(100vw - 20px))',
+                    maxWidth: 'min(420px, calc(100vw - 20px))',
+                    minWidth: 0,
                 }}
             >
                 {/* Outer glow border */}
@@ -209,12 +206,13 @@ export default function Login() {
                     background: 'var(--surface)',
                     border: isAdminMode ? '1.5px solid rgba(245,158,11,0.3)' : '1.5px solid var(--border)',
                     borderRadius: 16,
-                    padding: isMobile ? '32px 20px 24px' : '40px 36px 36px',
+                    padding: 'clamp(24px, 6vw, 40px) clamp(18px, 5vw, 36px) clamp(24px, 5vw, 36px)',
                     backdropFilter: 'blur(20px)',
                     boxShadow: isAdminMode 
                         ? '0 25px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(245,158,11,0.1)' 
                         : '0 25px 60px rgba(0,0,0,0.3), 0 0 0 1px var(--border)',
                     transition: 'border 0.5s ease, box-shadow 0.5s ease',
+                    overflow: 'hidden',
                 }}>
                     {/* Logo */}
                     <motion.div
@@ -270,14 +268,17 @@ export default function Login() {
 
                     {/* ── Role switcher (Applicant is primary & default) ── */}
                     <div role="tablist" aria-label="Select login type" style={{
-                        display: 'flex', gap: 6, padding: 5, marginBottom: isMobile ? 20 : 26,
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr)',
+                        gap: 6,
+                        padding: 5,
+                        marginBottom: isMobile ? 20 : 26,
                         background: 'var(--bg3)', border: '1.5px solid var(--border)', borderRadius: 12,
                     }}>
                         {ROLES.map(r => {
                             const Icon = r.icon;
                             const sel = loginRole === r.key;
                             const isApplicant = r.key === 'applicant';
-                            const accent = r.key === 'admin' ? '#f59e0b' : 'var(--btn)';
                             return (
                                 <button
                                     key={r.key}
@@ -286,16 +287,16 @@ export default function Login() {
                                     aria-selected={sel}
                                     onClick={() => selectRole(r.key)}
                                     style={{
-                                        flex: isApplicant ? 1.25 : 1, position: 'relative', cursor: 'pointer',
+                                        minWidth: 0, position: 'relative', cursor: 'pointer',
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-                                        padding: '10px 6px', borderRadius: 9, border: 'none',
+                                        padding: isMobile ? '9px 4px' : '10px 6px', borderRadius: 9, border: 'none',
                                         background: sel ? (r.key === 'admin' ? '#f59e0b' : 'var(--btn)') : 'transparent',
                                         color: sel ? (r.key === 'admin' ? '#fff' : 'var(--btn-fg)') : 'var(--text2)',
                                         transition: 'all .25s cubic-bezier(.22,1,.36,1)', fontFamily: 'var(--font)',
                                     }}
                                 >
                                     <Icon size={isApplicant ? 19 : 17} />
-                                    <span style={{ fontSize: isApplicant ? 11.5 : 10.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase' }}>{r.label}</span>
+                                    <span style={{ fontSize: isMobile ? 10 : (isApplicant ? 11.5 : 10.5), fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{r.label}</span>
                                     {isApplicant && !sel && (
                                         <span style={{ position: 'absolute', top: 4, right: 6, fontSize: 7.5, letterSpacing: '.1em', color: 'var(--text3)', textTransform: 'uppercase' }}>Primary</span>
                                     )}
@@ -324,8 +325,9 @@ export default function Login() {
                         </h2>
                         <p style={{
                             fontSize: 12,
-                            color: 'var(--text3)',
+                            color: 'var(--text2)',
                             letterSpacing: '.08em',
+                            lineHeight: 1.5,
                         }}>
                             {isAdminMode
                                 ? 'Restricted area for system owner'
@@ -372,7 +374,7 @@ export default function Login() {
                                 display: 'block',
                                 fontSize: 11,
                                 fontWeight: 600,
-                                color: 'var(--text2)',
+                                color: 'var(--text)',
                                 letterSpacing: '.1em',
                                 textTransform: 'uppercase',
                                 marginBottom: 8,
@@ -389,8 +391,8 @@ export default function Login() {
                                     style={{
                                         width: '100%',
                                         padding: '13px 14px 13px 40px',
-                                        background: 'var(--input)',
-                                        border: '1.5px solid var(--border)',
+                                        background: 'var(--bg2)',
+                                        border: '1.5px solid var(--border2)',
                                         borderRadius: 10,
                                         color: 'var(--text)',
                                         fontSize: 14,
@@ -400,11 +402,11 @@ export default function Login() {
                                         boxSizing: 'border-box',
                                     }}
                                     onFocus={(e) => {
-                                        e.target.style.borderColor = 'var(--text2)';
-                                        e.target.style.boxShadow = '0 0 0 3px rgba(160,160,176,0.1)';
+                                        e.target.style.borderColor = 'var(--accent)';
+                                        e.target.style.boxShadow = 'var(--ring)';
                                     }}
                                     onBlur={(e) => {
-                                        e.target.style.borderColor = 'var(--border)';
+                                        e.target.style.borderColor = 'var(--border2)';
                                         e.target.style.boxShadow = 'none';
                                     }}
                                 />
@@ -415,7 +417,7 @@ export default function Login() {
                                         left: 13,
                                         top: '50%',
                                         transform: 'translateY(-50%)',
-                                        color: 'var(--text3)',
+                                        color: 'var(--text2)',
                                         pointerEvents: 'none',
                                     }}
                                     width="16" height="16" viewBox="0 0 24 24"
@@ -440,7 +442,7 @@ export default function Login() {
                                 display: 'block',
                                 fontSize: 11,
                                 fontWeight: 600,
-                                color: 'var(--text2)',
+                                color: 'var(--text)',
                                 letterSpacing: '.1em',
                                 textTransform: 'uppercase',
                                 marginBottom: 8,
@@ -457,8 +459,8 @@ export default function Login() {
                                     style={{
                                         width: '100%',
                                         padding: '13px 40px 13px 40px',
-                                        background: 'var(--input)',
-                                        border: '1.5px solid var(--border)',
+                                        background: 'var(--bg2)',
+                                        border: '1.5px solid var(--border2)',
                                         borderRadius: 10,
                                         color: 'var(--text)',
                                         fontSize: 14,
@@ -468,11 +470,11 @@ export default function Login() {
                                         boxSizing: 'border-box',
                                     }}
                                     onFocus={(e) => {
-                                        e.target.style.borderColor = 'var(--text2)';
-                                        e.target.style.boxShadow = '0 0 0 3px rgba(160,160,176,0.1)';
+                                        e.target.style.borderColor = 'var(--accent)';
+                                        e.target.style.boxShadow = 'var(--ring)';
                                     }}
                                     onBlur={(e) => {
-                                        e.target.style.borderColor = 'var(--border)';
+                                        e.target.style.borderColor = 'var(--border2)';
                                         e.target.style.boxShadow = 'none';
                                     }}
                                 />
@@ -483,7 +485,7 @@ export default function Login() {
                                         left: 13,
                                         top: '50%',
                                         transform: 'translateY(-50%)',
-                                        color: 'var(--text3)',
+                                        color: 'var(--text2)',
                                         pointerEvents: 'none',
                                     }}
                                     width="16" height="16" viewBox="0 0 24 24"
@@ -704,8 +706,10 @@ export default function Login() {
                                 <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                                {OAUTH_PROVIDERS.map(({ id, label, icon: Icon }) => {
+                            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10 }}>
+                                {OAUTH_PROVIDERS.map((provider) => {
+                                    const { id, label } = provider;
+                                    const Icon = provider.icon;
                                     const busy = oauthBusy === id;
                                     const disabled = loading || !!oauthBusy;
                                     return (
@@ -722,6 +726,7 @@ export default function Login() {
                                                 color: 'var(--text)', fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font)',
                                                 cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled && !busy ? 0.55 : 1,
                                                 transition: 'border-color .2s, background .2s',
+                                                minWidth: 0,
                                             }}
                                             onMouseEnter={(e) => { if (!disabled) { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.background = 'var(--bg3)'; } }}
                                             onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--input)'; }}
@@ -731,7 +736,7 @@ export default function Login() {
                                             ) : (
                                                 <Icon />
                                             )}
-                                            {label}
+                                            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
                                         </button>
                                     );
                                 })}

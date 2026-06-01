@@ -127,9 +127,6 @@ export default function AtsCheck() {
         return Math.min(100, Math.max(0, score - 30)); // critical
     };
 
-    const totalFindings = report?.breakdown?.length || 0;
-    const successCount = report?.breakdown?.filter(b => b.type === 'success').length || 0;
-
     const ATS_B = [
         { l: 'Contact Info',    s: report ? getBreakdownItemScore(0) : 0 },
         { l: 'Section Headers', s: report ? getBreakdownItemScore(1) : 0 },
