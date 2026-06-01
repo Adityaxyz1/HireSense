@@ -33,7 +33,7 @@ const NAV = [
 export default function Layout() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { theme, toggleTheme, isDark } = useTheme();
+    const { toggleTheme, isDark } = useTheme();
     const { user, profile, logout } = useAuth();
     const [sbOpen, setSbOpen] = useState(true);
     const [showUserMenu, setShowUserMenu] = useState(false);

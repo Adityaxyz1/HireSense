@@ -151,7 +151,6 @@ export default function Results() {
     const location = useLocation();
     const passedResult = location.state?.result;
     const [result, setResult] = useState(passedResult || null);
-    const [allResults, setAllResults] = useState([]);
     const [loading, setLoading] = useState(!passedResult);
     const { theme } = useTheme();
     const isDark = theme === 'dark';
@@ -159,7 +158,6 @@ export default function Results() {
     useEffect(() => {
         if (!passedResult) {
             api.getResults().then(data => {
-                setAllResults(data || []);
                 if (data && data.length > 0) {
                     const latest = data[0];
                     setResult({

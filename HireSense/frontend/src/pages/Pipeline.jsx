@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useTheme } from '../contexts/ThemeContext';
 import { api } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { useBreakpoint } from '../hooks/useBreakpoint';
@@ -15,7 +14,6 @@ const COLS = [
 ];
 
 export default function Pipeline() {
-    const { isDark } = useTheme();
     const { isMobile } = useBreakpoint();
 
     const [candidates, setCandidates] = useState([]);

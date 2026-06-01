@@ -7,7 +7,7 @@ import { api } from '../lib/api';
 export default function Analyze() {
     const navigate = useNavigate();
     const [analyzing, setAnalyzing] = useState(false);
-    const [resumeFile, setResumeFile] = useState(null);
+    const [resumeFile] = useState(null);
     const [jobText, setJobText] = useState('');
     const [jobTitle, setJobTitle] = useState('');
     const [status, setStatus] = useState('');

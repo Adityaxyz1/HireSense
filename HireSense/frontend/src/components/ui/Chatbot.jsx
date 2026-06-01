@@ -35,7 +35,7 @@ export default function Chatbot() {
             });
             const data = await res.json();
             setMessages(prev => [...prev, { role: 'model', reply: data.reply, results: data.results || [] }]);
-        } catch (err) {
+        } catch {
             setMessages(prev => [...prev, { role: 'model', reply: "Sorry, the search failed. Please try again.", results: [] }]);
         } finally {
             setLoading(false);

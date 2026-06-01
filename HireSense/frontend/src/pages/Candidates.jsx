@@ -264,9 +264,9 @@ export default function Candidates() {
 
                     // Parse stored breakdown data
                     let atsBreakdown = [];
-                    try { atsBreakdown = typeof c.ats_breakdown === 'string' ? JSON.parse(c.ats_breakdown) : (c.ats_breakdown || []); } catch {}
+                    try { atsBreakdown = typeof c.ats_breakdown === 'string' ? JSON.parse(c.ats_breakdown) : (c.ats_breakdown || []); } catch { atsBreakdown = []; }
                     let matchBreakdown = {};
-                    try { matchBreakdown = typeof c.match_breakdown === 'string' ? JSON.parse(c.match_breakdown) : (c.match_breakdown || {}); } catch {}
+                    try { matchBreakdown = typeof c.match_breakdown === 'string' ? JSON.parse(c.match_breakdown) : (c.match_breakdown || {}); } catch { matchBreakdown = {}; }
 
                     return (
                         <React.Fragment key={c.id || i}>
