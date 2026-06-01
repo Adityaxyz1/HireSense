@@ -327,7 +327,7 @@ def job_applications(job_id: str, user=Depends(require_user)):
             "id, status, created_at, resume_id, match_result_id, applicant_id, "
             "applicant_profiles (full_name, email, major, graduation_year, github_url, github_data), "
             "resumes (status, ats_score, candidate_name, file_url), "
-            "match_results (final_score, risk_level, skill_score, semantic_score)"
+            "match_results (final_score, risk_level, skill_score, semantic_score, candidate_status)"
         )
         .eq("job_id", job_id)
         .order("created_at", desc=True)
@@ -350,5 +350,8 @@ def job_applications(job_id: str, user=Depends(require_user)):
         row["match_score"] = match.get("final_score")
         row["risk_level"] = match.get("risk_level")
         row["skill_score"] = match.get("skill_score")
+        # Recruiter's triage decision (authoritative) — drives the status the
+        # recruiter sees, independent of the applications.status lifecycle.
+        row["candidate_status"] = match.get("candidate_status")
         out.append(row)
     return out

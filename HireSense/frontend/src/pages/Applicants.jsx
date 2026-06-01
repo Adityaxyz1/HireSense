@@ -12,6 +12,12 @@ const STATUS_META = {
     rejected:    { label: 'Rejected', color: '#ef4444' },
     failed:      { label: 'Error', color: '#ef4444' },
 };
+// Recruiter triage (match_results.candidate_status) -> lifecycle status key.
+// The recruiter's decision is authoritative and takes precedence over the
+// applications.status lifecycle, so the board reflects approve/interview/reject
+// immediately (and doesn't get stuck on "Screened" if propagation lagged).
+const TRIAGE_STATUS = { approved: 'shortlisted', interview: 'interview', rejected: 'rejected' };
+
 const pct = (v) => (v == null ? '—' : `${Math.round((v <= 1 ? v * 100 : v))}%`);
 const riskColor = (r) => (r === 'Low' ? '#22c55e' : r === 'Medium' ? '#f59e0b' : r === 'High' ? '#ef4444' : 'var(--text3)');
 
@@ -48,11 +54,16 @@ export default function Applicants() {
         // Live: new applicants stream in and self-populate as the screening
         // engine writes resume scores + match results — the exact same events
         // the applicant's "My Applications" page reacts to.
+        // Unfiltered table subscriptions (same pattern as the Candidates page,
+        // which updates reliably). The refetch is already scoped to this job;
+        // table-wide events avoid row-filter/replica-identity delivery quirks.
+        // match_results uses '*' so recruiter triage (an UPDATE to
+        // candidate_status) refetches the board — not just INSERTs.
         const channel = supabase
             .channel(`recruiter-job-${jobId}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'applications', filter: `job_id=eq.${jobId}` }, () => refetch(jobId))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, () => refetch(jobId))
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'resumes' }, () => refetch(jobId))
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'match_results', filter: `job_id=eq.${jobId}` }, () => refetch(jobId))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'match_results' }, () => refetch(jobId))
             .subscribe();
 
         return () => { supabase.removeChannel(channel); clearTimeout(debounce.current); };
@@ -122,7 +133,9 @@ export default function Applicants() {
                         ) : (
                             <div>
                                 {applicants.map(a => {
-                                    const meta = STATUS_META[a.status] || STATUS_META.applied;
+                                    // Recruiter's triage decision wins; fall back to the lifecycle status.
+                                    const effStatus = TRIAGE_STATUS[a.candidate_status] || a.status;
+                                    const meta = STATUS_META[effStatus] || STATUS_META.applied;
                                     const processing = a.resume_status === 'processing';
                                     return (
                                         <div key={a.id} className="hover-lift-sm" style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', transition: 'all .15s' }}>
