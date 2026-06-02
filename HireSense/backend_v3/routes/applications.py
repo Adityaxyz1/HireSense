@@ -31,7 +31,7 @@ from services.pdf_parser import extract_text
 from services.storage_service import upload_resume_pdf
 from services.embedding_engine import generate_embedding
 from services.ats_scanner import scan_ats_compliance
-from services.skill_engine import calculate_skill_overlap
+from services.skill_engine import calculate_skill_overlap, extract_skills
 from services.experience_engine import calculate_experience_score
 from services.resume_strength import compute_strength
 from services.scorer import compute_final_score, get_risk_level
@@ -150,9 +150,21 @@ async def rescore_application(app_id: str, resume_id: str, job_id: str,
         match_res = db.table("match_results").insert(payload).execute()
         match_id = match_res.data[0]["id"] if match_res.data else None
 
-    # Cache the match summary on the resume row too (mirrors /match)
+    # Cache the match summary on the resume row too (mirrors /match) — including
+    # a keyword breakdown so the recruiter's JD Match Report shows matched/missing
+    # skills, not just a bare score (parity with the ATS Screening Report).
+    jd_skills = extract_skills(job_text)
+    resume_skill_set = set(extract_skills(raw_text))
+    matched_keywords = [s for s in jd_skills if s in resume_skill_set]
+    missing_keywords = [s for s in jd_skills if s not in resume_skill_set]
     db.table("resumes").update({
         "match_score": round(final_score * 100, 2),
+        "match_breakdown": _json.dumps({
+            "semantic_score": round(semantic_score * 100, 1),
+            "keyword_coverage": round(skill_score * 100, 1),
+            "matched_keywords": matched_keywords[:10],
+            "missing_keywords": missing_keywords[:10],
+        }),
     }).eq("id", resume_id).execute()
 
     # Link the match to the application (final realtime push)
