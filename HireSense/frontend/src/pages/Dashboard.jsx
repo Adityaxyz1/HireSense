@@ -77,10 +77,11 @@ function Badge({ status, isDark }) {
     );
 }
 
-function Avatar({ initials, size = 32, color, name }) {
+function Avatar({ initials, size = 32, color, name, avatarUrl }) {
     const [imgErr, setImgErr] = React.useState(false);
     const seed = encodeURIComponent(name || initials || 'user');
-    const avatarSrc = `https://api.dicebear.com/9.x/notionists/svg?seed=${seed}&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf`;
+    // Prefer the applicant's uploaded photo; fall back to a generated avatar.
+    const avatarSrc = avatarUrl || `https://api.dicebear.com/9.x/notionists/svg?seed=${seed}&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf`;
 
     if (!imgErr) {
         return (
@@ -361,7 +362,7 @@ export default function Dashboard() {
                                     animationDelay: `${i * 30}ms`,
                                 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                                        <Avatar initials={initials} size={32} color={AVC[i % 5]} name={name} />
+                                        <Avatar initials={initials} size={32} color={AVC[i % 5]} name={name} avatarUrl={c.avatar_url} />
                                         <div style={{ minWidth: 0 }}>
                                             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                 {name}
