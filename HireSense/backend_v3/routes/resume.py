@@ -171,7 +171,7 @@ def list_candidates(user=Depends(require_user)):
                     .select(
                         "id, status, created_at, resume_id, match_result_id, job_id, "
                         "job_descriptions (title), "
-                        "applicant_profiles (full_name), "
+                        "applicant_profiles (full_name, avatar_url), "
                         "resumes (candidate_name, file_url, ats_score, ats_breakdown, "
                         "match_breakdown, status, raw_text), "
                         "match_results (id, final_score, candidate_status, risk_level, "
@@ -193,6 +193,7 @@ def list_candidates(user=Depends(require_user)):
                     "match_id": match.get("id") or a.get("match_result_id"),
                     "candidate_status": match.get("candidate_status") or "pending",
                     "candidate_name": prof.get("full_name") or resume.get("candidate_name"),
+                    "avatar_url": prof.get("avatar_url"),
                     "file_url": resume.get("file_url"),
                     "ats_score": resume.get("ats_score"),
                     "ats_breakdown": resume.get("ats_breakdown"),
