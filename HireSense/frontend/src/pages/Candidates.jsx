@@ -291,7 +291,8 @@ export default function Candidates() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10, minWidth: 0 }}>
                                 {(() => {
                                     const seed = encodeURIComponent(name || initials || 'user');
-                                    const avatarSrc = `https://api.dicebear.com/9.x/notionists/svg?seed=${seed}&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf`;
+                                    // Prefer the applicant's uploaded profile photo; fall back to a generated avatar.
+                                    const avatarSrc = c.avatar_url || `https://api.dicebear.com/9.x/notionists/svg?seed=${seed}&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf`;
                                     return (
                                         <div style={{
                                             width: isMobile ? 30 : 36, height: isMobile ? 30 : 36, borderRadius: 10,
