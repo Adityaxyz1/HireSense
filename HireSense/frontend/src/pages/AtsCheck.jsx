@@ -33,7 +33,7 @@ export default function AtsCheck() {
     const [activeTab, setActiveTab] = useState('ats'); // 'ats' | 'match'
 
     useEffect(() => {
-        api.getResumes().then(r => { setResumes(r || []); }).catch(() => {});
+        api.getResumes().then(r => { setResumes(r || []); }).catch(console.error);
     }, []);
 
     const handleScan = async () => {

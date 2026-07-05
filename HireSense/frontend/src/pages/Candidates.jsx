@@ -50,6 +50,7 @@ export default function Candidates() {
     const [updatingId, setUpdatingId] = useState(null);
     const [expandedId, setExpandedId] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [deleteError, setDeleteError] = useState(null);
 
     const debounce = useRef(null);
 
@@ -112,13 +113,14 @@ export default function Candidates() {
     };
 
     const handleDelete = async (resumeId) => {
+        setDeleteError(null);
         setUpdatingId(resumeId);
         try {
             await api.deleteResume(resumeId);
             setCandidates(prev => prev.filter(c => c.id !== resumeId));
         } catch (e) {
             console.error('Deletion failed:', e);
-            alert("Delete failed: " + e.message); // Fallback to alert if needed, but not block execution
+            setDeleteError(e.message || 'Delete failed. Please try again.');
         }
         setUpdatingId(null);
     };
@@ -212,6 +214,18 @@ export default function Candidates() {
                     </select>
                 </div>
             </div>
+
+            {deleteError && (
+                <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px 14px', marginBottom: 12, borderRadius: 'var(--r-sm)',
+                    background: isDark ? '#2d0a0a' : '#fff1f2',
+                    border: '1.5px solid #ef444433', color: '#ef4444', fontSize: 12,
+                }}>
+                    <span>{deleteError}</span>
+                    <button onClick={() => setDeleteError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: 16, lineHeight: 1, padding: '0 2px' }}>×</button>
+                </div>
+            )}
 
             {/* Table */}
             <div className="card-modern" style={{ padding: isMobile ? 12 : 20 }}>
@@ -308,7 +322,10 @@ export default function Candidates() {
                                                     e.target.parentElement.style.display = 'flex';
                                                     e.target.parentElement.style.alignItems = 'center';
                                                     e.target.parentElement.style.justifyContent = 'center';
-                                                    e.target.parentElement.innerHTML = `<span style="font-size:${isMobile ? '10px' : '12px'};font-weight:700;color:${AVC[i % 5]}">${initials}</span>`;
+                                                    const fb = document.createElement('span');
+                                                    fb.style.cssText = `font-size:${isMobile ? '10px' : '12px'};font-weight:700;color:${AVC[i % 5]}`;
+                                                    fb.textContent = initials;
+                                                    e.target.parentElement.replaceChildren(fb);
                                                 }}
                                                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                                             />
@@ -416,17 +433,18 @@ export default function Candidates() {
                                                 );
                                             })}
                                             <button
-                                                onClick={() => !uploading && handleDelete(c.id)}
-                                                title="Delete Applicant"
-                                                disabled={uploading}
+                                                onClick={() => !uploading && !isApplied && handleDelete(c.id)}
+                                                title={isApplied ? "Applicant resumes can't be deleted here" : "Delete Applicant"}
+                                                disabled={uploading || isApplied}
                                                 style={{
                                                     width: 22, height: 22, borderRadius: 6, border: 'none',
-                                                    cursor: uploading ? 'default' : 'pointer',
+                                                    cursor: (uploading || isApplied) ? 'default' : 'pointer',
                                                     background: 'var(--bg3)',
                                                     outline: '1.5px solid var(--border)',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     fontSize: 10, color: '#ef4444',
                                                     fontWeight: 700, transition: 'all .15s',
+                                                    opacity: isApplied ? 0.3 : 1,
                                                 }}
                                             >{ICONS.trash}</button>
                                         </div>

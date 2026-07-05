@@ -1,6 +1,12 @@
-# Environment secrets
-.env
-.env.*
+# Environment secrets — env files now live in frontend/env/
+# Re-include the env/ dir first (repo-root .gitignore has ENV/ which, on
+# case-insensitive filesystems, would otherwise ignore this whole folder).
+!env/
+env/.env*
+!env/.env.example
+# (legacy: only a root-level .env, anchored with / so it doesn't clobber env/)
+/.env
+/.env.*
 
 # Logs
 logs

@@ -7,12 +7,13 @@ import { api } from '../lib/api';
 export default function Analyze() {
     const navigate = useNavigate();
     const [analyzing, setAnalyzing] = useState(false);
-    const [resumeFile] = useState(null);
     const [jobText, setJobText] = useState('');
     const [jobTitle, setJobTitle] = useState('');
     const [status, setStatus] = useState('');
     const [resumes, setResumes] = useState([]);
     const [selectedResumeId, setSelectedResumeId] = useState('');
+    const [uploadFile, setUploadFile] = useState(null);
+    const [candidateName, setCandidateName] = useState('');
 
     useEffect(() => {
         // Load existing resumes to let user pick one
@@ -24,7 +25,7 @@ export default function Analyze() {
     }, []);
 
     const handleAnalyze = async () => {
-        if (!selectedResumeId && !resumeFile) {
+        if (!selectedResumeId && !uploadFile) {
             setStatus("Please select or upload a resume first.");
             return;
         }
@@ -39,12 +40,12 @@ export default function Analyze() {
         try {
             let resumeId = selectedResumeId;
 
-            // If a new file is uploaded, upload it first
-            if (resumeFile && !selectedResumeId) {
+            if (uploadFile && !selectedResumeId) {
                 setStatus("Uploading resume...");
-                const uploadResult = await api.uploadResume(resumeFile);
+                const uploadResult = await api.uploadResume(uploadFile, candidateName);
                 resumeId = uploadResult.resume_id;
-                // Wait a bit for background embedding processing
+                setResumes(prev => [...prev, { id: resumeId, candidate_name: candidateName || uploadFile.name }]);
+                setSelectedResumeId(resumeId);
                 setStatus("Generating embeddings (this may take a moment)...");
                 await new Promise(resolve => setTimeout(resolve, 5000));
             }
@@ -57,7 +58,6 @@ export default function Analyze() {
             setStatus("Running deep semantic analysis...");
             const evalResult = await api.evaluate(resumeId, jobResult.job_id);
 
-            // Navigate to results with data
             setStatus("Analysis complete!");
             navigate('/results', { state: { result: evalResult } });
 
@@ -77,36 +77,76 @@ export default function Analyze() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-16">
                 {/* Resume Selection */}
-                <div className="card-modern transition-colors duration-300 flex flex-col h-64" style={{ borderRadius: 'var(--r)', overflow: 'hidden' }}>
+                <div className="card-modern transition-colors duration-300 flex flex-col" style={{ borderRadius: 'var(--r)', overflow: 'hidden' }}>
                     <div className="p-4 border-b border-border transition-colors duration-300 flex items-center">
                         <UploadCloud className="w-4 h-4 mr-3 text-text-secondary transition-colors duration-300" />
-                        <h3 className="text-[11px] tracking-[0.2em] font-medium uppercase text-foreground transition-colors duration-300">Select Resume</h3>
+                        <h3 className="text-[11px] tracking-[0.2em] font-medium uppercase text-foreground transition-colors duration-300">Resume</h3>
                     </div>
-                    <div className="flex-1 p-6 overflow-auto">
-                        {resumes.length > 0 ? (
-                            <div className="space-y-3">
-                                {resumes.map(r => (
-                                    <label key={r.id} className={`hover-lift-sm flex items-center p-3 cursor-pointer border transition-colors duration-300 ${selectedResumeId === r.id ? 'border-foreground bg-foreground/5' : 'border-border hover:bg-foreground/5'
-                                        }`} style={{ borderRadius: 'var(--r-sm)' }}>
-                                        <input
-                                            type="radio"
-                                            name="resume"
-                                            value={r.id}
-                                            checked={selectedResumeId === r.id}
-                                            onChange={() => setSelectedResumeId(r.id)}
-                                            className="mr-3"
-                                        />
-                                        <span className="text-sm font-light text-foreground truncate">
-                                            {r.candidate_name || (r.file_url ? r.file_url.split('/').pop() : `Resume ${r.id?.slice(0,8)}`)}
-                                        </span>
-                                    </label>
-                                ))}
+                    <div className="flex-1 p-4 overflow-auto space-y-3">
+                        {/* Drop zone */}
+                        <div
+                            onDragOver={e => e.preventDefault()}
+                            onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f?.name.toLowerCase().endsWith('.pdf')) { setUploadFile(f); setSelectedResumeId(''); setCandidateName(''); } }}
+                            onClick={() => document.getElementById('analyze-file-input')?.click()}
+                            className="hover-lift-sm"
+                            style={{
+                                border: `1.5px dashed ${uploadFile ? 'var(--border2)' : 'var(--border)'}`,
+                                borderRadius: 'var(--r-sm)', padding: '14px 12px', textAlign: 'center',
+                                cursor: 'pointer', background: uploadFile ? 'var(--foreground)/5' : 'var(--bg)',
+                                transition: 'all .15s',
+                            }}
+                        >
+                            <div style={{ fontSize: 12, color: uploadFile ? 'var(--text)' : 'var(--text3)', fontWeight: uploadFile ? 500 : 400 }}>
+                                {uploadFile ? uploadFile.name : 'Drop PDF here or click to browse'}
                             </div>
-                        ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-text-secondary">
-                                <p className="text-[10px] tracking-[0.1em] uppercase">No resumes found.</p>
-                                <p className="text-[10px] tracking-[0.1em] uppercase mt-2">Upload one in the Recruiter tab first.</p>
-                            </div>
+                            {uploadFile && (
+                                <button
+                                    onClick={e => { e.stopPropagation(); setUploadFile(null); setCandidateName(''); }}
+                                    style={{ marginTop: 4, fontSize: 10, color: 'var(--text3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                                >
+                                    Clear
+                                </button>
+                            )}
+                        </div>
+                        <input id="analyze-file-input" type="file" accept=".pdf,.PDF" style={{ display: 'none' }}
+                            onChange={e => { const f = e.target.files?.[0]; if (f) { setUploadFile(f); setSelectedResumeId(''); setCandidateName(''); } e.target.value = ''; }} />
+
+                        {uploadFile && !selectedResumeId && (
+                            <input
+                                type="text"
+                                value={candidateName}
+                                onChange={e => setCandidateName(e.target.value)}
+                                placeholder="Candidate name (optional)"
+                                className="focusable w-full bg-transparent border border-border p-2 focus:outline-none text-[12px] text-foreground transition-colors duration-300"
+                                style={{ borderRadius: 'var(--r-sm)' }}
+                            />
+                        )}
+
+                        {resumes.length > 0 && (
+                            <>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                                    <span style={{ fontSize: 10, color: 'var(--text3)', letterSpacing: '.08em', textTransform: 'uppercase' }}>or select existing</span>
+                                    <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                                </div>
+                                <div className="space-y-2">
+                                    {resumes.map(r => (
+                                        <label key={r.id} className={`hover-lift-sm flex items-center p-3 cursor-pointer border transition-colors duration-300 ${selectedResumeId === r.id ? 'border-foreground bg-foreground/5' : 'border-border hover:bg-foreground/5'}`} style={{ borderRadius: 'var(--r-sm)' }}>
+                                            <input
+                                                type="radio"
+                                                name="resume"
+                                                value={r.id}
+                                                checked={selectedResumeId === r.id}
+                                                onChange={() => { setSelectedResumeId(r.id); setUploadFile(null); setCandidateName(''); }}
+                                                className="mr-3"
+                                            />
+                                            <span className="text-sm font-light text-foreground truncate">
+                                                {r.candidate_name || (r.file_url ? r.file_url.split('/').pop() : `Resume ${r.id?.slice(0,8)}`)}
+                                            </span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>
@@ -146,7 +186,7 @@ export default function Analyze() {
             <div className="flex justify-end">
                 <button
                     onClick={handleAnalyze}
-                    disabled={analyzing || (!selectedResumeId && !resumeFile) || !jobText.trim()}
+                    disabled={analyzing || (!selectedResumeId && !uploadFile) || !jobText.trim()}
                     className="border border-border text-[11px] tracking-[0.2em] uppercase text-foreground px-8 py-4 hover:bg-foreground hover:text-background transition-colors duration-300 disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-foreground disabled:cursor-not-allowed flex items-center"
                     style={{ borderRadius: 999, fontWeight: 600, transition: 'all .15s' }}
                 >

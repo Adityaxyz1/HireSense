@@ -140,7 +140,10 @@ export default function Pipeline() {
                                                         e.target.parentElement.style.display = 'flex';
                                                         e.target.parentElement.style.alignItems = 'center';
                                                         e.target.parentElement.style.justifyContent = 'center';
-                                                        e.target.parentElement.innerHTML = `<span style="font-size:10px;font-weight:700;color:${col.c}">${initials}</span>`;
+                                                        const fb = document.createElement('span');
+                                                        fb.style.cssText = `font-size:10px;font-weight:700;color:${col.c}`;
+                                                        fb.textContent = initials;
+                                                        e.target.parentElement.replaceChildren(fb);
                                                     }}
                                                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                                                 />
