@@ -2,6 +2,7 @@
 Shared authentication dependency for extracting the current user from JWT.
 """
 from fastapi import HTTPException, Request
+
 from database import get_auth_db
 
 

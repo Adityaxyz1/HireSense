@@ -1,5 +1,5 @@
 from typing import Dict, Any, Optional
-from services.llm_service import prompt_nim_async
+from services.core.llm_service import prompt_nim_async
 import re
 
 def extract_candidate_name(resume_text: str) -> Optional[str]:
@@ -36,7 +36,7 @@ def _heuristic_ats_score(resume_text: str) -> Dict[str, Any]:
     score += (20 if 300 <= words <= 1200 else 10)
     return {"score": min(100, score), "candidate_name": extract_candidate_name(resume_text), "breakdown": breakdown}
 
-async def scan_ats_compliance(resume_text: str, magical_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+async def scan_ats_compliance(resume_text: str) -> Dict[str, Any]:
     """Evaluates a resume's text against standard ATS compliance norms."""
     if not resume_text or not resume_text.strip():
         return {"score": 0, "candidate_name": None, "breakdown": [{"type": "critical", "message": "No text found."}]}

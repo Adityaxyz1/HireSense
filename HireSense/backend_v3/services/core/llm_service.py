@@ -13,11 +13,8 @@ import json
 import time
 import hashlib
 import asyncio
-import logging
 from openai import AsyncOpenAI
 from config import settings
-
-logger = logging.getLogger("hiresense.llm")
 
 # ── Model Registry ─────────────────────────────────────────────
 NIM_BASE_URL = "https://integrate.api.nvidia.com/v1"
@@ -81,7 +78,6 @@ def _cache_key(system_prompt: str, user_prompt: str) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 def _cache_result(key: str, result: dict):
-    global _llm_cache
     if len(_llm_cache) >= _MAX_CACHE_SIZE:
         oldest_key = next(iter(_llm_cache))
         del _llm_cache[oldest_key]
@@ -194,24 +190,7 @@ async def prompt_nim_async(system_prompt: str, user_prompt: str, use_cache: bool
     if use_cache and key: _cache_result(key, res)
     return res
 
-def prompt_nim(system_prompt: str, user_prompt: str, use_cache: bool = True) -> dict:
-    """
-    Sync wrapper for the async engine.
-    Used for legacy sync callers.
-    """
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # Already in an event loop (FastAPI) — use a separate thread for the race
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                return pool.submit(asyncio.run, prompt_nim_async(system_prompt, user_prompt, use_cache)).result()
-        else:
-            return asyncio.run(prompt_nim_async(system_prompt, user_prompt, use_cache))
-    except Exception:
-        return asyncio.run(prompt_nim_async(system_prompt, user_prompt, use_cache))
-
-def _generate_mock_fallback(sys: str, user: str, error: str = None) -> dict:
+def _generate_mock_fallback(sys: str, user: str, error: str | None = None) -> dict:
     import random
     is_ats = "ATS" in sys or "compliance" in sys
     if is_ats:

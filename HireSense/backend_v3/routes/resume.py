@@ -1,15 +1,17 @@
 import asyncio
-from fastapi import APIRouter, File, UploadFile, BackgroundTasks, Form, HTTPException, Request, Depends
-from pydantic import BaseModel
 import json as _json
+from types import SimpleNamespace
 
-from database import get_db, get_admin_db, row_to_dict
-from services.pdf_parser import extract_text
-from services.storage_service import upload_resume_pdf
-from services.embedding_engine import generate_embedding
-from services.ats_scanner import scan_ats_compliance
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from pydantic import BaseModel
+
+from database import get_admin_db, get_db, row_to_dict
 from routes.auth_dependency import require_user
 from routes.schemas import UploadResponse
+from services.core.embedding_engine import generate_embedding
+from services.core.pdf_parser import extract_text
+from services.core.storage_service import upload_resume_pdf
+from services.pipeline.ats_scanner import scan_ats_compliance
 
 router = APIRouter()
 
@@ -69,16 +71,13 @@ async def process_resume_background(resume_id: str, raw_text: str):
 
 @router.post("/upload-resume", response_model=UploadResponse)
 async def upload_resume(
-    request: Request,
-    background_tasks: BackgroundTasks,
     candidate_name: str = Form(default=None),
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    user=Depends(require_user),
 ):
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
 
-    # REQUIRE authenticated user — enforcement moved to backend source of truth
-    user = require_user(request)
     actual_user_id = str(user.id)
 
     try:
@@ -110,8 +109,9 @@ async def upload_resume(
         result = db.table("resumes").insert(data).execute()
         resume_id = result.data[0]["id"]
 
-        # Kick off background embedding generation
-        background_tasks.add_task(process_resume_background, resume_id, raw_text)
+        # Dispatch ATS scan + embedding to Celery worker
+        from worker.tasks import embed_resume_task
+        embed_resume_task.delay(resume_id, raw_text)
 
         return UploadResponse(resume_id=resume_id, status="processing")
 
@@ -394,7 +394,7 @@ def get_dashboard_stats(user=Depends(require_user)):
     if user_resume_ids:
         match_response = db.table("match_results").select("created_at").in_("resume_id", user_resume_ids).execute()
     else:
-        match_response = type('obj', (object,), {'data': []})()
+        match_response = SimpleNamespace(data=[])
     
     daily_matches = {}
     for key in daily_uploads:

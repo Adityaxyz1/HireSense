@@ -1,18 +1,21 @@
 """
-Admin routes — Restricted strictly to the owner via Master Key verification.
-Handles user management, data reallocation, and system logs.
-
+Admin routes — restricted to admins via require_admin (ADMIN_EMAILS allowlist
+OR profiles.role == 'admin'). Handles user management, data reallocation, and
+system logs. All mutating actions are recorded in the admin audit trail.
 """
 import re
 import secrets
 from datetime import datetime, timezone
 from typing import Optional
 from urllib.parse import urlparse
-from fastapi import APIRouter, HTTPException, Depends, Request
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
-from database import get_admin_db
-from routes.admin_dependency import require_admin
+
 from config import settings
+from database import get_admin_db
+from routes._http_errors import internal_error
+from routes.admin_dependency import require_admin
 
 router = APIRouter()
 
@@ -105,6 +108,26 @@ def _set_login_ban(db, user_id: str, disabled: bool):
     except Exception as e:
         print(f"[RECRUITER] ban toggle skipped (non-fatal): {e}")
 
+
+def _is_protected_admin(db, user_id: str) -> bool:
+    """True if the target user is itself an admin (ADMIN_EMAILS allowlist OR
+    profiles.role == 'admin'). Admins are peers, so one admin must not be able to
+    delete or wipe another admin's account from this panel."""
+    try:
+        res = db.auth.admin.get_user_by_id(user_id)
+        target = getattr(getattr(res, "user", None) or res, "email", "") or ""
+        if target.lower() in settings.ADMIN_EMAILS:
+            return True
+    except Exception:
+        pass
+    try:
+        prof = db.table("profiles").select("role").eq("id", user_id).execute()
+        if prof.data and (prof.data[0].get("role") or "").lower() == "admin":
+            return True
+    except Exception:
+        pass
+    return False
+
 # ── GET /api/admin/me ────────────────────────────────────────
 @router.get("/admin/me")
 async def admin_me(admin=Depends(require_admin)):
@@ -130,7 +153,7 @@ async def list_users(admin=Depends(require_admin)):
                 "id": str(u.id),
                 "email": u.email,
                 "created_at": u.created_at.isoformat() if hasattr(u.created_at, "isoformat") else str(u.created_at),
-                "last_sign_in_at": u.last_sign_in_at.isoformat() if hasattr(u.last_sign_in_at, "isoformat") else str(u.last_sign_in_at)
+                "last_sign_in_at": u.last_sign_in_at.isoformat() if u.last_sign_in_at and hasattr(u.last_sign_in_at, "isoformat") else None
             })
         
         # Join with profile data
@@ -145,7 +168,7 @@ async def list_users(admin=Depends(require_admin)):
             
         return {"users": users_data}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list users: {str(e)}")
+        raise internal_error("Failed to list users", e)
 
 
 # ── DELETE /api/admin/users/{user_id} ────────────────────────
@@ -153,15 +176,18 @@ async def list_users(admin=Depends(require_admin)):
 async def delete_user(user_id: str, admin=Depends(require_admin)):
     """Permanently delete a user account and all their associated data."""
     if user_id == str(admin.id):
-        raise HTTPException(status_code=400, detail="You cannot delete the master admin account.")
-        
+        raise HTTPException(status_code=400, detail="You cannot delete your own admin account.")
+
     db = get_admin_db()
+    if _is_protected_admin(db, user_id):
+        raise HTTPException(status_code=403, detail="Admin accounts cannot be deleted from here.")
     try:
         db.auth.admin.delete_user(user_id)
         await wipe_user_data_internal(user_id, db)
+        _audit(db, admin, "user.delete", user_id)
         return {"message": f"User {user_id} deleted successfully."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete user: {str(e)}")
+        raise internal_error("Failed to delete user", e)
 
 
 # ── DELETE /api/admin/users/{user_id}/data ───────────────────
@@ -169,11 +195,14 @@ async def delete_user(user_id: str, admin=Depends(require_admin)):
 async def wipe_user_data(user_id: str, admin=Depends(require_admin)):
     """Wipe all processed data (resumes, JD, matches) for a specific user without deleting account."""
     db = get_admin_db()
+    if _is_protected_admin(db, user_id) and user_id != str(admin.id):
+        raise HTTPException(status_code=403, detail="Another admin's data cannot be wiped from here.")
     try:
         await wipe_user_data_internal(user_id, db)
+        _audit(db, admin, "user.wipe_data", user_id)
         return {"message": f"All data for user {user_id} wiped successfully."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to wipe user data: {str(e)}")
+        raise internal_error("Failed to wipe user data", e)
 
 
 async def wipe_user_data_internal(user_id: str, db):
@@ -206,7 +235,7 @@ async def reassign_data(payload: ReassignDataRequest, admin=Depends(require_admi
     db = get_admin_db()
     try:
         try:
-            target_user = db.auth.admin.get_user_by_id(payload.target_user_id)
+            db.auth.admin.get_user_by_id(payload.target_user_id)
         except Exception:
             raise HTTPException(status_code=404, detail="Target user does not exist.")
             
@@ -218,6 +247,11 @@ async def reassign_data(payload: ReassignDataRequest, admin=Depends(require_admi
             {"user_id": payload.target_user_id}
         ).eq("user_id", payload.source_user_id).execute()
         
+        _audit(db, admin, "data.reassign", payload.source_user_id, None,
+               {"target_user_id": payload.target_user_id,
+                "resumes": len(resumes_updated.data) if resumes_updated.data else 0,
+                "jobs": len(jobs_updated.data) if jobs_updated.data else 0})
+
         return {
             "message": "Data successfully reassigned.",
             "stats": {
@@ -228,7 +262,7 @@ async def reassign_data(payload: ReassignDataRequest, admin=Depends(require_admi
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to reassign data: {str(e)}")
+        raise internal_error("Failed to reassign data", e)
 
 
 # ── GET /api/admin/logs ──────────────────────────────────────
@@ -246,7 +280,7 @@ async def get_admin_logs(admin=Depends(require_admin)):
     except Exception as e:
         if "PGRST205" in str(e) or "could not find the table" in str(e).lower():
             return {"logs": []}
-        raise HTTPException(status_code=500, detail=f"Failed to fetch logs: {str(e)}")
+        raise internal_error("Failed to fetch logs", e)
 
 
 # ── GET /api/admin/resumes ───────────────────────────────────
@@ -268,7 +302,7 @@ async def get_all_resumes(admin=Depends(require_admin)):
             
         return {"resumes": resumes}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch global resumes: {str(e)}")
+        raise internal_error("Failed to fetch global resumes", e)
 
 
 # ── GET /api/admin/jobs ──────────────────────────────────────
@@ -290,12 +324,12 @@ async def get_all_jobs(admin=Depends(require_admin)):
             
         return {"jobs": jobs}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch global jobs: {str(e)}")
+        raise internal_error("Failed to fetch global jobs", e)
 
 
 class AdminJobUpdateRequest(BaseModel):
-    title: str = None
-    status: str = None
+    title: Optional[str] = None
+    status: Optional[str] = None
 
 
 @router.put("/admin/jobs/{job_id}")
@@ -314,9 +348,10 @@ async def admin_update_job(job_id: str, payload: AdminJobUpdateRequest, admin=De
         
     try:
         db.table("job_descriptions").update(update_data).eq("id", job_id).execute()
+        _audit(db, admin, "job.update", job_id, None, {"fields": list(update_data.keys())})
         return {"message": "Job updated globally."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update job: {str(e)}")
+        raise internal_error("Failed to update job", e)
 
 
 @router.delete("/admin/jobs/{job_id}")
@@ -326,9 +361,10 @@ async def admin_delete_job(job_id: str, admin=Depends(require_admin)):
     try:
         db.table("match_results").delete().eq("job_id", job_id).execute()
         db.table("job_descriptions").delete().eq("id", job_id).execute()
+        _audit(db, admin, "job.delete", job_id)
         return {"message": "Job deleted globally."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete job: {str(e)}")
+        raise internal_error("Failed to delete job", e)
 
 
 # =========================================================================
@@ -358,7 +394,7 @@ async def list_recruiters(search: str = "", status: str = "", admin=Depends(requ
     except Exception as e:
         if "PGRST205" in str(e) or "could not find the table" in str(e).lower():
             return {"recruiters": [], "_warning": "Run recruiter_management.sql in Supabase."}
-        raise HTTPException(status_code=500, detail=f"Failed to list recruiters: {str(e)}")
+        raise internal_error("Failed to list recruiters", e)
 
 
 # ── POST /api/admin/recruiters ───────────────────────────────
@@ -402,7 +438,7 @@ async def create_recruiter(payload: CreateRecruiterRequest, request: Request, ad
             })
             user_obj = getattr(created, "user", None) or created
         except Exception as create_err:
-            raise HTTPException(status_code=500, detail=f"Failed to provision account: {create_err}")
+            raise internal_error("Failed to provision account", create_err)
         # Generate a set-password link the admin can forward manually
         try:
             link = db.auth.admin.generate_link({
@@ -446,7 +482,7 @@ async def create_recruiter(payload: CreateRecruiterRequest, request: Request, ad
             db.auth.admin.delete_user(new_id)
         except Exception:
             pass
-        raise HTTPException(status_code=500, detail=f"Failed to save recruiter record: {str(e)}")
+        raise internal_error("Failed to save recruiter record", e)
 
     if payload.status == "inactive":
         _set_login_ban(db, new_id, disabled=True)
@@ -488,7 +524,7 @@ async def update_recruiter(rid: str, payload: UpdateRecruiterRequest, admin=Depe
         if payload.full_name:
             db.table("profiles").upsert({"id": rid, "display_name": payload.full_name.strip()}).execute()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update recruiter: {str(e)}")
+        raise internal_error("Failed to update recruiter", e)
 
     _audit(db, admin, "recruiter.update", rid, chk.data[0].get("email"), {"fields": list(updates.keys())})
     return {"message": "Recruiter updated successfully."}
@@ -509,7 +545,7 @@ async def set_recruiter_status(rid: str, payload: RecruiterStatusRequest, admin=
     try:
         db.table("recruiter_accounts").update({"status": payload.status, "updated_at": datetime.now(timezone.utc).isoformat()}).eq("id", rid).execute()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update status: {str(e)}")
+        raise internal_error("Failed to update status", e)
 
     _set_login_ban(db, rid, disabled=(payload.status == "inactive"))
     _audit(db, admin, "recruiter.status", rid, chk.data[0].get("email"), {"status": payload.status})
@@ -537,7 +573,7 @@ async def delete_recruiter(rid: str, admin=Depends(require_admin)):
         except Exception as e:
             print(f"[RECRUITER] auth delete warning: {e}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete recruiter: {str(e)}")
+        raise internal_error("Failed to delete recruiter", e)
 
     _audit(db, admin, "recruiter.delete", rid, target_email, {})
     return {"message": "Recruiter account deleted successfully."}
@@ -554,4 +590,4 @@ async def get_audit_logs(admin=Depends(require_admin)):
     except Exception as e:
         if "PGRST205" in str(e) or "could not find the table" in str(e).lower():
             return {"logs": []}
-        raise HTTPException(status_code=500, detail=f"Failed to fetch audit logs: {str(e)}")
+        raise internal_error("Failed to fetch audit logs", e)

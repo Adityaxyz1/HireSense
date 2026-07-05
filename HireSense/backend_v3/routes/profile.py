@@ -1,8 +1,11 @@
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Depends
-from pydantic import BaseModel
-from database import get_db, get_auth_db
-from typing import Optional
 import uuid
+from typing import Optional
+
+from fastapi import (APIRouter, Depends, File, HTTPException, Request,
+                     UploadFile)
+from pydantic import BaseModel
+
+from database import get_db, make_auth_client
 from routes.auth_dependency import require_user
 
 router = APIRouter()
@@ -119,7 +122,7 @@ async def upload_avatar(file: UploadFile = File(...), user=Depends(require_user)
 
     try:
         # Generate unique filename
-        ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+        ext = file.filename.split(".")[-1] if file.filename and "." in file.filename else "jpg"
         filename = f"{user.id}/{uuid.uuid4()}.{ext}"
 
         # Delete old avatar files for this user
@@ -178,9 +181,11 @@ async def change_password(payload: PasswordChange, request: Request, user=Depend
     if not payload.current_password:
         raise HTTPException(status_code=400, detail="Current password is required.")
 
-    # Re-authenticate the user with their current password (anon client).
+    # Re-authenticate the user with their current password. Use a FRESH anon
+    # client: sign_in_with_password mutates the client's session, so reusing the
+    # shared singleton could disrupt concurrent token verification.
     try:
-        auth = get_auth_db()
+        auth = make_auth_client()
         result = auth.auth.sign_in_with_password({
             "email": user.email,
             "password": payload.current_password,

@@ -6,10 +6,12 @@ These endpoints only log auth events (signup, login, logout) for the admin audit
 The backend NEVER receives or processes user passwords.
 """
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Request, Depends
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
+
 from config import settings
-from database import get_db, get_admin_db
+from database import get_admin_db, get_db
 from routes.auth_dependency import get_current_user, require_user
 
 router = APIRouter()

@@ -1,7 +1,15 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+# Env files live in backend_v3/env/, split by target:
+#   .env.local       — local dev (default)
+#   .env.production   — production values (real secrets live in the host's env vars)
+# Select with APP_ENV; load_dotenv no-ops if the file is absent (e.g. on Render,
+# where APP_ENV=production is set and the platform injects real env vars).
+BASE_DIR = Path(__file__).resolve().parent
+APP_ENV = os.getenv("APP_ENV", "local")
+load_dotenv(BASE_DIR / "env" / f".env.{APP_ENV}")
 
 class Settings:
     PROJECT_NAME: str = "HireSense API v3"
@@ -9,10 +17,10 @@ class Settings:
     UPLOAD_DIR: str = os.path.join(DATA_DIR, "uploads")
     
     # Supabase config
-    SUPABASE_URL: str = os.getenv("SUPABASE_URL")
-    SUPABASE_KEY: str = os.getenv("SUPABASE_KEY")
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
+    SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "")
     # Anon (publishable) key — used ONLY to verify user JWTs with least privilege.
-    # Falls back to the service key if unset (logs a warning at startup).
+    # Required: the auth client refuses to fall back to the service-role key.
     SUPABASE_ANON_KEY: str = os.getenv("SUPABASE_ANON_KEY", "")
     
     # NVIDIA NIM API keys — add multiple for racing strategy
@@ -36,7 +44,6 @@ class Settings:
     WARM_EMBEDDING_MODEL: bool = os.getenv("WARM_EMBEDDING_MODEL", "false").lower() in ("1", "true", "yes")
 
     # Admin Panel
-    ADMIN_MASTER_KEY: str = os.getenv("ADMIN_MASTER_KEY", "")
     # Admin allowlist — comma-separated emails. Defaults to the legacy admin so
     # existing deployments keep working; override via ADMIN_EMAILS in .env.
     ADMIN_EMAILS: list = [
@@ -55,13 +62,23 @@ class Settings:
         if o.strip()
     ]
 
-    # Interactive API docs — disable in production by setting ENABLE_DOCS=false
-    ENABLE_DOCS: bool = os.getenv("ENABLE_DOCS", "true").lower() in ("1", "true", "yes")
+    # Interactive API docs — OFF by default (safe for production). Set
+    # ENABLE_DOCS=true in local dev to expose /docs and /openapi.json.
+    ENABLE_DOCS: bool = os.getenv("ENABLE_DOCS", "false").lower() in ("1", "true", "yes")
 
     # Rate limit: max requests per IP per window (generous to avoid breaking
     # normal multi-request page loads while still stopping abusive loops).
     RATE_LIMIT_MAX: int = int(os.getenv("RATE_LIMIT_MAX", "600"))
     RATE_LIMIT_WINDOW: int = int(os.getenv("RATE_LIMIT_WINDOW", "60"))
+
+    # Redis — shared broker for rate limiting (multi-worker) and Celery tasks.
+    # Defaults to local Redis; set REDIS_URL in .env for production.
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+    # Celery broker + result backend. Both default to Redis.
+    # Use separate DB index (1) for results so they don't mix with rate-limit keys.
+    CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL", os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+    CELERY_RESULT_BACKEND: str = os.getenv("CELERY_RESULT_BACKEND", os.getenv("REDIS_URL", "redis://localhost:6379/1"))
 
 settings = Settings()
 

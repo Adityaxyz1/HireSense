@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+import redis.asyncio as aioredis
 from config import settings
 from database import get_db
 from routes import api_router
@@ -40,33 +41,71 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
-# ── Security: Simple in-memory rate limiter ───────────────────
+# ── Security: Redis-backed sliding-window rate limiter ────────
+# Uses Redis sorted sets for accuracy across multiple workers.
+# Automatically falls back to in-memory when Redis is unreachable
+# (e.g. local dev without Redis running), so the app still starts.
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Simple sliding-window rate limiter: max 60 requests per minute per IP."""
-    def __init__(self, app, max_requests: int = 60, window_seconds: int = 60):
+    def __init__(self, app, max_requests: int = 600, window_seconds: int = 60):
         super().__init__(app)
         self.max_requests = max_requests
         self.window_seconds = window_seconds
-        self.requests = defaultdict(list)
+        self._redis: aioredis.Redis | None = None
+        self._redis_checked: bool = False   # True once we've attempted a connection
+        self._fallback: defaultdict = defaultdict(list)
+
+    async def _get_redis(self) -> aioredis.Redis | None:
+        if self._redis_checked and self._redis is None:
+            return None  # Already know Redis is unavailable
+        if self._redis is None:
+            try:
+                r = aioredis.from_url(
+                    settings.REDIS_URL,
+                    socket_connect_timeout=1,
+                    decode_responses=True,
+                )
+                await r.ping()
+                self._redis = r
+            except Exception:
+                pass
+            finally:
+                self._redis_checked = True
+        return self._redis
 
     async def dispatch(self, request: Request, call_next):
         client_ip = request.client.host if request.client else "unknown"
         now = time.time()
-        
-        # Clean old entries
-        self.requests[client_ip] = [
-            t for t in self.requests[client_ip]
-            if now - t < self.window_seconds
-        ]
-        
-        if len(self.requests[client_ip]) >= self.max_requests:
+        count = 0
+
+        redis = await self._get_redis()
+        if redis:
+            try:
+                key = f"rl:{client_ip}"
+                window_start = now - self.window_seconds
+                # Unique member prevents collisions on sub-millisecond bursts
+                entry = f"{now:.6f}:{id(request)}"
+                async with redis.pipeline(transaction=True) as pipe:
+                    await pipe.zremrangebyscore(key, 0, window_start)
+                    await pipe.zadd(key, {entry: now})
+                    await pipe.zcard(key)
+                    await pipe.expire(key, self.window_seconds)
+                    results = await pipe.execute()
+                count = results[2]
+            except Exception:
+                redis = None  # Redis error mid-request — fall through to in-memory
+
+        if redis is None:
+            window = [t for t in self._fallback[client_ip] if now - t < self.window_seconds]
+            window.append(now)
+            self._fallback[client_ip] = window
+            count = len(window)
+
+        if count > self.max_requests:
             return JSONResponse(
                 status_code=429,
                 content={"detail": "Too many requests. Please try again later."}
             )
-        
-        self.requests[client_ip].append(now)
         return await call_next(request)
 
 
@@ -81,7 +120,7 @@ async def lifespan(app: FastAPI):
     # (WARM_EMBEDDING_MODEL=false) where it would otherwise slow all requests.
     if settings.WARM_EMBEDDING_MODEL:
         import asyncio
-        from services.embedding_engine import warm_model
+        from services.core.embedding_engine import warm_model
         asyncio.create_task(asyncio.to_thread(warm_model))
     else:
         print("Embedding model warmup disabled (WARM_EMBEDDING_MODEL=false) — lazy-loading on first use.")
@@ -91,8 +130,8 @@ async def lifespan(app: FastAPI):
     if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
         print("WARNING: Supabase credentials not set in .env — database features will fail.")
     if not settings.SUPABASE_ANON_KEY:
-        print("WARNING: SUPABASE_ANON_KEY not set — JWT verification falls back to the "
-              "service-role key. Set SUPABASE_ANON_KEY in .env for least-privilege auth.")
+        print("WARNING: SUPABASE_ANON_KEY not set — JWT verification is REQUIRED to use "
+              "the anon key and will fail (no service-role fallback). Set SUPABASE_ANON_KEY in .env.")
     yield
 
 

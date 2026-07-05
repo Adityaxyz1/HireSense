@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from services.rewrite_engine import rewrite_text
+
 from routes.auth_dependency import require_user
+from services.pipeline.rewrite_engine import rewrite_text
 
 router = APIRouter()
 

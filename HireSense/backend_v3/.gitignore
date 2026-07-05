@@ -1,7 +1,13 @@
-# Environment secrets
-.env
-.env.*
-!.env.example
+# Environment secrets — env files now live in backend_v3/env/
+# Re-include the env/ dir first (repo-root .gitignore has ENV/ which, on
+# case-insensitive filesystems, would otherwise ignore this whole folder).
+!env/
+env/.env*
+!env/.env.example
+# (legacy: only a root-level .env, anchored with / so it doesn't clobber env/)
+/.env
+/.env.*
+!/.env.example
 
 # Python
 __pycache__/

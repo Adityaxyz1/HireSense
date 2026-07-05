@@ -1,14 +1,15 @@
 from fastapi import APIRouter
-from routes.resume import router as resume_router
-from routes.job import router as job_router
-from routes.evaluate import router as evaluate_router
-from routes.rewrite import router as rewrite_router
-from routes.chat import router as chat_router
-from routes.match import router as match_router
-from routes.auth import router as auth_router
-from routes.profile import router as profile_router
+
 from routes.admin import router as admin_router
 from routes.applications import router as applications_router
+from routes.auth import router as auth_router
+from routes.chat import router as chat_router
+from routes.evaluate import router as evaluate_router
+from routes.job import router as job_router
+from routes.match import router as match_router
+from routes.profile import router as profile_router
+from routes.resume import router as resume_router
+from routes.rewrite import router as rewrite_router
 from routes.student import router as student_router
 
 api_router = APIRouter()

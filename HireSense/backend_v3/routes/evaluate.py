@@ -1,17 +1,18 @@
-from fastapi import APIRouter, HTTPException, Request, Depends
-from pydantic import BaseModel
 import numpy as np
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sklearn.metrics.pairwise import cosine_similarity
 
-from database import get_db, get_admin_db
-from services.skill_engine import calculate_skill_overlap, extract_skills_with_proficiency
-from services.experience_engine import calculate_experience_score
-from services.resume_strength import compute_strength
-from services.bias_engine import generate_bias_report
-from services.scorer import compute_final_score, get_risk_level
-from services.embedding_engine import generate_embedding
-from routes.schemas import EvaluateRequest, EvaluateResponse
+from database import get_admin_db, get_db
 from routes.auth_dependency import require_user
+from routes.schemas import EvaluateRequest, EvaluateResponse
+from services.core.embedding_engine import generate_embedding
+from services.pipeline.bias_engine import generate_bias_report
+from services.pipeline.experience_engine import calculate_experience_score
+from services.pipeline.resume_strength import compute_strength
+from services.pipeline.scorer import compute_final_score, get_risk_level
+from services.pipeline.skill_engine import (calculate_skill_overlap,
+                                            extract_skills_with_proficiency)
 
 router = APIRouter()
 

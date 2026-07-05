@@ -154,7 +154,7 @@ async def chat(payload: SearchRequest, user=Depends(require_user)):
             total = sum(len(group.applicants) for group in groups)
             if total == 0:
                 return ChatResponse(
-                    reply=f"I found the matching job role, but no applicants have applied yet.",
+                    reply="I found the matching job role, but no applicants have applied yet.",
                     job_applicants=groups,
                 )
             return ChatResponse(

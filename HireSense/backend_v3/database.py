@@ -18,11 +18,29 @@ def get_auth_db() -> Client:
     if _supabase_auth_client is None:
         if not settings.SUPABASE_URL:
             raise ValueError("SUPABASE_URL must be set in the .env file")
-        key = settings.SUPABASE_ANON_KEY or settings.SUPABASE_KEY
-        if not key:
-            raise ValueError("SUPABASE_ANON_KEY or SUPABASE_KEY must be set in the .env file")
-        _supabase_auth_client = create_client(settings.SUPABASE_URL, key)
+        # Least privilege: token verification must use the anon key. We never
+        # fall back to the service-role key here — doing so would give the
+        # auth-verification path full DB privileges.
+        if not settings.SUPABASE_ANON_KEY:
+            raise ValueError(
+                "SUPABASE_ANON_KEY must be set in the .env file — it is required "
+                "for least-privilege JWT verification (no service-key fallback)."
+            )
+        _supabase_auth_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
     return _supabase_auth_client
+
+
+def make_auth_client() -> Client:
+    """Create a FRESH anon-key client for session-mutating auth operations
+    (e.g. sign_in_with_password during a re-auth check).
+
+    The singleton from get_auth_db() is shared across concurrent requests; a
+    sign-in mutates its session and could interfere with simultaneous
+    auth.get_user(token) verification. Use this throwaway client instead.
+    """
+    if not settings.SUPABASE_URL or not settings.SUPABASE_ANON_KEY:
+        raise ValueError("SUPABASE_URL and SUPABASE_ANON_KEY must be set in the .env file")
+    return create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
 
 def get_db() -> Client:
     """Get a Supabase client singleton (used for general DB queries and auth verification)."""
@@ -47,9 +65,6 @@ def get_admin_db() -> Client:
         _supabase_admin_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
     return _supabase_admin_client
 
-def init_db():
-    """No-op for Supabase. DDL is handled via the Supabase Dashboard SQL Editor."""
-    pass
 
 def new_id():
     """Returns a new UUID4 string. Useful for generating IDs if needed."""

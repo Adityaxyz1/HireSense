@@ -1,5 +1,7 @@
+from typing import Any, List, Optional
+
 from pydantic import BaseModel
-from typing import Optional, Any, List
+
 
 class UploadResponse(BaseModel):
     resume_id: str

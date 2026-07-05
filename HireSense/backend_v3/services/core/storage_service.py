@@ -11,7 +11,7 @@ def upload_resume_pdf(file_bytes: bytes, filename: str) -> str:
     db = get_db()
     try:
         # Upload to Supabase 'resumes' bucket
-        res = db.storage.from_("resumes").upload(
+        db.storage.from_("resumes").upload(
             file=file_bytes,
             path=unique_filename,
             file_options={"content-type": "application/pdf"}

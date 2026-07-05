@@ -10,19 +10,20 @@ existing clients; only the code identifiers use the "applicant" vocabulary.
 """
 import uuid
 from datetime import datetime, timezone
-from typing import Optional, List
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, BackgroundTasks
+from typing import List, Optional
+
+from fastapi import (APIRouter, BackgroundTasks, Depends, File, HTTPException,
+                     UploadFile)
 from pydantic import BaseModel
 
 from database import get_admin_db
+from routes._http_errors import internal_error
 from routes.auth_dependency import require_user
-from services.pdf_parser import extract_text
-from services.ats_scanner import scan_ats_compliance
-from services.github_service import fetch_github_profile
-from services.storage_service import (
-    upload_applicant_resume_pdf,
-    remove_applicant_resume_pdf,
-)
+from services.core.github_service import fetch_github_profile
+from services.core.pdf_parser import extract_text
+from services.core.storage_service import (remove_applicant_resume_pdf,
+                                           upload_applicant_resume_pdf)
+from services.pipeline.ats_scanner import scan_ats_compliance
 
 router = APIRouter()
 
@@ -222,7 +223,7 @@ async def upload_applicant_avatar(file: UploadFile = File(...), user=Depends(req
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to upload profile picture: {str(e)}")
+        raise internal_error("Failed to upload profile picture", e)
 
 
 # ── Applicant ATS checker ─────────────────────────────────────

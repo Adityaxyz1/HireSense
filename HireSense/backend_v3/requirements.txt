@@ -2,6 +2,7 @@
 # Regenerate after intentional upgrades: pip install -U <pkg> && pip freeze.
 fastapi==0.133.1
 uvicorn==0.41.0
+gunicorn==23.0.0
 PyMuPDF==1.27.1
 sentence-transformers==5.2.3
 pydantic==2.12.5
@@ -12,3 +13,6 @@ python-multipart==0.0.22
 openai==2.30.0
 supabase==2.28.0
 httpx==0.28.1
+# Task queue + shared broker
+celery==5.4.0
+redis==5.2.1

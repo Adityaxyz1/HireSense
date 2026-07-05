@@ -1,16 +1,16 @@
 import asyncio
-from fastapi import APIRouter, HTTPException, Request, Depends
-from pydantic import BaseModel
 import json as _json
 
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from database import get_db, new_id
-from services.resume_matcher import match_resume_to_jd
-from services.embedding_engine import generate_embedding
-from services.experience_engine import calculate_experience_score
-from services.resume_strength import compute_strength
-from services.scorer import get_risk_level
 from routes.auth_dependency import require_user
+from services.core.embedding_engine import generate_embedding
+from services.pipeline.experience_engine import calculate_experience_score
+from services.pipeline.resume_matcher import match_resume_to_jd
+from services.pipeline.resume_strength import compute_strength
+from services.pipeline.scorer import get_risk_level
 
 router = APIRouter()
 
@@ -99,8 +99,8 @@ async def match_resume(payload: MatchRequest, user=Depends(require_user)):
             "user_id": user_id,
             "resume_id": payload.resume_id,
             "job_id": job_id,
-            "semantic_score": round(result.get("semantic_score", 0), 4),
-            "skill_score": round(result.get("keyword_coverage", 0), 4),
+            "semantic_score": round(result.get("semantic_score", 0) / 100.0, 4),
+            "skill_score": round(result.get("keyword_coverage", 0) / 100.0, 4),
             "experience_score": round(exp_score, 4),
             "final_score": round(result.get("final_score", 0), 4),
             "resume_strength": strength,

@@ -4,7 +4,7 @@ Resume ↔ JD matcher utilizing NVIDIA NIM LLM.
 Optimized with truncated input and streamlined prompt.
 """
 
-from services.llm_service import prompt_nim_async
+from services.core.llm_service import prompt_nim_async
 
 async def match_resume_to_jd(resume_text: str, jd_text: str) -> dict:
     """

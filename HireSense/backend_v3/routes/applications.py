@@ -18,24 +18,26 @@ Flow (see blueprints/realtime_student_portal_plan.pdf):
 import asyncio
 import json as _json
 from io import BytesIO
-from zipfile import ZIP_DEFLATED, ZipFile
 from xml.sax.saxutils import escape
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
-from fastapi import APIRouter, File, UploadFile, BackgroundTasks, Form, HTTPException, Request, Depends
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
+from sklearn.metrics.pairwise import cosine_similarity
 
-from database import get_db, get_admin_db
-from services.pdf_parser import extract_text
-from services.storage_service import upload_resume_pdf
-from services.embedding_engine import generate_embedding
-from services.ats_scanner import scan_ats_compliance
-from services.skill_engine import calculate_skill_overlap, extract_skills
-from services.experience_engine import calculate_experience_score
-from services.resume_strength import compute_strength
-from services.scorer import compute_final_score, get_risk_level
+from database import get_admin_db, get_db
+from routes._http_errors import internal_error
 from routes.auth_dependency import require_user
+from services.core.embedding_engine import generate_embedding
+from services.core.pdf_parser import extract_text
+from services.core.storage_service import upload_resume_pdf
+from services.pipeline.ats_scanner import scan_ats_compliance
+from services.pipeline.experience_engine import calculate_experience_score
+from services.pipeline.resume_strength import compute_strength
+from services.pipeline.scorer import compute_final_score, get_risk_level
+from services.pipeline.skill_engine import (calculate_skill_overlap,
+                                            extract_skills)
 
 router = APIRouter()
 
@@ -211,16 +213,14 @@ def feed_job_detail(job_id: str):
 # ── Applicant applies to a job ────────────────────────────────────────────
 @router.post("/applications/apply")
 async def apply_to_job(
-    request: Request,
-    background_tasks: BackgroundTasks,
     job_id: str = Form(...),
     file: UploadFile = File(...),
+    user=Depends(require_user),
 ):
     """An applicant submits their resume against a published job."""
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF resumes are supported.")
 
-    user = require_user(request)
     applicant_id = str(user.id)
 
     db = get_admin_db()
@@ -279,10 +279,9 @@ async def apply_to_job(
             raise
         app_id = application.data[0]["id"]
 
-        # Fire the background screening engine
-        background_tasks.add_task(
-            process_applicant_application, app_id, resume_id, job_id, recruiter_id, raw_text
-        )
+        # Dispatch full screening pipeline to Celery worker
+        from worker.tasks import screen_applicant_task
+        screen_applicant_task.delay(app_id, resume_id, job_id, recruiter_id, raw_text)
 
         return {"application_id": app_id, "resume_id": resume_id, "status": "applied"}
 
@@ -291,7 +290,7 @@ async def apply_to_job(
     except Exception as e:
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"An internal error occurred during apply: {str(e)}")
+        raise internal_error("Apply failed", e, detail="An internal error occurred during apply.")
 
 
 # ── Applicant: my applications ────────────────────────────────────────────
