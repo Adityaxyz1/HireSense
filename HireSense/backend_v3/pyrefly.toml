@@ -1,0 +1,23 @@
+# Pyrefly language-server config (used by Antigravity).
+# Pin Pyrefly to the project's virtualenv so packages installed in
+# venv/Lib/site-packages (fastapi, redis, supabase, ...) resolve instead
+# of the global Python 3.13 interpreter.
+python-interpreter = "venv/Scripts/python.exe"
+
+# Treat backend_v3 as an import root so intra-project imports
+# (config, database, routes, services) resolve.
+search-path = ["."]
+
+# Don't type-check parked dead code.
+project-excludes = ["**/__pycache__/**", "**/zz_extra/**"]
+
+# The Supabase client (.data) and redis (.execute()) return loosely-typed
+# JSON unions, so Pyrefly can't tell that rows are dicts / counts are ints.
+# This produces hundreds of false positives on correct runtime code. Silence
+# those categories; structural checks (unbound-name, bad-assignment, etc.)
+# stay on to catch genuine issues.
+[errors]
+unsupported-operation = false
+bad-index = false
+missing-attribute = false
+bad-argument-type = false
